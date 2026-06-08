@@ -100,6 +100,7 @@ def test_doctor_report_cli_prints_copyable_report(capsys) -> None:
     assert exit_code in (0, 1)
     output = capsys.readouterr().out
     assert "A2SB Restorer diagnostic report" in output
+    assert "app_version:" in output
     assert "readiness:" in output
     assert "overall:" in output
     assert "next:" in output

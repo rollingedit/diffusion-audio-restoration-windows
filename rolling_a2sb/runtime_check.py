@@ -8,9 +8,20 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from . import paths
+from . import __version__, paths
 from .checkpoint_manager import validate_checkpoint_folder
 from .settings import load_settings
+
+
+def check_app() -> dict[str, Any]:
+    return {
+        "ok": True,
+        "name": "A2SB Restorer",
+        "version": __version__,
+        "install_dir": str(paths.app_install_dir()),
+        "data_dir": str(paths.app_data_dir()),
+        "logs_dir": str(paths.logs_dir()),
+    }
 
 
 def check_python() -> dict[str, Any]:
@@ -140,6 +151,7 @@ def check_checkpoints(mode: str | None = None, folder: Path | None = None, min_s
 
 def doctor(mode: str | None = None, checkpoint_min_size_bytes: int | None = None) -> dict[str, Any]:
     checks = {
+        "app": check_app(),
         "python": check_python(),
         "imports": check_imports(),
         "torch": check_torch_cuda(),
@@ -182,6 +194,7 @@ def readiness_summary(report: dict[str, Any]) -> dict[str, str]:
     nvidia_smi = report.get("nvidia_smi", {}) if isinstance(report.get("nvidia_smi"), dict) else {}
     return {
         "overall": "ready" if report.get("ok") else "not ready",
+        "app": "ok" if report.get("app", {}).get("ok") else "needs attention",
         "python": "ok" if report.get("python", {}).get("ok") else "needs attention",
         "torch": "ok" if torch_check.get("ok") else "needs attention",
         "cuda": "ok" if torch_check.get("cuda_available") else "needs attention",
@@ -195,7 +208,11 @@ def readiness_summary(report: dict[str, Any]) -> dict[str, str]:
 
 def diagnostic_text(report: dict[str, Any] | None = None) -> str:
     report = report or doctor()
-    lines = ["A2SB Restorer diagnostic report", f"overall: {'ok' if report.get('ok') else 'not ready'}"]
+    lines = ["A2SB Restorer diagnostic report"]
+    app_check = report.get("app", {}) if isinstance(report.get("app"), dict) else {}
+    if app_check.get("version"):
+        lines.append(f"app_version: {app_check['version']}")
+    lines.append(f"overall: {'ok' if report.get('ok') else 'not ready'}")
     lines.append("readiness:")
     for name, status in readiness_summary(report).items():
         lines.append(f"  {name}: {status}")

@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 from rolling_a2sb.runtime_check import (
     add_next_actions,
+    check_app,
     check_ffmpeg,
     check_imports,
     check_python,
@@ -10,6 +11,18 @@ from rolling_a2sb.runtime_check import (
     diagnostic_text,
     readiness_summary,
 )
+from rolling_a2sb import __version__
+
+
+def test_check_app_reports_version_and_paths() -> None:
+    result = check_app()
+
+    assert result["ok"] is True
+    assert result["name"] == "A2SB Restorer"
+    assert result["version"] == __version__
+    assert result["install_dir"]
+    assert result["data_dir"]
+    assert result["logs_dir"]
 
 
 def test_check_python_reports_supported_dev_python() -> None:
@@ -61,6 +74,7 @@ def test_check_ffmpeg_reports_missing_binary(monkeypatch, tmp_path) -> None:
 def test_diagnostic_text_includes_missing_checkpoints() -> None:
     report = {
         "ok": False,
+        "app": {"ok": True, "version": "0.1.0a0"},
         "python": {"ok": True},
         "checkpoints": {"ok": False, "missing": ["a.ckpt", "b.ckpt"]},
     }
@@ -68,6 +82,7 @@ def test_diagnostic_text_includes_missing_checkpoints() -> None:
     text = diagnostic_text(report)
 
     assert "overall: not ready" in text
+    assert "app_version: 0.1.0a0" in text
     assert "checkpoints: needs attention" in text
     assert "missing: a.ckpt, b.ckpt" in text
 
@@ -75,6 +90,7 @@ def test_diagnostic_text_includes_missing_checkpoints() -> None:
 def test_readiness_summary_reports_key_statuses() -> None:
     report = {
         "ok": False,
+        "app": {"ok": True},
         "python": {"ok": True},
         "torch": {"ok": False, "cuda_available": False},
         "nvidia_smi": {"ok": True},
@@ -87,6 +103,7 @@ def test_readiness_summary_reports_key_statuses() -> None:
     summary = readiness_summary(report)
 
     assert summary["overall"] == "not ready"
+    assert summary["app"] == "ok"
     assert summary["python"] == "ok"
     assert summary["cuda"] == "needs attention"
     assert summary["gpu"] == "ok"
@@ -97,6 +114,7 @@ def test_readiness_summary_reports_key_statuses() -> None:
 def test_diagnostic_text_includes_readiness_summary() -> None:
     report = {
         "ok": False,
+        "app": {"ok": True},
         "python": {"ok": True},
         "torch": {"ok": False, "cuda_available": False},
         "nvidia_smi": {"ok": False},
