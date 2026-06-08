@@ -156,6 +156,9 @@ def main(argv: list[str] | None = None) -> int:
             print(str(exc))
             print("Rerun with --trust-manual-checkpoints after confirming the source is trusted.")
             return 2
+        except RuntimeError as exc:
+            print(str(exc))
+            return 1
 
         if args.dry_run:
             print(

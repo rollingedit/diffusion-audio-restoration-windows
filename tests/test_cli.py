@@ -122,6 +122,21 @@ def test_restore_manual_checkpoint_requires_trust(tmp_path: Path, monkeypatch, c
     assert "PyTorch checkpoint files can execute code" in capsys.readouterr().out
 
 
+def test_restore_non_dry_run_prints_readiness_failure(tmp_path: Path, monkeypatch, capsys) -> None:
+    monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(tmp_path / "logs"))
+    monkeypatch.setattr("rolling_a2sb.cli.prepare_restore", lambda **kwargs: (_ for _ in ()).throw(
+        RuntimeError("Restore cannot start because setup is not ready: torch")
+    ))
+    audio = tmp_path / "short.wav"
+    write_wav(audio)
+
+    exit_code = main(["restore", "--input", str(audio)])
+
+    assert exit_code == 1
+    assert "Restore cannot start" in capsys.readouterr().out
+
+
 def test_reset_models_clears_checkpoint_settings(tmp_path: Path, monkeypatch, capsys) -> None:
     monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(tmp_path / "data"))
     monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(tmp_path / "logs"))

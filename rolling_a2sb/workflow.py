@@ -13,6 +13,7 @@ from .checkpoint_manager import (
 from .config_builder import RestoreConfigRequest, write_restore_config
 from .job import create_restore_job, with_config_path
 from .log import append_log
+from .runtime_check import diagnostic_text, doctor
 from .settings import load_settings, remember_input, update_settings
 from .worker import inference_command
 
@@ -54,6 +55,9 @@ def prepare_restore(
             checkpoint_manifest=None,
             trusted_manual_checkpoint_folder=True,
         )
+
+    if not dry_run:
+        require_runtime_ready(model_mode)
 
     validation = validate_checkpoint_folder(selected_checkpoint_folder, mode=model_mode)
     checkpoint_paths = checkpoint_paths_from_validation(validation)
@@ -99,3 +103,12 @@ def prepare_restore(
         config_path=str(config_path),
         command=command,
     )
+
+
+def require_runtime_ready(model_mode: str = "twosplit") -> None:
+    report = doctor(mode=model_mode)
+    required_checks = ["python", "imports", "torch", "ffmpeg", "ffprobe", "write_permissions", "checkpoints"]
+    failed = [name for name in required_checks if not report.get(name, {}).get("ok", False)]
+    if failed:
+        summary = ", ".join(failed)
+        raise RuntimeError(f"Restore cannot start because setup is not ready: {summary}\n\n{diagnostic_text(report)}")

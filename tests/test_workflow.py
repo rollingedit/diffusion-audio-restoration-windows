@@ -1,7 +1,7 @@
 from pathlib import Path
 import wave
 
-from rolling_a2sb.workflow import prepare_restore
+from rolling_a2sb.workflow import prepare_restore, require_runtime_ready
 
 
 def write_wav(path: Path) -> None:
@@ -60,3 +60,29 @@ def test_prepare_restore_requires_trust_for_manual_checkpoints(tmp_path: Path, m
         assert "execute code" in str(exc)
     else:
         raise AssertionError("manual checkpoint restore should require trust")
+
+
+def test_require_runtime_ready_blocks_failed_checks(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "rolling_a2sb.workflow.doctor",
+        lambda mode: {
+            "ok": False,
+            "python": {"ok": True},
+            "imports": {"ok": True},
+            "torch": {"ok": False, "error": "CUDA unavailable", "next_action": "Update driver."},
+            "ffmpeg": {"ok": True},
+            "ffprobe": {"ok": True},
+            "write_permissions": {"ok": True},
+            "checkpoints": {"ok": True},
+        },
+    )
+
+    try:
+        require_runtime_ready()
+    except RuntimeError as exc:
+        message = str(exc)
+        assert "Restore cannot start" in message
+        assert "torch" in message
+        assert "next: Update driver." in message
+    else:
+        raise AssertionError("restore should be blocked when runtime checks fail")
