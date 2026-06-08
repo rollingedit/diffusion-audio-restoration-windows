@@ -19,6 +19,7 @@ class RestoreConfigRequest:
     steps: int = 50
     model_mode: str = "twosplit"
     base_config: Path | None = None
+    require_input_exists: bool = True
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -85,9 +86,9 @@ def build_restore_config(request: RestoreConfigRequest) -> dict[str, Any]:
 def validate_restore_request(request: RestoreConfigRequest) -> None:
     input_audio = Path(request.input_audio)
     output_audio = Path(request.output_audio)
-    if not input_audio.exists():
+    if request.require_input_exists and not input_audio.exists():
         raise ValueError(f"input audio does not exist: {input_audio}")
-    if not input_audio.is_file():
+    if request.require_input_exists and not input_audio.is_file():
         raise ValueError(f"input audio is not a file: {input_audio}")
     if input_audio.resolve() == output_audio.resolve():
         raise ValueError("output audio path cannot equal input audio path")

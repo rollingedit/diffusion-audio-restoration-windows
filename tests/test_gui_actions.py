@@ -65,7 +65,7 @@ def test_prepare_restore_dry_run_returns_plan_and_log(tmp_path: Path, monkeypatc
     )
 
     assert Path(plan.log_path).exists()
+    assert plan.prepared_input_audio
     assert plan.partial_output_audio.endswith(".partial")
     assert "ensembled_inference_api.py" in " ".join(plan.command)
     assert '"partial_output_audio":' in restore_plan_text(plan)
-

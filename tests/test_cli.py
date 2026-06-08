@@ -77,6 +77,7 @@ def test_restore_dry_run_uses_saved_checkpoint_folder_and_writes_log(tmp_path: P
     assert exit_code == 0
     output = capsys.readouterr().out
     assert '"log":' in output
+    assert '"prepared_input":' in output
     assert '"partial_output":' in output
     assert '"command":' in output
     logs = list((data_dir / "jobs").glob("*/restore.log"))

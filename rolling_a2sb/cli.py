@@ -7,6 +7,7 @@ from pathlib import Path
 
 from . import paths
 from .audio_probe import audio_info_dict, probe_audio
+from .audio_prepare import prepare_audio
 from .checkpoint_manager import checkpoint_paths_from_validation, trusted_manual_checkpoint_warning, validate_checkpoint_folder
 from .config_builder import RestoreConfigRequest, write_restore_config
 from .downloader import build_download_plan, download_model
@@ -111,7 +112,6 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "restore":
-        probe_audio(args.input)
         settings = load_settings()
         checkpoint_folder = args.checkpoint_folder or (Path(settings.checkpoint_folder) if settings.checkpoint_folder else paths.models_dir())
         if args.checkpoint_folder:
@@ -129,20 +129,24 @@ def main(argv: list[str] | None = None) -> int:
         validation = validate_checkpoint_folder(checkpoint_folder, mode=args.model)
         checkpoint_paths = checkpoint_paths_from_validation(validation)
         job = create_restore_job(args.input, output_audio=args.output, steps=args.steps, model_mode=args.model)
+        prepared = prepare_audio(args.input, Path(job.job_dir), dry_run=args.dry_run)
         remember_input(args.input)
         append_log(Path(job.log_path), f"created restore job {job.job_id}")
         append_log(Path(job.log_path), f"input={Path(args.input).resolve()}")
+        append_log(Path(job.log_path), f"prepared_input={prepared.prepared_path}")
+        append_log(Path(job.log_path), f"audio_converted={prepared.converted}")
         append_log(Path(job.log_path), f"output={job.output_audio}")
         append_log(Path(job.log_path), f"partial_output={job.partial_output_audio}")
         append_log(Path(job.log_path), f"checkpoint_folder={Path(checkpoint_folder).resolve()}")
         config_path = write_restore_config(
             RestoreConfigRequest(
-                input_audio=args.input,
+                input_audio=prepared.prepared_path,
                 output_audio=Path(job.output_audio),
                 checkpoint_paths=checkpoint_paths,
                 job_dir=Path(job.job_dir),
                 steps=args.steps,
                 model_mode=args.model,
+                require_input_exists=not (args.dry_run and prepared.converted),
             )
         )
         job = with_config_path(job, config_path)
@@ -157,6 +161,9 @@ def main(argv: list[str] | None = None) -> int:
                         "job": job.job_id,
                         "job_dir": job.job_dir,
                         "log": job.log_path,
+                        "input": job.input_audio,
+                        "prepared_input": str(prepared.prepared_path),
+                        "audio_converted": prepared.converted,
                         "output": job.output_audio,
                         "partial_output": job.partial_output_audio,
                         "config": str(config_path),
