@@ -15,6 +15,7 @@ def test_runtime_scripts_exist() -> None:
         "scripts/smoke_restore.ps1",
         "scripts/build_launcher.ps1",
         "scripts/build_installer.ps1",
+        "scripts/release_status.ps1",
         "scripts/write_sha256sums.ps1",
     ]:
         assert (ROOT / rel_path).exists(), rel_path
@@ -74,15 +75,18 @@ def test_inno_installer_has_public_support_metadata() -> None:
     assert "AppUpdatesURL={#MyAppURL}/releases" in installer
 
 
-def test_license_placeholders_are_release_blockers() -> None:
-    for rel_path in [
-        "LICENSES/NVIDIA_A2SB_LICENSE.txt",
-        "LICENSES/FFMPEG_NOTICE.txt",
-        "LICENSES/PYTHON_NOTICE.txt",
-    ]:
+def test_license_notices_are_not_placeholders() -> None:
+    required_tokens = {
+        "LICENSES/NVIDIA_A2SB_LICENSE.txt": ["NVIDIA", "copyright", "not affiliated"],
+        "LICENSES/FFMPEG_NOTICE.txt": ["FFmpeg", "BtbN", "LGPL", "https://github.com/BtbN/FFmpeg-Builds"],
+        "LICENSES/PYTHON_NOTICE.txt": ["Python", "license", "https://www.python.org"],
+    }
+    for rel_path, tokens in required_tokens.items():
         text = (ROOT / rel_path).read_text(encoding="utf-8")
-        assert "Placeholder" in text
-        assert "Do not publish release artifacts" in text
+        assert "Placeholder" not in text
+        assert "Do not publish release artifacts" not in text
+        for token in tokens:
+            assert token in text
 
 
 def test_release_checklist_requires_no_checkpoint_release_assets() -> None:
@@ -147,7 +151,8 @@ def test_license_notices_document_attribution_and_non_affiliation() -> None:
     installer = (ROOT / "installer" / "a2sb-restorer.iss").read_text(encoding="utf-8")
 
     assert "not affiliated with or endorsed by NVIDIA" in notices
-    assert "RollingEdit A2SB Restorer is not affiliated with or endorsed by NVIDIA" in release_notes
+    assert "RollingEdit A2SB Restorer" in release_notes
+    assert "not affiliated with or endorsed by NVIDIA" in release_notes
     assert "preserve NVIDIA copyright" in notices
     assert 'Source: "..\\LICENSE-NOTICES.txt"; DestDir: "{app}"' in installer
 

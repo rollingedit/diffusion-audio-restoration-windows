@@ -2,7 +2,7 @@
 
 RollingEdit A2SB Restorer is intended to be a local Windows desktop app for restoring audio with NVIDIA's Audio-to-Audio Schrodinger Bridge checkpoints.
 
-This repository is not public-release-ready yet. Do not publish installer artifacts until the release checklist passes, placeholder license notices are replaced, and a real Windows CUDA smoke restore has produced a WAV.
+This repository is not public-release-ready yet. Do not publish installer artifacts until the release checklist passes, release notices are staged with the artifacts, and a real Windows CUDA smoke restore has produced a WAV.
 
 ## Current User Flow
 
@@ -56,7 +56,7 @@ The app should not include telemetry by default. Any future telemetry or update-
 
 ## Release Blockers
 
-- Replace placeholder license notice files in `LICENSES/`.
+- Validate license notice files in `LICENSES/` against the exact bundled runtime and FFmpeg artifacts.
 - Bundle or otherwise provide redistributable FFmpeg and ffprobe with correct notices.
 - Run `scripts/setup_runtime.ps1` successfully in the installed runtime.
 - Confirm `a2sb doctor --json` passes in the installed runtime.

@@ -1,22 +1,19 @@
 A2SB Restorer License Notices
 
-This file is a release-source placeholder and must be replaced with final notice text before publishing artifacts.
-
-Do not publish release artifacts while any file under `LICENSES/` contains placeholder text.
+RollingEdit A2SB Restorer wraps NVIDIA Audio-to-Audio Schrodinger Bridge / A2SB for a Windows-first local application. It is not affiliated with or endorsed by NVIDIA.
 
 Included notice sources:
 
-- `LICENSES/NVIDIA_A2SB_LICENSE.txt`
-- `LICENSES/FFMPEG_NOTICE.txt`
-- `LICENSES/PYTHON_NOTICE.txt`
-- `docs/LICENSE_NOTICES.md`
+- LICENSES/NVIDIA_A2SB_LICENSE.txt
+- LICENSES/FFMPEG_NOTICE.txt
+- LICENSES/PYTHON_NOTICE.txt
+- docs/LICENSE_NOTICES.md
+- LICENSE
 
-Required final release statements:
+NVIDIA A2SB source code remains under the NVIDIA Source Code License for A2SB. Official checkpoints are downloaded from nvidia/audio_to_audio_schrodinger_bridge on Hugging Face only after user confirmation or selected manually from a trusted local folder.
 
-- Preserve upstream NVIDIA A2SB copyright and license terms.
-- State that RollingEdit A2SB Restorer is not affiliated with or endorsed by NVIDIA.
-- Document the FFmpeg binary source and redistribution obligations.
-- Include Python/runtime notices where applicable.
-- State that user audio files stay local unless the user separately moves or uploads them.
-- State that internet access is only used when the user chooses setup/download actions that require it.
-- State that there is no telemetry by default.
+FFmpeg and ffprobe are redistributed separately from the application when bundled. Public builds should use BtbN FFmpeg Builds from https://github.com/BtbN/FFmpeg-Builds and preserve LGPL redistribution information.
+
+Python runtime components are licensed by the Python Software Foundation and other dependency owners. Public builds must preserve applicable Python and dependency notices.
+
+User audio files stay local. The app does not upload user audio and has no telemetry by default. Internet access is used only when the user chooses setup/download actions that require it.

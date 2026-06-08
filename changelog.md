@@ -22,6 +22,7 @@ This file is local coordination material unless the user explicitly decides to p
 - Added CLI `release-check` for release artifact validation and optional `SHA256SUMS.txt` regeneration.
 - Added CLI `release-status` and `scripts/release_status.ps1` so agents can inspect public-release blockers without treating the status report itself as a failed command.
 - Added grouped release blocker summaries to `release-status` so agents can choose the next public-release work package from the JSON report.
+- Replaced release-blocking license notice placeholders with conservative NVIDIA A2SB, FFmpeg, Python, privacy, and non-affiliation notices while leaving exact binary/version proof to release evidence.
 - Added tests for downloader behavior, audio probing, error mapping, and runtime-check diagnostics.
 - Added runtime setup, repair, doctor, smoke restore, launcher build, and installer build PowerShell scripts with dry-run support where appropriate.
 - Added GitHub Actions CI and manual release-validation workflows that run tests/validation without publishing artifacts.
@@ -179,9 +180,9 @@ This file is local coordination material unless the user explicitly decides to p
 
 ### Verified
 
-- `.\.venv\Scripts\python.exe -m pytest` passes with 196 tests.
+- `.\.venv\Scripts\python.exe -m pytest` passes with 199 tests.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --report` prints actionable next steps for missing Torch/checkpoints and sandboxed write permissions.
-- `powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist\installer -ValidateOnly` runs and correctly blocks release because artifacts are missing and license notices are placeholders.
+- `.\.venv\Scripts\python.exe -m rolling_a2sb.cli release-status --artifacts-dir dist\installer --licenses-dir LICENSES` reports the current blocker groups without any remaining license-notice category.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.
 - `powershell -ExecutionPolicy Bypass -File scripts/setup_runtime.ps1 -DryRun -Json` succeeds without modifying the runtime.
 

@@ -1,6 +1,11 @@
-Placeholder for Python runtime and dependency notices.
+Python Runtime Notice
 
-Before public release, document the Python runtime source and any required dependency notices for bundled or installed runtime components.
+The Windows application installs or uses a private Python runtime for the app-owned environment. It must not mutate the user's global Python installation.
 
-Do not publish release artifacts until this placeholder has been replaced.
+Official Python downloads:
+https://www.python.org
 
+Python license documentation:
+https://docs.python.org/3/license.html
+
+Python is licensed by the Python Software Foundation. Release evidence must record the exact Python runtime source/version used by the installer or runtime setup, and the release must preserve applicable Python and dependency license notices.

@@ -82,6 +82,6 @@ This command must fail if:
 - No release artifacts exist.
 - `SHA256SUMS.txt` is missing.
 - A checkpoint/model weight file is in the release folder.
-- License notice files still contain placeholders.
+- License notice files do not match the exact bundled runtime or FFmpeg artifacts.
 
-Replace all placeholder notice files before public release.
+Update notice files with the exact source, version, and redistribution details before public release.

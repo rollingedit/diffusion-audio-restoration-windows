@@ -61,7 +61,7 @@ Do not publish a release until every required item is checked with evidence. Rec
 - [ ] `scripts/release_status.ps1` reports zero blockers.
 - [ ] `a2sb release-check --artifacts-dir dist\installer --licenses-dir LICENSES` passes.
 - [ ] `SHA256SUMS.txt` is generated.
-- [ ] Release validation has no placeholder license notices.
+- [ ] Release validation has license notices matching the exact bundled runtime and FFmpeg artifacts.
 - [ ] GitHub release includes installer, SHA256 sums, Windows README, and license notices.
 - [ ] GitHub release does not include checkpoint files.
 

@@ -1,6 +1,10 @@
-Placeholder for FFmpeg redistribution notice.
+FFmpeg Notice
 
-Before public release, document the exact FFmpeg build source, license mode, and redistribution obligations for the bundled binaries.
+Public Windows builds should bundle ffmpeg.exe and ffprobe.exe from BtbN FFmpeg Builds using a Windows x64 LGPL build family.
 
-Do not publish release artifacts until this placeholder has been replaced.
+Approved build source:
+https://github.com/BtbN/FFmpeg-Builds
 
+Release evidence must record the exact FFmpeg build filename, source URL, and hash used for the installer. The intended build family is a win64 LGPL ZIP from BtbN, not a GPL or nonfree FFmpeg build.
+
+FFmpeg is licensed separately from RollingEdit A2SB Restorer. The release must preserve the FFmpeg license notice and provide the required LGPL redistribution information for the bundled binaries.
