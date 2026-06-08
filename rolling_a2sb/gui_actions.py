@@ -118,6 +118,11 @@ def parse_restore_step_progress(line: str) -> tuple[int, int] | None:
     return None
 
 
+def is_checkpoint_setup_error(text: str) -> bool:
+    lowered = text.lower()
+    return "model checkpoints are missing" in lowered or "checkpoint validation failed" in lowered
+
+
 def select_checkpoint_folder_text(
     folder: Path,
     mode: str = "twosplit",

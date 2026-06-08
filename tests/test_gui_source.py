@@ -31,6 +31,11 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
     assert "Restore failed." in text
     assert "Cancel" in text
     assert "cancel_restore" in text
+    assert "self.restore_setup_button = QPushButton(\"Model Setup\")" in text
+    assert "self.restore_setup_button.clicked.connect(self.open_model_setup_dialog)" in text
+    assert "show_restore_error" in text
+    assert "is_checkpoint_setup_error(text)" in text
+    assert "Use Model Setup to download the recommended model" in text
     assert "should_cancel=lambda: self.cancel_requested" in text
     assert "Cancel requested. Waiting for restore process to stop..." in text
     assert "restore_progress.show()" in text

@@ -15,6 +15,7 @@ from .gui_actions import (
     execute_restore_text,
     latest_restore_log_text,
     model_download_confirmation_text,
+    is_checkpoint_setup_error,
     parse_restore_step_progress,
     prepare_restore_dry_run,
     restore_plan_text,
@@ -183,6 +184,8 @@ def run_gui() -> int:
             self.restore_button = QPushButton("Restore")
             self.cancel_button = QPushButton("Cancel")
             self.cancel_button.setEnabled(False)
+            self.restore_setup_button = QPushButton("Model Setup")
+            self.restore_setup_button.setEnabled(False)
             self.open_output_button = QPushButton("Open Output Folder")
             self.open_output_button.setEnabled(False)
             self.restore_another_button = QPushButton("Restore Another File")
@@ -195,6 +198,7 @@ def run_gui() -> int:
             option_row.addWidget(self.plan_button)
             option_row.addWidget(self.restore_button)
             option_row.addWidget(self.cancel_button)
+            option_row.addWidget(self.restore_setup_button)
             option_row.addWidget(self.open_output_button)
             option_row.addWidget(self.restore_another_button)
             layout.addLayout(option_row)
@@ -216,6 +220,7 @@ def run_gui() -> int:
             self.plan_button.clicked.connect(self.plan_restore)
             self.restore_button.clicked.connect(self.start_restore)
             self.cancel_button.clicked.connect(self.cancel_restore)
+            self.restore_setup_button.clicked.connect(self.open_model_setup_dialog)
             self.open_output_button.clicked.connect(self.open_output_folder)
             self.restore_another_button.clicked.connect(self.restore_another_file)
             return tab
@@ -465,9 +470,10 @@ def run_gui() -> int:
                     trust_manual_checkpoints=self.trust_check.isChecked(),
                 )
             except Exception as exc:
-                self.restore_output.setPlainText(format_user_error(exc))
+                self.show_restore_error(format_user_error(exc))
                 return
             self.restore_output.setPlainText(restore_plan_text(plan))
+            self.restore_setup_button.setEnabled(False)
 
         def start_restore(self) -> None:
             audio_path = self.current_input_audio()
@@ -477,6 +483,7 @@ def run_gui() -> int:
             self.restore_button.setEnabled(False)
             self.plan_button.setEnabled(False)
             self.cancel_button.setEnabled(True)
+            self.restore_setup_button.setEnabled(False)
             self.open_output_button.setEnabled(False)
             self.restore_progress.setRange(0, 0)
             self.restore_progress.setTextVisible(False)
@@ -526,8 +533,16 @@ def run_gui() -> int:
             self.refresh_latest_log()
 
         def restore_failed(self, text: str) -> None:
-            self.restore_output.setPlainText(f"Restore failed.\n\n{text}")
+            self.show_restore_error(f"Restore failed.\n\n{text}")
             self.refresh_latest_log()
+
+        def show_restore_error(self, text: str) -> None:
+            if is_checkpoint_setup_error(text):
+                text = f"{text}\n\nUse Model Setup to download the recommended model or select a trusted checkpoint folder."
+                self.restore_setup_button.setEnabled(True)
+            else:
+                self.restore_setup_button.setEnabled(False)
+            self.restore_output.setPlainText(text)
 
         def restore_thread_finished(self) -> None:
             self.restore_button.setEnabled(True)
@@ -545,6 +560,7 @@ def run_gui() -> int:
             self.restore_output.clear()
             self.last_output_folder = None
             self.open_output_button.setEnabled(False)
+            self.restore_setup_button.setEnabled(False)
             self.input_edit.setFocus()
 
         def current_input_audio(self) -> Path | None:

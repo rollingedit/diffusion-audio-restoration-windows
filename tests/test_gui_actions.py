@@ -10,6 +10,7 @@ from rolling_a2sb.gui_actions import (
     execute_restore_text,
     latest_restore_log_text,
     model_download_confirmation_text,
+    is_checkpoint_setup_error,
     parse_restore_step_progress,
     prepare_restore_dry_run,
     restore_plan_text,
@@ -139,6 +140,12 @@ def test_parse_restore_step_progress_ignores_invalid_lines() -> None:
     assert parse_restore_step_progress("loading model") is None
     assert parse_restore_step_progress("step 12/10") is None
     assert parse_restore_step_progress("step 1/0") is None
+
+
+def test_checkpoint_setup_error_detection() -> None:
+    assert is_checkpoint_setup_error("Model checkpoints are missing\nmissing a.ckpt")
+    assert is_checkpoint_setup_error("Checkpoint validation failed: missing b.ckpt")
+    assert not is_checkpoint_setup_error("NVIDIA CUDA is not available")
 
 
 def test_prepare_restore_dry_run_returns_plan_and_log(tmp_path: Path, monkeypatch) -> None:
