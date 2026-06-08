@@ -23,10 +23,14 @@ This file is local coordination material unless the user explicitly decides to p
 - Added runtime setup, repair, doctor, smoke restore, launcher build, and installer build PowerShell scripts with dry-run support where appropriate.
 - Added user guide, troubleshooting guide, release checklist, license notices, setup disclosure, and license placeholder files that block public release until replaced.
 - Added release scaffolding tests for required docs/scripts and release-blocking license placeholders.
+- Added bootstrap launcher source and PyInstaller spec that run the private runtime and launch `rolling_a2sb.app`.
+- Added Inno Setup installer skeleton for per-user install, app files, scripts, docs, license notices, and Start Menu shortcuts without checkpoint bundling.
+- Added minimal `rolling_a2sb.app` and PySide6 GUI shell with doctor status, diagnostics, and model/log folder actions.
+- Added launcher, installer, and app entrypoint tests.
 
 ### Verified
 
-- `.\.venv\Scripts\python.exe -m pytest` passes with 32 tests.
+- `.\.venv\Scripts\python.exe -m pytest` passes with 36 tests.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.
 - `powershell -ExecutionPolicy Bypass -File scripts/setup_runtime.ps1 -DryRun -Json` succeeds without modifying the runtime.
 

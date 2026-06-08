@@ -22,9 +22,13 @@ if (-not (Test-Path $Launcher)) {
 }
 
 if (Test-Path $Spec) {
-    & $RuntimePython -m PyInstaller $Spec --noconfirm
+    Push-Location (Join-Path $AppRoot "launcher")
+    try {
+        & $RuntimePython -m PyInstaller "launcher.spec" --noconfirm
+    } finally {
+        Pop-Location
+    }
 } else {
     & $RuntimePython -m PyInstaller $Launcher --noconfirm --onedir --name "A2SB Restorer"
 }
 exit $LASTEXITCODE
-
