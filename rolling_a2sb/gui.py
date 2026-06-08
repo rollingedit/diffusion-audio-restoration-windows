@@ -18,6 +18,7 @@ from .gui_actions import (
     is_checkpoint_setup_error,
     parse_restore_step_progress,
     prepare_restore_dry_run,
+    repair_runtime_text,
     restore_plan_text,
     select_checkpoint_folder_text,
 )
@@ -77,10 +78,24 @@ def run_gui() -> int:
             except Exception as exc:
                 self.restore_failed.emit(format_user_error(exc))
 
+    class RuntimeRepairThread(QThread):
+        repair_line = Signal(str, str)
+        repair_finished = Signal(str)
+        repair_failed = Signal(str)
+
+        def run(self) -> None:
+            try:
+                self.repair_finished.emit(
+                    repair_runtime_text(on_line=lambda stream_name, line: self.repair_line.emit(stream_name, line))
+                )
+            except Exception as exc:
+                self.repair_failed.emit(format_user_error(exc))
+
     class MainWindow(QMainWindow):
         def __init__(self) -> None:
             super().__init__()
             self.restore_thread = None
+            self.repair_thread = None
             self.last_output_folder: Path | None = None
             self.setWindowTitle("A2SB Restorer")
             self.resize(900, 620)
@@ -122,6 +137,7 @@ def run_gui() -> int:
             self.model_setup_button = QPushButton("Model Setup")
             self.download_plan_button = QPushButton("Model Download Plan")
             self.download_model_button = QPushButton("Download Recommended Model")
+            self.repair_runtime_button = QPushButton("Repair Runtime")
             self.copy_button = QPushButton("Copy Diagnostic")
             self.models_button = QPushButton("Open Models Folder")
             self.logs_button = QPushButton("Open Logs Folder")
@@ -129,6 +145,7 @@ def run_gui() -> int:
             button_row.addWidget(self.model_setup_button)
             button_row.addWidget(self.download_plan_button)
             button_row.addWidget(self.download_model_button)
+            button_row.addWidget(self.repair_runtime_button)
             button_row.addWidget(self.copy_button)
             button_row.addWidget(self.models_button)
             button_row.addWidget(self.logs_button)
@@ -143,6 +160,7 @@ def run_gui() -> int:
             self.model_setup_button.clicked.connect(self.open_model_setup_dialog)
             self.download_plan_button.clicked.connect(self.show_download_plan)
             self.download_model_button.clicked.connect(self.confirm_and_download_model)
+            self.repair_runtime_button.clicked.connect(self.start_runtime_repair)
             self.copy_button.clicked.connect(self.copy_report)
             self.models_button.clicked.connect(lambda: self.open_folder(paths.models_dir()))
             self.logs_button.clicked.connect(lambda: self.open_folder(paths.logs_dir()))
@@ -381,6 +399,29 @@ def run_gui() -> int:
                 self.refresh_report()
             except Exception as exc:
                 self.report.setPlainText(format_user_error(exc))
+
+        def start_runtime_repair(self) -> None:
+            self.repair_runtime_button.setEnabled(False)
+            self.report.setPlainText("Repairing runtime...\n")
+            self.repair_thread = RuntimeRepairThread()
+            self.repair_thread.repair_line.connect(self.repair_line_received)
+            self.repair_thread.repair_finished.connect(self.repair_finished)
+            self.repair_thread.repair_failed.connect(self.repair_failed)
+            self.repair_thread.finished.connect(self.repair_thread_finished)
+            self.repair_thread.start()
+
+        def repair_line_received(self, stream_name: str, line: str) -> None:
+            self.report.append(f"{stream_name}: {line}")
+
+        def repair_finished(self, text: str) -> None:
+            self.report.setPlainText(f"Runtime repair complete.\n\n{text}")
+            self.status.setText("Runtime repair complete. Run Doctor to recheck setup.")
+
+        def repair_failed(self, text: str) -> None:
+            self.report.setPlainText(f"Runtime repair failed.\n\n{text}")
+
+        def repair_thread_finished(self) -> None:
+            self.repair_runtime_button.setEnabled(True)
 
         def copy_report(self) -> None:
             QApplication.clipboard().setText(self.report.toPlainText())

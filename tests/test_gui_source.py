@@ -45,6 +45,10 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
     assert "restore_progress.hide()" in text
     assert "start_restore" in text
     assert "Download Recommended Model" in text
+    assert "Repair Runtime" in text
+    assert "RuntimeRepairThread" in text
+    assert "repair_runtime_text" in text
+    assert "self.repair_runtime_button.clicked.connect(self.start_runtime_repair)" in text
     assert "Use Existing Checkpoint Folder" in text
     assert "select_checkpoint_folder_text" in text
     assert "current_model_mode" in text

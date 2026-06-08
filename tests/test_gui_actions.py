@@ -13,9 +13,11 @@ from rolling_a2sb.gui_actions import (
     is_checkpoint_setup_error,
     parse_restore_step_progress,
     prepare_restore_dry_run,
+    repair_runtime_text,
     restore_plan_text,
     select_checkpoint_folder_text,
 )
+from rolling_a2sb.subprocess_runner import CommandResult
 
 
 def write_wav(path: Path) -> None:
@@ -128,6 +130,29 @@ def test_latest_restore_log_text_reads_newest_log(tmp_path: Path) -> None:
 
     assert "Latest restore log:" in text
     assert "new" in text
+
+
+def test_repair_runtime_text_runs_repair_script_without_shell(monkeypatch) -> None:
+    seen = {}
+
+    def fake_run_command_streaming(args, cwd, on_line=None):
+        seen["args"] = list(args)
+        seen["cwd"] = cwd
+        if on_line:
+            on_line("stdout", "repairing")
+        return CommandResult(returncode=0, stdout='{"ok":true}\n', stderr="")
+
+    monkeypatch.setattr("rolling_a2sb.gui_actions.run_command_streaming", fake_run_command_streaming)
+    lines = []
+
+    text = repair_runtime_text(on_line=lambda stream, line: lines.append((stream, line)))
+
+    assert seen["args"][:4] == ["powershell.exe", "-ExecutionPolicy", "Bypass", "-File"]
+    assert str(seen["args"][4]).endswith("scripts\\repair_runtime.ps1")
+    assert "-Json" in seen["args"]
+    assert lines == [("stdout", "repairing")]
+    assert '"ok": true' in text
+    assert '"returncode": 0' in text
 
 
 def test_parse_restore_step_progress_recognizes_common_step_lines() -> None:

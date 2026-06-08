@@ -10,6 +10,7 @@ from .checkpoint_manager import select_manual_checkpoint_folder
 from .downloader import build_download_plan, download_model
 from . import paths
 from .runtime_check import diagnostic_text, doctor
+from .subprocess_runner import run_command_streaming
 from .workflow import RestorePreparation as DryRunRestorePlan
 from .workflow import execute_restore, prepare_restore
 
@@ -104,6 +105,26 @@ def latest_restore_log_text(log_root: Path | None = None) -> str:
         return "No restore logs found."
     latest = logs[0]
     return f"Latest restore log: {latest}\n\n{latest.read_text(encoding='utf-8', errors='replace')}"
+
+
+def repair_runtime_text(on_line: LineCallback | None = None) -> str:
+    script = paths.app_install_dir() / "scripts" / "repair_runtime.ps1"
+    if not script.exists():
+        raise FileNotFoundError(f"Repair script was not found: {script}")
+    result = run_command_streaming(
+        ["powershell.exe", "-ExecutionPolicy", "Bypass", "-File", script, "-Json"],
+        cwd=paths.app_install_dir(),
+        on_line=on_line,
+    )
+    return json.dumps(
+        {
+            "ok": result.returncode == 0,
+            "returncode": result.returncode,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+        },
+        indent=2,
+    )
 
 
 def parse_restore_step_progress(line: str) -> tuple[int, int] | None:
