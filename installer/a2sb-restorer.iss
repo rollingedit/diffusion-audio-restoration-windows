@@ -32,6 +32,8 @@ Source: "..\requirements\*"; DestDir: "{app}\requirements"; Flags: recursesubdir
 Source: "..\scripts\*"; DestDir: "{app}\scripts"; Flags: recursesubdirs ignoreversion
 Source: "..\docs\*"; DestDir: "{app}\docs"; Flags: recursesubdirs ignoreversion
 Source: "..\LICENSES\*"; DestDir: "{app}\LICENSES"; Flags: recursesubdirs ignoreversion
+Source: "..\bin\ffmpeg.exe"; DestDir: "{app}\bin"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "..\bin\ffprobe.exe"; DestDir: "{app}\bin"; Flags: ignoreversion skipifsourcedoesntexist
 Source: "..\A2SB_lightning_module.py"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\A2SB_lightning_module_api.py"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\audio_utils.py"; DestDir: "{app}"; Flags: ignoreversion
@@ -57,4 +59,3 @@ Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\s
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\runtime"
-

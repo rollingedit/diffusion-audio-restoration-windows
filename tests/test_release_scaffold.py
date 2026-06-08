@@ -77,6 +77,18 @@ def test_license_notices_document_attribution_and_non_affiliation() -> None:
     assert "preserve NVIDIA copyright" in notices
 
 
+def test_ffmpeg_release_source_and_installer_payload_are_documented() -> None:
+    notices = (ROOT / "docs" / "LICENSE_NOTICES.md").read_text(encoding="utf-8")
+    installer = (ROOT / "installer" / "a2sb-restorer.iss").read_text(encoding="utf-8")
+
+    assert "BtbN FFmpeg Builds" in notices
+    assert "win64-lgpl" in notices
+    assert "not nonfree, not GPL" in notices
+    assert 'Source: "..\\bin\\ffmpeg.exe"; DestDir: "{app}\\bin"' in installer
+    assert 'Source: "..\\bin\\ffprobe.exe"; DestDir: "{app}\\bin"' in installer
+    assert "skipifsourcedoesntexist" in installer
+
+
 def test_upstream_audit_documents_bypassed_research_assumptions() -> None:
     text = (ROOT / "docs" / "UPSTREAM_AUDIT.md").read_text(encoding="utf-8")
 

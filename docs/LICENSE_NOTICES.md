@@ -32,7 +32,18 @@ PyTorch `.ckpt` files can execute code when loaded. Manual checkpoint selection 
 
 ## FFmpeg
 
-If FFmpeg binaries are redistributed, include a notice and comply with the selected build's license obligations.
+Public Windows releases should bundle FFmpeg and ffprobe from the BtbN FFmpeg Builds project, using the Windows x64 LGPL static release build family.
+
+Planned build family:
+
+```text
+https://github.com/BtbN/FFmpeg-Builds
+win64-lgpl release build, not nonfree, not GPL
+```
+
+The app only needs local audio probing/conversion for WAV, MP3, and FLAC restore preparation. Do not switch to a GPL or nonfree FFmpeg build unless the release license posture is reviewed first.
+
+Before public release, replace the placeholder notice with the exact FFmpeg version/build filename, upstream source URL, license text, source-code offer or link, and any required redistribution notices for the bundled binaries.
 
 The release package should include:
 
