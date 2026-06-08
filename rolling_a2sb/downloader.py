@@ -75,7 +75,11 @@ def download_model(
     force: bool = False,
     min_size_bytes: int = 2_000_000_000,
     hf_download: Callable[..., str] | None = None,
+    retries: int = 3,
 ) -> DownloadResult:
+    if retries < 1:
+        raise ValueError("retries must be at least 1")
+
     plan = build_download_plan(mode=mode, target_dir=target_dir)
     if not plan.enough_space and not force:
         raise OSError(
@@ -87,12 +91,12 @@ def download_model(
     downloaded: list[Path] = []
     for index, filename in enumerate(plan.filenames, start=1):
         _emit(progress, f"Downloading checkpoint {index} of {len(plan.filenames)}: {Path(filename).name}")
-        path = downloader(
-            repo_id=plan.repo_id,
+        path = _download_with_retries(
+            downloader,
             filename=filename,
-            local_dir=str(plan.target_dir),
-            local_dir_use_symlinks=False,
-            resume_download=True,
+            plan=plan,
+            retries=retries,
+            progress=progress,
         )
         downloaded.append(Path(path))
 
@@ -125,6 +129,31 @@ def _load_hf_download() -> Callable[..., str]:
     except Exception as exc:
         raise ImportError("huggingface-hub is required to download model checkpoints") from exc
     return hf_hub_download
+
+
+def _download_with_retries(
+    downloader: Callable[..., str],
+    filename: str,
+    plan: DownloadPlan,
+    retries: int,
+    progress: ProgressCallback | None,
+) -> str:
+    last_error: Exception | None = None
+    for attempt in range(1, retries + 1):
+        try:
+            return downloader(
+                repo_id=plan.repo_id,
+                filename=filename,
+                local_dir=str(plan.target_dir),
+                local_dir_use_symlinks=False,
+                resume_download=True,
+            )
+        except Exception as exc:
+            last_error = exc
+            if attempt >= retries:
+                break
+            _emit(progress, f"Download failed for {Path(filename).name}; retrying {attempt + 1} of {retries}: {exc}")
+    raise RuntimeError(f"Failed to download {filename} after {retries} attempts: {last_error}") from last_error
 
 
 def _emit(progress: ProgressCallback | None, message: str) -> None:

@@ -30,6 +30,7 @@ def main(argv: list[str] | None = None) -> int:
     download_parser.add_argument("--yes", action="store_true", help="Confirm the multi-GB download.")
     download_parser.add_argument("--no-hash", action="store_true", help="Skip SHA256 calculation after download.")
     download_parser.add_argument("--force", action="store_true", help="Skip the free-space guard.")
+    download_parser.add_argument("--retries", type=int, default=3, help="Attempts per checkpoint download.")
 
     select_parser = subparsers.add_parser("select-checkpoints")
     select_parser.add_argument("folder", type=Path)
@@ -98,6 +99,7 @@ def main(argv: list[str] | None = None) -> int:
             target_dir=args.target_dir,
             force=args.force,
             compute_hashes=not args.no_hash,
+            retries=args.retries,
             progress=lambda message: print(message, flush=True),
         )
         print(json.dumps({"ok": result.validation.ok, "manifest": str(result.manifest_path)}, indent=2))

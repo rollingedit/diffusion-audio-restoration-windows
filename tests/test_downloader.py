@@ -45,3 +45,45 @@ def test_download_model_uses_hf_download_and_writes_manifest(tmp_path: Path, mon
     assert result.manifest_path.exists()
     assert "Downloading checkpoint 1 of 2" in progress[0]
     assert progress[-1] == "Model download complete"
+
+
+def test_download_model_retries_transient_failure(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(tmp_path / "logs"))
+    attempts: dict[str, int] = {}
+    progress: list[str] = []
+    target = tmp_path / "models"
+
+    def flaky_download(**kwargs) -> str:
+        filename = kwargs["filename"]
+        attempts[filename] = attempts.get(filename, 0) + 1
+        if attempts[filename] == 1:
+            raise ConnectionError("temporary network failure")
+        path = target / filename
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"x" * 16)
+        return str(path)
+
+    result = download_model(
+        mode="twosplit",
+        target_dir=target,
+        progress=progress.append,
+        force=True,
+        compute_hashes=False,
+        min_size_bytes=1,
+        hf_download=flaky_download,
+        retries=2,
+    )
+
+    assert result.validation.ok
+    assert all(count == 2 for count in attempts.values())
+    assert any("retrying 2 of 2" in message for message in progress)
+
+
+def test_download_model_rejects_zero_retries(tmp_path: Path) -> None:
+    try:
+        download_model(target_dir=tmp_path, force=True, hf_download=lambda **kwargs: "", retries=0)
+    except ValueError as exc:
+        assert "retries" in str(exc)
+    else:
+        raise AssertionError("download retries must be positive")
