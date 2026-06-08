@@ -45,3 +45,17 @@ def test_launcher_and_installer_do_not_use_one_file_torch_packaging() -> None:
     assert "*.pt" not in installer
     assert "*.pth" not in installer
     assert "*.safetensors" not in installer
+
+
+def test_product_path_bypasses_upstream_shell_upsample_wrapper() -> None:
+    product_files = list((ROOT / "rolling_a2sb").glob("*.py")) + [
+        ROOT / "launcher" / "launcher.py",
+    ]
+    combined = "\n".join(path.read_text(encoding="utf-8") for path in product_files)
+    worker = (ROOT / "rolling_a2sb" / "worker.py").read_text(encoding="utf-8")
+    upstream_wrapper = (ROOT / "inference" / "A2SB_upsample_api.py").read_text(encoding="utf-8").replace(" ", "")
+
+    assert "A2SB_upsample_api" not in combined
+    assert "shell=True" not in combined.replace(" ", "")
+    assert "ensembled_inference_api.py" in worker
+    assert "Popen(cmd,stdout=PIPE,stderr=PIPE,shell=True)" in upstream_wrapper
