@@ -99,6 +99,8 @@ def write_release_checklist(root: Path, complete: bool = True) -> Path:
 
 def write_release_source_tree(root: Path) -> None:
     for relative_path in [
+        ".github/workflows/ci.yml",
+        ".github/workflows/release-validate.yml",
         "rolling_a2sb/cli.py",
         "rolling_a2sb/app.py",
         "rolling_a2sb/gui.py",

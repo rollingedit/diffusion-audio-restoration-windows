@@ -62,6 +62,8 @@ REQUIRED_INSTALLER_METADATA_TOKENS = [
     'Type: filesandordirs; Name: "{app}\\runtime"',
 ]
 REQUIRED_RELEASE_SOURCE_PATHS = [
+    ".github/workflows/ci.yml",
+    ".github/workflows/release-validate.yml",
     "rolling_a2sb/cli.py",
     "rolling_a2sb/app.py",
     "rolling_a2sb/gui.py",

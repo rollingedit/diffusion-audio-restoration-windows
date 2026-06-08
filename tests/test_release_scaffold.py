@@ -20,6 +20,24 @@ def test_runtime_scripts_exist() -> None:
         assert (ROOT / rel_path).exists(), rel_path
 
 
+def test_github_workflows_are_safe_and_non_publishing() -> None:
+    ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    release_validate = (ROOT / ".github" / "workflows" / "release-validate.yml").read_text(encoding="utf-8")
+
+    assert "python -m pytest" in ci
+    assert "pull_request:" in ci
+    assert "push:" in ci
+    assert "workflow_dispatch:" in release_validate
+    assert "-ValidateOnly" in release_validate
+    assert "write_sha256sums.ps1" in release_validate
+
+    release_lower = release_validate.lower()
+    assert "upload-artifact" not in release_lower
+    assert "gh release" not in release_lower
+    assert "softprops/action-gh-release" not in release_lower
+    assert "contents: write" not in release_lower
+
+
 def test_release_docs_exist() -> None:
     for rel_path in [
         "README-WINDOWS.md",
