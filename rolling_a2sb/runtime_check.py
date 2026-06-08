@@ -177,9 +177,28 @@ def doctor_json(**kwargs: Any) -> str:
     return json.dumps(doctor(**kwargs), indent=2)
 
 
+def readiness_summary(report: dict[str, Any]) -> dict[str, str]:
+    torch_check = report.get("torch", {}) if isinstance(report.get("torch"), dict) else {}
+    nvidia_smi = report.get("nvidia_smi", {}) if isinstance(report.get("nvidia_smi"), dict) else {}
+    return {
+        "overall": "ready" if report.get("ok") else "not ready",
+        "python": "ok" if report.get("python", {}).get("ok") else "needs attention",
+        "torch": "ok" if torch_check.get("ok") else "needs attention",
+        "cuda": "ok" if torch_check.get("cuda_available") else "needs attention",
+        "gpu": "ok" if nvidia_smi.get("ok") or torch_check.get("gpu_name") else "needs attention",
+        "ffmpeg": "ok" if report.get("ffmpeg", {}).get("ok") else "needs attention",
+        "ffprobe": "ok" if report.get("ffprobe", {}).get("ok") else "needs attention",
+        "checkpoints": "ok" if report.get("checkpoints", {}).get("ok") else "needs attention",
+        "write_permissions": "ok" if report.get("write_permissions", {}).get("ok") else "needs attention",
+    }
+
+
 def diagnostic_text(report: dict[str, Any] | None = None) -> str:
     report = report or doctor()
     lines = ["A2SB Restorer diagnostic report", f"overall: {'ok' if report.get('ok') else 'not ready'}"]
+    lines.append("readiness:")
+    for name, status in readiness_summary(report).items():
+        lines.append(f"  {name}: {status}")
     for name, value in report.items():
         if name == "ok":
             continue

@@ -98,10 +98,11 @@ This file is local coordination material unless the user explicitly decides to p
 - Added release validation that requires the Windows setup EXE, Windows README, and license notices artifact before a release folder can pass.
 - Added GUI restore completion polish with visible indeterminate progress, explicit complete/failed states, and a Restore Another File reset action.
 - Documented the planned LGPL Windows x64 FFmpeg build source and added optional installer payload entries for `ffmpeg.exe` and `ffprobe.exe`.
+- Added an explicit doctor readiness summary for overall, Python, Torch, CUDA, GPU, FFmpeg, checkpoints, and write-permission status.
 
 ### Verified
 
-- `.\.venv\Scripts\python.exe -m pytest` passes with 101 tests.
+- `.\.venv\Scripts\python.exe -m pytest` passes with 103 tests.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --report` prints actionable next steps for missing Torch/checkpoints and sandboxed write permissions.
 - `powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist\installer -ValidateOnly` runs and correctly blocks release because artifacts are missing and license notices are placeholders.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.

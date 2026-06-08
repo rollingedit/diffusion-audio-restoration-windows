@@ -8,6 +8,7 @@ from rolling_a2sb.runtime_check import (
     check_python,
     check_torch_cuda,
     diagnostic_text,
+    readiness_summary,
 )
 
 
@@ -69,6 +70,48 @@ def test_diagnostic_text_includes_missing_checkpoints() -> None:
     assert "overall: not ready" in text
     assert "checkpoints: needs attention" in text
     assert "missing: a.ckpt, b.ckpt" in text
+
+
+def test_readiness_summary_reports_key_statuses() -> None:
+    report = {
+        "ok": False,
+        "python": {"ok": True},
+        "torch": {"ok": False, "cuda_available": False},
+        "nvidia_smi": {"ok": True},
+        "ffmpeg": {"ok": True},
+        "ffprobe": {"ok": True},
+        "checkpoints": {"ok": False},
+        "write_permissions": {"ok": True},
+    }
+
+    summary = readiness_summary(report)
+
+    assert summary["overall"] == "not ready"
+    assert summary["python"] == "ok"
+    assert summary["cuda"] == "needs attention"
+    assert summary["gpu"] == "ok"
+    assert summary["checkpoints"] == "needs attention"
+    assert summary["write_permissions"] == "ok"
+
+
+def test_diagnostic_text_includes_readiness_summary() -> None:
+    report = {
+        "ok": False,
+        "python": {"ok": True},
+        "torch": {"ok": False, "cuda_available": False},
+        "nvidia_smi": {"ok": False},
+        "ffmpeg": {"ok": True},
+        "ffprobe": {"ok": True},
+        "checkpoints": {"ok": False, "missing": ["a.ckpt"]},
+        "write_permissions": {"ok": True},
+    }
+
+    text = diagnostic_text(report)
+
+    assert "readiness:" in text
+    assert "  python: ok" in text
+    assert "  cuda: needs attention" in text
+    assert "  checkpoints: needs attention" in text
 
 
 def test_next_actions_added_to_failed_checks() -> None:
