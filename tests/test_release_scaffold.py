@@ -15,6 +15,7 @@ def test_runtime_scripts_exist() -> None:
         "scripts/smoke_restore.ps1",
         "scripts/build_launcher.ps1",
         "scripts/build_installer.ps1",
+        "scripts/generate_icon.ps1",
         "scripts/release_status.ps1",
         "scripts/write_sha256sums.ps1",
     ]:
@@ -27,6 +28,13 @@ def test_cuda_runtime_lockfile_is_pinned() -> None:
     for requirement in ["torch==2.2.2+cu121", "torchaudio==2.2.2+cu121", "numpy==1.26.4"]:
         assert requirement in text
     assert "https://download.pytorch.org/whl/cu121" in text
+
+
+def test_generated_installer_icon_exists() -> None:
+    icon = ROOT / "installer" / "assets" / "app.ico"
+
+    assert icon.exists()
+    assert icon.read_bytes().startswith(b"\x00\x00\x01\x00")
 
 
 def test_github_workflows_are_safe_and_non_publishing() -> None:

@@ -76,6 +76,7 @@ REQUIRED_RELEASE_SOURCE_PATHS = [
     "scripts/build_installer.ps1",
     "scripts/smoke_restore.ps1",
     "scripts/doctor.ps1",
+    "scripts/generate_icon.ps1",
     "scripts/release_status.ps1",
     "scripts/write_sha256sums.ps1",
     "configs/windows/base_twosplit_windows.yaml",

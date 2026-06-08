@@ -37,7 +37,7 @@ if (-not (Test-Path $FfprobeExe)) {
     throw "ffprobe binary missing: $FfprobeExe. Bundle the approved redistributable ffprobe.exe before building the installer."
 }
 if (-not (Test-Path $InstallerIcon)) {
-    throw "Installer icon missing: $InstallerIcon. Generate installer\assets\app.ico from installer\assets\app-icon.svg before building the installer."
+    throw "Installer icon missing: $InstallerIcon. Run scripts\generate_icon.ps1 before building the installer."
 }
 if (-not (Test-Path $Readme)) {
     throw "Windows README missing: $Readme"

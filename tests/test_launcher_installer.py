@@ -99,7 +99,7 @@ def test_installer_build_requires_branded_icon_before_packaging() -> None:
 
     assert 'installer\\assets\\app.ico' in text
     assert "Installer icon missing" in text
-    assert "app-icon.svg" in text
+    assert "generate_icon.ps1" in text
     assert "SetupIconFile=assets\\app.ico" in installer
     assert text.index("Installer icon missing") < text.index("Get-Command ISCC.exe")
 
