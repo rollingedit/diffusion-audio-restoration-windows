@@ -6,6 +6,7 @@ from rolling_a2sb.release import (
     checksum_artifact_hashes,
     checksum_artifact_names,
     collect_release_artifacts,
+    git_head_commit,
     installer_release_version,
     parse_checksum_file,
     sha256_file,
@@ -275,6 +276,14 @@ def test_validate_release_evidence_rejects_version_and_commit_mismatch(tmp_path:
     assert "Release evidence Git commit must be a 7-40 character hex SHA" in errors
 
 
+def test_validate_release_evidence_rejects_git_head_mismatch(tmp_path: Path) -> None:
+    evidence = write_release_evidence(tmp_path)
+
+    errors = validate_release_evidence(evidence, expected_git_commit="def5678")
+
+    assert "Release evidence Git commit does not match repository HEAD" in errors
+
+
 def test_validate_release_evidence_rejects_bad_ffmpeg_provenance(tmp_path: Path) -> None:
     evidence = write_release_evidence(tmp_path)
     text = evidence.read_text(encoding="utf-8")
@@ -299,6 +308,26 @@ def test_installer_release_version_reads_inno_define(tmp_path: Path) -> None:
     installer.write_text('#define MyAppVersion "0.2.0"\n', encoding="utf-8")
 
     assert installer_release_version(installer) == "0.2.0"
+
+
+def test_git_head_commit_reads_loose_ref(tmp_path: Path) -> None:
+    commit = "a" * 40
+    ref = tmp_path / ".git" / "refs" / "heads" / "main"
+    ref.parent.mkdir(parents=True)
+    (tmp_path / ".git" / "HEAD").write_text("ref: refs/heads/main\n", encoding="utf-8")
+    ref.write_text(commit + "\n", encoding="utf-8")
+
+    assert git_head_commit(tmp_path) == commit
+
+
+def test_git_head_commit_reads_packed_ref(tmp_path: Path) -> None:
+    commit = "b" * 40
+    git_dir = tmp_path / ".git"
+    git_dir.mkdir()
+    (git_dir / "HEAD").write_text("ref: refs/heads/main\n", encoding="utf-8")
+    (git_dir / "packed-refs").write_text(f"# pack-refs\n{commit} refs/heads/main\n", encoding="utf-8")
+
+    assert git_head_commit(tmp_path) == commit
 
 
 def test_validate_release_evidence_rejects_unpassed_required_results(tmp_path: Path) -> None:

@@ -194,6 +194,7 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
         validate_release_evidence(
             source_root / "docs" / "RELEASE_EVIDENCE.md",
             expected_version=installer_release_version(source_root / "installer" / "a2sb-restorer.iss"),
+            expected_git_commit=git_head_commit(source_root),
             expected_installer_filename="A2SB-Restorer-Setup.exe",
             expected_installer_sha256=expected_installer_sha256,
         )
@@ -204,6 +205,7 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
 def validate_release_evidence(
     evidence_path: Path,
     expected_version: str | None = None,
+    expected_git_commit: str | None = None,
     expected_installer_filename: str | None = None,
     expected_installer_sha256: str | None = None,
 ) -> list[str]:
@@ -242,6 +244,8 @@ def validate_release_evidence(
         errors.append("Release evidence version does not match installer version")
     if values.get("Git commit") and not GIT_SHA_RE.match(values["Git commit"]):
         errors.append("Release evidence Git commit must be a 7-40 character hex SHA")
+    if expected_git_commit and values.get("Git commit") != expected_git_commit[: len(values.get("Git commit", ""))]:
+        errors.append("Release evidence Git commit does not match repository HEAD")
     ffmpeg_filename = values.get("FFmpeg build filename", "").lower()
     if ffmpeg_filename and not ("win64" in ffmpeg_filename and "lgpl" in ffmpeg_filename and ffmpeg_filename.endswith(".zip")):
         errors.append("Release evidence FFmpeg build filename must be a Windows x64 LGPL ZIP")
@@ -275,6 +279,33 @@ def installer_release_version(installer_path: Path) -> str | None:
         return None
     match = re.search(r'^#define MyAppVersion "([^"]+)"$', path.read_text(encoding="utf-8"), flags=re.MULTILINE)
     return match.group(1) if match else None
+
+
+def git_head_commit(source_root: Path) -> str | None:
+    git_dir = Path(source_root) / ".git"
+    head_path = git_dir / "HEAD"
+    if not head_path.exists():
+        return None
+    head = head_path.read_text(encoding="utf-8").strip()
+    if GIT_SHA_RE.match(head):
+        return head.lower()
+    prefix = "ref: "
+    if not head.startswith(prefix):
+        return None
+    ref_name = head[len(prefix) :]
+    ref_path = git_dir / ref_name
+    if ref_path.exists():
+        ref = ref_path.read_text(encoding="utf-8").strip()
+        return ref.lower() if GIT_SHA_RE.match(ref) else None
+    packed_refs = git_dir / "packed-refs"
+    if packed_refs.exists():
+        for line in packed_refs.read_text(encoding="utf-8").splitlines():
+            if not line or line.startswith(("#", "^")):
+                continue
+            parts = line.split()
+            if len(parts) == 2 and parts[1] == ref_name and GIT_SHA_RE.match(parts[0]):
+                return parts[0].lower()
+    return None
 
 
 def parse_checksum_file(checksums_path: Path) -> tuple[dict[str, str], list[str]]:
