@@ -25,6 +25,7 @@ This file is local coordination material unless the user explicitly decides to p
 - Replaced release-blocking license notice placeholders with conservative NVIDIA A2SB, FFmpeg, Python, privacy, and non-affiliation notices while leaving exact binary/version proof to release evidence.
 - Added `requirements/lock-win-cu121.txt` with the pinned CUDA runtime stack used by release validation; real Windows/CUDA smoke verification remains required before public release.
 - Added `scripts/generate_icon.ps1`, generated `installer/assets/app.ico`, and visually checked the icon preview for installer packaging.
+- Added `scripts/fetch_ffmpeg.ps1` to fetch BtbN Windows x64 LGPL FFmpeg builds, stage `bin/ffmpeg.exe` and `bin/ffprobe.exe`, and write `bin/ffmpeg-manifest.json` for release evidence.
 - Added tests for downloader behavior, audio probing, error mapping, and runtime-check diagnostics.
 - Added runtime setup, repair, doctor, smoke restore, launcher build, and installer build PowerShell scripts with dry-run support where appropriate.
 - Added GitHub Actions CI and manual release-validation workflows that run tests/validation without publishing artifacts.

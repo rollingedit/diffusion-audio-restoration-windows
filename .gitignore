@@ -8,6 +8,7 @@ __pycache__/
 .pytest_cache/
 .local_app_data/
 .local_logs/
+.local_downloads/
 
 # Build/package outputs
 build/

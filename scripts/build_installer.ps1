@@ -31,10 +31,10 @@ if (-not (Test-Path $LauncherExe)) {
     throw "Launcher EXE missing: $LauncherExe. Run scripts\build_launcher.ps1 first."
 }
 if (-not (Test-Path $FfmpegExe)) {
-    throw "FFmpeg binary missing: $FfmpegExe. Bundle the approved redistributable ffmpeg.exe before building the installer."
+    throw "FFmpeg binary missing: $FfmpegExe. Run scripts\fetch_ffmpeg.ps1 to bundle the approved redistributable ffmpeg.exe before building the installer."
 }
 if (-not (Test-Path $FfprobeExe)) {
-    throw "ffprobe binary missing: $FfprobeExe. Bundle the approved redistributable ffprobe.exe before building the installer."
+    throw "ffprobe binary missing: $FfprobeExe. Run scripts\fetch_ffmpeg.ps1 to bundle the approved redistributable ffprobe.exe before building the installer."
 }
 if (-not (Test-Path $InstallerIcon)) {
     throw "Installer icon missing: $InstallerIcon. Run scripts\generate_icon.ps1 before building the installer."

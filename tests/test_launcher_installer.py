@@ -84,11 +84,16 @@ def test_inno_launcher_payload_is_mandatory() -> None:
 
 def test_installer_build_requires_ffmpeg_binaries_before_packaging() -> None:
     text = (ROOT / "scripts" / "build_installer.ps1").read_text(encoding="utf-8")
+    fetch = (ROOT / "scripts" / "fetch_ffmpeg.ps1").read_text(encoding="utf-8")
 
     assert 'bin\\ffmpeg.exe' in text
     assert 'bin\\ffprobe.exe' in text
     assert "approved redistributable ffmpeg.exe" in text
     assert "approved redistributable ffprobe.exe" in text
+    assert "scripts\\fetch_ffmpeg.ps1" in text
+    assert "BtbN/FFmpeg-Builds" in fetch
+    assert "win64-lgpl" in fetch
+    assert "ffmpeg-manifest.json" in fetch
     assert text.index("FFmpeg binary missing") < text.index("Get-Command ISCC.exe")
     assert text.index("ffprobe binary missing") < text.index("Get-Command ISCC.exe")
 

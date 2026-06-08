@@ -12,6 +12,7 @@ Do not publish a release until every required item is checked with evidence. Rec
 - [ ] NVIDIA GPU is detected.
 - [ ] CUDA is available through PyTorch.
 - [ ] Bundled FFmpeg and ffprobe are detected.
+- [ ] `scripts\fetch_ffmpeg.ps1` was used, or the exact equivalent BtbN Windows x64 LGPL build source is documented.
 
 ## Model Setup
 
