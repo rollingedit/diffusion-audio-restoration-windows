@@ -102,10 +102,10 @@ def write_release_evidence(
                 "",
                 "- Version: 0.1.0-alpha",
                 "- Git commit: abc1234",
-                "- Build machine: builder",
-                "- Test machine: tester",
+                "- Build machine: BUILD-WIN11-RTX4090-01",
+                "- Test machine: TEST-WIN11-RTX4090-01",
                 "- Windows version: Windows 11 23H2",
-                "- GPU model: NVIDIA test GPU",
+                "- GPU model: NVIDIA GeForce RTX validation GPU",
                 "- NVIDIA driver version: 555.55",
                 "- CUDA reported by PyTorch: 12.1",
                 f"- Installer filename: {installer_filename}",
@@ -251,7 +251,7 @@ def test_validate_release_evidence_accepts_completed_evidence(tmp_path: Path) ->
 
 def test_validate_release_evidence_rejects_blank_fields_and_open_blockers(tmp_path: Path) -> None:
     evidence = write_release_evidence(tmp_path, blockers="- CUDA smoke test still missing")
-    text = evidence.read_text(encoding="utf-8").replace("- GPU model: NVIDIA test GPU", "- GPU model:")
+    text = evidence.read_text(encoding="utf-8").replace("- GPU model: NVIDIA GeForce RTX validation GPU", "- GPU model:")
     evidence.write_text(text, encoding="utf-8")
 
     errors = validate_release_evidence(evidence)
@@ -262,12 +262,34 @@ def test_validate_release_evidence_rejects_blank_fields_and_open_blockers(tmp_pa
 
 def test_validate_release_evidence_rejects_placeholder_field_values(tmp_path: Path) -> None:
     evidence = write_release_evidence(tmp_path)
-    text = evidence.read_text(encoding="utf-8").replace("- Test machine: tester", "- Test machine: assumed")
+    text = evidence.read_text(encoding="utf-8").replace("- Test machine: TEST-WIN11-RTX4090-01", "- Test machine: assumed")
     evidence.write_text(text, encoding="utf-8")
 
     errors = validate_release_evidence(evidence)
 
     assert "Release evidence field uses a placeholder value: Test machine" in errors
+
+
+def test_validate_release_evidence_rejects_generic_environment_values(tmp_path: Path) -> None:
+    evidence = write_release_evidence(tmp_path)
+    text = evidence.read_text(encoding="utf-8")
+    text = text.replace("- Build machine: BUILD-WIN11-RTX4090-01", "- Build machine: builder")
+    text = text.replace("- Test machine: TEST-WIN11-RTX4090-01", "- Test machine: tester")
+    text = text.replace("- Windows version: Windows 11 23H2", "- Windows version: some windows")
+    text = text.replace("- GPU model: NVIDIA GeForce RTX validation GPU", "- GPU model: test gpu")
+    text = text.replace("- NVIDIA driver version: 555.55", "- NVIDIA driver version: current")
+    text = text.replace("- CUDA reported by PyTorch: 12.1", "- CUDA reported by PyTorch: yes")
+    evidence.write_text(text, encoding="utf-8")
+
+    errors = validate_release_evidence(evidence)
+
+    assert "Release evidence field is too generic: Build machine" in errors
+    assert "Release evidence field is too generic: Test machine" in errors
+    assert "Release evidence field is too generic: GPU model" in errors
+    assert "Release evidence Windows version must name Windows 10 or Windows 11" in errors
+    assert "Release evidence GPU model must name an NVIDIA GPU" in errors
+    assert "Release evidence NVIDIA driver version must look like a driver version" in errors
+    assert "Release evidence CUDA version must look like a numeric CUDA version" in errors
 
 
 def test_validate_release_evidence_rejects_incomplete_command_records(tmp_path: Path) -> None:

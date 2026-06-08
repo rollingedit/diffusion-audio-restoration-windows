@@ -11,6 +11,7 @@ MIN_SETUP_EXE_BYTES = 1024 * 1024
 SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
 GIT_SHA_RE = re.compile(r"^[0-9a-fA-F]{7,40}$")
 BANNED_EVIDENCE_VALUES = {"assumed", "not applicable", "n/a", "na", "todo", "tbd"}
+GENERIC_EVIDENCE_VALUES = {"builder", "tester", "test machine", "build machine", "test gpu", "nvidia test gpu"}
 REQUIRED_RELEASE_ARTIFACTS = [
     "A2SB-Restorer-Setup.exe",
     "README-WINDOWS.md",
@@ -308,6 +309,7 @@ def validate_release_evidence(
         value = values.get(field)
         if value and not SHA256_RE.match(value):
             errors.append(f"Release evidence field must be a SHA256 digest: {field}")
+    errors.extend(validate_release_environment_values(values))
     for field, suffixes in EVIDENCE_PATH_SUFFIXES.items():
         value = values.get(field, "").lower()
         if value and not value.endswith(suffixes):
@@ -350,6 +352,31 @@ def validate_release_evidence(
         blocker_lines = [line.strip() for line in blockers.group(1).splitlines() if line.strip().startswith("-")]
     if blocker_lines != ["- None"]:
         errors.append('Release evidence blockers must be exactly "- None" before public release')
+    return errors
+
+
+def validate_release_environment_values(values: dict[str, str]) -> list[str]:
+    errors: list[str] = []
+    for field in ["Build machine", "Test machine", "GPU model"]:
+        value = values.get(field, "").strip()
+        if value.lower() in GENERIC_EVIDENCE_VALUES or len(value) < 8:
+            errors.append(f"Release evidence field is too generic: {field}")
+
+    windows_version = values.get("Windows version", "")
+    if windows_version and not re.search(r"\bWindows\s+(10|11)\b", windows_version, flags=re.IGNORECASE):
+        errors.append("Release evidence Windows version must name Windows 10 or Windows 11")
+
+    gpu_model = values.get("GPU model", "")
+    if gpu_model and not re.search(r"\b(NVIDIA|RTX|GTX|Quadro|Tesla)\b", gpu_model, flags=re.IGNORECASE):
+        errors.append("Release evidence GPU model must name an NVIDIA GPU")
+
+    driver_version = values.get("NVIDIA driver version", "")
+    if driver_version and not re.search(r"\d{3,}\.\d+", driver_version):
+        errors.append("Release evidence NVIDIA driver version must look like a driver version")
+
+    cuda_version = values.get("CUDA reported by PyTorch", "")
+    if cuda_version and not re.search(r"\d+\.\d+", cuda_version):
+        errors.append("Release evidence CUDA version must look like a numeric CUDA version")
     return errors
 
 
