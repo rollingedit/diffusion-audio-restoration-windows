@@ -31,6 +31,7 @@ This file is local coordination material unless the user explicitly decides to p
 - Installed Inno Setup locally, built `dist\installer\A2SB-Restorer-Setup.exe`, staged Windows README/license notices, and generated `SHA256SUMS.txt`; release validation still blocks on unchecked checklist/evidence and public-ready README text.
 - Updated installer build scripting so setup compilation/checksum generation can exit 0 while `a2sb release-check` remains the separate public-release gate.
 - Added `scripts/collect_release_evidence.ps1` to write verifiable build facts, installer hashes, Git commit, machine/GPU metadata, and FFmpeg provenance into ignored evidence output without claiming smoke-test results.
+- Added `scripts/installed_app_smoke.ps1` to automate silent installer execution, installed payload checks, installed doctor capture, optional restore smoke, optional uninstall, and JSON evidence output.
 - Added tests for downloader behavior, audio probing, error mapping, and runtime-check diagnostics.
 - Added runtime setup, repair, doctor, smoke restore, launcher build, and installer build PowerShell scripts with dry-run support where appropriate.
 - Added GitHub Actions CI and manual release-validation workflows that run tests/validation without publishing artifacts.
@@ -188,7 +189,7 @@ This file is local coordination material unless the user explicitly decides to p
 
 ### Verified
 
-- `.\.venv\Scripts\python.exe -m pytest` passes with 205 tests.
+- `.\.venv\Scripts\python.exe -m pytest` passes with 206 tests.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --report` prints actionable next steps for missing Torch/checkpoints and sandboxed write permissions.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli release-status --artifacts-dir dist\installer --licenses-dir LICENSES` reports the current blocker groups without any remaining license-notice category.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.

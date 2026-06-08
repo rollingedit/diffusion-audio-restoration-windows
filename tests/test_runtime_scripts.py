@@ -79,3 +79,16 @@ def test_collect_release_evidence_records_build_facts_without_smoke_claims() -> 
     assert "git rev-parse HEAD" in text
     assert "nvidia-smi --query-gpu=name" in text
     assert "Restore produced a WAV" not in text
+
+
+def test_installed_app_smoke_can_install_check_doctor_restore_and_uninstall() -> None:
+    text = (ROOT / "scripts" / "installed_app_smoke.ps1").read_text(encoding="utf-8")
+
+    assert "A2SB-Restorer-Setup.exe" in text
+    assert "/VERYSILENT" in text
+    assert "installed_app_smoke.json" in text
+    assert "scripts\\doctor.ps1" in text
+    assert "scripts\\smoke_restore.ps1" in text
+    assert "bin\\ffmpeg.exe" in text
+    assert "bin\\ffprobe.exe" in text
+    assert "unins*.exe" in text

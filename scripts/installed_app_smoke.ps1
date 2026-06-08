@@ -1,0 +1,147 @@
+param(
+    [string]$InstallerPath = "dist\installer\A2SB-Restorer-Setup.exe",
+    [string]$InstallDir = "$env:LOCALAPPDATA\Programs\RollingEdit\A2SB Restorer",
+    [string]$EvidenceDir = "evidence\installed-app",
+    [string]$Input,
+    [string]$Output,
+    [string]$CheckpointFolder,
+    [switch]$TrustManualCheckpoints,
+    [switch]$Install,
+    [switch]$Uninstall,
+    [switch]$RequireDoctorPass
+)
+
+$ErrorActionPreference = "Stop"
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$AppRoot = Resolve-Path (Join-Path $ScriptDir "..")
+if ([System.IO.Path]::IsPathRooted($InstallerPath)) {
+    $Installer = $InstallerPath
+} else {
+    $Installer = Join-Path $AppRoot $InstallerPath
+}
+if ([System.IO.Path]::IsPathRooted($EvidenceDir)) {
+    $EvidencePath = $EvidenceDir
+} else {
+    $EvidencePath = Join-Path $AppRoot $EvidenceDir
+}
+$SummaryPath = Join-Path $EvidencePath "installed_app_smoke.json"
+$InstallLog = Join-Path $EvidencePath "install.log"
+$DoctorJson = Join-Path $EvidencePath "installed_doctor.json"
+$RestoreLog = Join-Path $EvidencePath "installed_restore.log"
+$UninstallLog = Join-Path $EvidencePath "uninstall.log"
+
+New-Item -ItemType Directory -Force -Path $EvidencePath | Out-Null
+
+$summary = [ordered]@{
+    ok = $false
+    installed = $false
+    install_dir = $InstallDir
+    installer = $Installer
+    install_exit = $null
+    doctor_exit = $null
+    restore_exit = $null
+    uninstall_exit = $null
+    required_files = @()
+    missing_files = @()
+    evidence = [ordered]@{
+        summary = $SummaryPath
+        install_log = $InstallLog
+        doctor_json = $DoctorJson
+        restore_log = $RestoreLog
+        uninstall_log = $UninstallLog
+    }
+}
+
+function Save-Summary {
+    param([object]$Data)
+    $Data | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 -Path $SummaryPath
+}
+
+try {
+    if ($Install) {
+        if (-not (Test-Path $Installer)) {
+            throw "Installer artifact missing: $Installer"
+        }
+        $installArgs = @(
+            "/VERYSILENT",
+            "/SUPPRESSMSGBOXES",
+            "/NORESTART",
+            "/SP-",
+            "/DIR=$InstallDir",
+            "/LOG=$InstallLog"
+        )
+        & $Installer @installArgs
+        $summary.install_exit = $LASTEXITCODE
+        if ($LASTEXITCODE -ne 0) {
+            throw "Installer exited with code $LASTEXITCODE."
+        }
+    }
+
+    $requiredFiles = @(
+        "A2SB Restorer.exe",
+        "scripts\doctor.ps1",
+        "scripts\setup_runtime.ps1",
+        "scripts\repair_runtime.ps1",
+        "scripts\smoke_restore.ps1",
+        "bin\ffmpeg.exe",
+        "bin\ffprobe.exe",
+        "README-WINDOWS.md",
+        "LICENSE-NOTICES.txt"
+    )
+    $summary.required_files = $requiredFiles
+    $missing = @()
+    foreach ($relative in $requiredFiles) {
+        $path = Join-Path $InstallDir $relative
+        if (-not (Test-Path $path)) {
+            $missing += $relative
+        }
+    }
+    $summary.missing_files = $missing
+    if ($missing.Count -gt 0) {
+        throw "Installed app is missing required files: $($missing -join ', ')"
+    }
+    $summary.installed = $true
+
+    $doctor = Join-Path $InstallDir "scripts\doctor.ps1"
+    & powershell -ExecutionPolicy Bypass -File $doctor -Json *> $DoctorJson
+    $summary.doctor_exit = $LASTEXITCODE
+    if ($RequireDoctorPass -and $LASTEXITCODE -ne 0) {
+        throw "Installed doctor failed with code $LASTEXITCODE."
+    }
+
+    if ($Input) {
+        $smoke = Join-Path $InstallDir "scripts\smoke_restore.ps1"
+        $smokeArgs = @("-Input", $Input)
+        if ($Output) { $smokeArgs += @("-Output", $Output) }
+        if ($CheckpointFolder) { $smokeArgs += @("-CheckpointFolder", $CheckpointFolder) }
+        if ($TrustManualCheckpoints) { $smokeArgs += @("-TrustManualCheckpoints") }
+        & powershell -ExecutionPolicy Bypass -File $smoke @smokeArgs *> $RestoreLog
+        $summary.restore_exit = $LASTEXITCODE
+        if ($LASTEXITCODE -ne 0) {
+            throw "Installed restore smoke failed with code $LASTEXITCODE."
+        }
+    }
+
+    if ($Uninstall) {
+        $uninstaller = Get-ChildItem -Path $InstallDir -Filter "unins*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+        if (-not $uninstaller) {
+            throw "Uninstaller was not found under $InstallDir."
+        }
+        & $uninstaller.FullName "/VERYSILENT" "/SUPPRESSMSGBOXES" "/NORESTART" "/LOG=$UninstallLog"
+        $summary.uninstall_exit = $LASTEXITCODE
+        if ($LASTEXITCODE -ne 0) {
+            throw "Uninstaller exited with code $LASTEXITCODE."
+        }
+    }
+
+    $summary.ok = $true
+    Save-Summary $summary
+    Write-Host "Wrote $SummaryPath"
+    exit 0
+} catch {
+    $summary.error = $_.Exception.Message
+    Save-Summary $summary
+    Write-Host "Wrote $SummaryPath"
+    Write-Error $_.Exception.Message
+    exit 1
+}
