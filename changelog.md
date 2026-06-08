@@ -107,6 +107,7 @@ This file is local coordination material unless the user explicitly decides to p
 - Added runtime setup script contract tests for private Python 3.10 runtime creation, editable app install, doctor JSON status, and repair delegation.
 - Added workflow and CLI coverage for no-GPU and missing-checkpoint readiness failures, including readable next actions and no traceback output.
 - Added workflow coverage for restore planning with paths containing spaces while proving the original input file remains unchanged.
+- Strengthened CLI and GUI action coverage for the official Hugging Face checkpoint download offer and copyable diagnostic report availability.
 
 ### Verified
 

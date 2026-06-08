@@ -30,7 +30,11 @@ def write_checkpoint(path: Path) -> None:
 
 
 def test_doctor_report_text_contains_header() -> None:
-    assert "A2SB Restorer diagnostic report" in doctor_report_text()
+    text = doctor_report_text()
+
+    assert "A2SB Restorer diagnostic report" in text
+    assert "readiness:" in text
+    assert "overall:" in text
 
 
 def test_about_text_contains_attribution_and_non_affiliation() -> None:
@@ -54,6 +58,8 @@ def test_model_download_confirmation_text_explains_source_size_and_location(tmp_
 
     assert '"confirmation_required": true' in text
     assert "nvidia/audio_to_audio_schrodinger_bridge" in text
+    assert "A2SB_twosplit_0.0_0.5_release.ckpt" in text
+    assert "A2SB_twosplit_0.5_1.0_release.ckpt" in text
     assert '"required_bytes":' in text
     assert '"local_storage_location":' in text
     assert '"internet_required": true' in text

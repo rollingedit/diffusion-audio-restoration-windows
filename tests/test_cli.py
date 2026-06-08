@@ -31,6 +31,9 @@ def test_download_model_requires_confirmation(tmp_path: Path, capsys) -> None:
     output = capsys.readouterr().out
     assert '"confirmation_required": true' in output
     assert "nvidia/audio_to_audio_schrodinger_bridge" in output
+    assert "A2SB_twosplit_0.0_0.5_release.ckpt" in output
+    assert "A2SB_twosplit_0.5_1.0_release.ckpt" in output
+    assert "a2sb download-model --model twosplit --yes" in output
 
 
 def test_select_checkpoints_requires_trust(tmp_path: Path, capsys) -> None:
@@ -64,6 +67,8 @@ def test_doctor_report_cli_prints_copyable_report(capsys) -> None:
     assert exit_code in (0, 1)
     output = capsys.readouterr().out
     assert "A2SB Restorer diagnostic report" in output
+    assert "readiness:" in output
+    assert "overall:" in output
     assert "next:" in output
 
 
