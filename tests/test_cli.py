@@ -36,6 +36,38 @@ def test_download_model_requires_confirmation(tmp_path: Path, capsys) -> None:
     assert "a2sb download-model --model twosplit --yes" in output
 
 
+def test_download_model_yes_runs_official_download_path(tmp_path: Path, monkeypatch, capsys) -> None:
+    monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(tmp_path / "logs"))
+    target = tmp_path / "models"
+    calls: list[dict] = []
+
+    def fake_hf_download(**kwargs) -> str:
+        calls.append(kwargs)
+        path = target / kwargs["filename"]
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"x" * 16)
+        return str(path)
+
+    monkeypatch.setattr("rolling_a2sb.downloader._load_hf_download", lambda: fake_hf_download)
+    monkeypatch.setattr("rolling_a2sb.downloader.validate_checkpoint_folder", lambda folder, mode, min_size_bytes, compute_hashes: __import__(
+        "rolling_a2sb.checkpoint_manager", fromlist=["validate_checkpoint_folder"]
+    ).validate_checkpoint_folder(folder, mode=mode, min_size_bytes=1, compute_hashes=compute_hashes))
+
+    exit_code = main(["download-model", "--model", "twosplit", "--target-dir", str(target), "--yes", "--no-hash", "--force"])
+
+    assert exit_code == 0
+    output = capsys.readouterr().out
+    assert "Downloading checkpoint 1 of 2" in output
+    assert '"ok": true' in output
+    assert "checkpoint_manifest.json" in output
+    assert [call["filename"] for call in calls] == [
+        "ckpt/A2SB_twosplit_0.0_0.5_release.ckpt",
+        "ckpt/A2SB_twosplit_0.5_1.0_release.ckpt",
+    ]
+    assert all(call["resume_download"] is True for call in calls)
+
+
 def test_select_checkpoints_requires_trust(tmp_path: Path, capsys) -> None:
     exit_code = main(["select-checkpoints", str(tmp_path / "models")])
 

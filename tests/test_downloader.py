@@ -15,13 +15,13 @@ def test_build_download_plan_for_twosplit(tmp_path: Path) -> None:
 def test_download_model_uses_hf_download_and_writes_manifest(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(tmp_path / "data"))
     monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(tmp_path / "logs"))
-    calls: list[str] = []
+    calls: list[dict] = []
     progress: list[str] = []
     target = tmp_path / "models"
 
     def fake_download(**kwargs) -> str:
         filename = kwargs["filename"]
-        calls.append(filename)
+        calls.append(kwargs)
         path = target / filename
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(b"x" * 16)
@@ -37,10 +37,14 @@ def test_download_model_uses_hf_download_and_writes_manifest(tmp_path: Path, mon
         hf_download=fake_download,
     )
 
-    assert calls == [
+    assert [call["filename"] for call in calls] == [
         "ckpt/A2SB_twosplit_0.0_0.5_release.ckpt",
         "ckpt/A2SB_twosplit_0.5_1.0_release.ckpt",
     ]
+    assert all(call["repo_id"] == "nvidia/audio_to_audio_schrodinger_bridge" for call in calls)
+    assert all(call["local_dir"] == str(target) for call in calls)
+    assert all(call["resume_download"] is True for call in calls)
+    assert all(call["local_dir_use_symlinks"] is False for call in calls)
     assert result.validation.ok
     assert result.manifest_path.exists()
     assert "Downloading checkpoint 1 of 2" in progress[0]
