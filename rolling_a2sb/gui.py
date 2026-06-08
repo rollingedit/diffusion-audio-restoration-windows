@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 
 from . import paths
+from .errors import format_user_error
 from .gui_actions import audio_probe_text, doctor_report_text, download_plan_text, prepare_restore_dry_run, restore_plan_text
 from .runtime_check import doctor
 
@@ -224,7 +225,7 @@ def run_gui() -> int:
             try:
                 self.restore_output.setPlainText(audio_probe_text(audio_path))
             except Exception as exc:
-                self.restore_output.setPlainText(str(exc))
+                self.restore_output.setPlainText(format_user_error(exc))
 
         def plan_restore(self) -> None:
             audio_path = self.current_input_audio()
@@ -242,7 +243,7 @@ def run_gui() -> int:
                     trust_manual_checkpoints=self.trust_check.isChecked(),
                 )
             except Exception as exc:
-                self.restore_output.setPlainText(str(exc))
+                self.restore_output.setPlainText(format_user_error(exc))
                 return
             self.restore_output.setPlainText(restore_plan_text(plan))
 

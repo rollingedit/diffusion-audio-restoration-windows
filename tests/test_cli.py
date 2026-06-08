@@ -137,6 +137,46 @@ def test_restore_non_dry_run_prints_readiness_failure(tmp_path: Path, monkeypatc
     assert "Restore cannot start" in capsys.readouterr().out
 
 
+def test_restore_nonzero_process_prints_user_error(tmp_path: Path, monkeypatch, capsys) -> None:
+    monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(tmp_path / "logs"))
+    audio = tmp_path / "short.wav"
+    write_wav(audio)
+
+    from rolling_a2sb.subprocess_runner import CommandResult
+    from rolling_a2sb.workflow import RestorePreparation
+
+    plan = RestorePreparation(
+        job_id="job",
+        job_dir=str(tmp_path / "job"),
+        log_path=str(tmp_path / "restore.log"),
+        input_audio=str(audio),
+        prepared_input_audio=str(audio),
+        audio_converted=False,
+        output_audio=str(tmp_path / "out.wav"),
+        partial_output_audio=str(tmp_path / "out.wav.partial"),
+        config_path=str(tmp_path / "restore.yaml"),
+        command=["python", "engine.py"],
+    )
+    Path(plan.job_dir).mkdir(parents=True)
+    monkeypatch.setattr("rolling_a2sb.cli.prepare_restore", lambda **kwargs: plan)
+    monkeypatch.setattr(
+        "rolling_a2sb.cli.run_restore_config_streaming",
+        lambda config_path, on_line: CommandResult(
+            1,
+            "",
+            "Traceback (most recent call last):\n  File \"engine.py\", line 10\nRuntimeError: CUDA out of memory",
+        ),
+    )
+
+    exit_code = main(["restore", "--input", str(audio)])
+
+    assert exit_code == 1
+    output = capsys.readouterr().out
+    assert "GPU memory" in output
+    assert "File \"engine.py\"" not in output
+
+
 def test_reset_models_clears_checkpoint_settings(tmp_path: Path, monkeypatch, capsys) -> None:
     monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(tmp_path / "data"))
     monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(tmp_path / "logs"))

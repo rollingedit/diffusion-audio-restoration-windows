@@ -9,6 +9,7 @@ from . import paths
 from .audio_probe import audio_info_dict, probe_audio
 from .checkpoint_manager import select_manual_checkpoint_folder
 from .downloader import build_download_plan, download_model
+from .errors import RestoreProcessError, format_user_error
 from .log import append_block, append_log
 from .runtime_check import diagnostic_text, doctor
 from .settings import reset_model_settings
@@ -191,8 +192,11 @@ def main(argv: list[str] | None = None) -> int:
         append_log(Path(plan.log_path), f"returncode={result.returncode}")
         if result.cancelled:
             append_log(Path(plan.log_path), "cancelled=true")
-        print(result.stdout, end="")
-        print(result.stderr, end="")
+        if result.returncode == 0:
+            print(result.stdout, end="")
+            print(result.stderr, end="")
+        else:
+            print(format_user_error(RestoreProcessError(result.stderr or result.stdout or "Restore process failed.")))
         return result.returncode
 
     if args.command == "reset-models":

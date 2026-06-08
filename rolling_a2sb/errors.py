@@ -37,6 +37,18 @@ class MissingCudaError(A2SBError):
     suggested_fix = "Install or update the NVIDIA driver, then run Doctor again."
 
 
+class InsufficientVramError(A2SBError):
+    code = "insufficient_vram"
+    title = "GPU memory is not sufficient for this restore"
+    suggested_fix = "Try a shorter audio file, close other GPU apps, or reduce restore steps."
+
+
+class MissingFfmpegError(A2SBError):
+    code = "missing_ffmpeg"
+    title = "FFmpeg is missing"
+    suggested_fix = "Run Repair Runtime or use a packaged build that includes ffmpeg.exe and ffprobe.exe."
+
+
 class MissingCheckpointError(A2SBError):
     code = "missing_checkpoint"
     title = "Model checkpoints are missing"
@@ -62,11 +74,16 @@ class RestoreProcessError(A2SBError):
 
 
 def classify_exception(exc: BaseException) -> UserFacingError:
-    if isinstance(exc, A2SBError):
+    if isinstance(exc, A2SBError) and not isinstance(exc, RestoreProcessError):
         return exc.to_user_error()
 
     message = str(exc)
     lowered = message.lower()
+    if "out of memory" in lowered or "cuda oom" in lowered or "cublas_status_alloc_failed" in lowered:
+        return InsufficientVramError(_safe_message(message)).to_user_error()
+    if "ffmpeg" in lowered or "ffprobe" in lowered:
+        if "not found" in lowered or "no such file" in lowered or "cannot find" in lowered or "missing" in lowered:
+            return MissingFfmpegError(_safe_message(message)).to_user_error()
     if "no module named" in lowered:
         return MissingDependencyError(message).to_user_error()
     if "cuda" in lowered and ("not available" in lowered or "out of memory" not in lowered):
@@ -76,7 +93,27 @@ def classify_exception(exc: BaseException) -> UserFacingError:
     return UserFacingError(
         code="unexpected_error",
         title="Unexpected error",
-        message=message,
+        message=_safe_message(message),
         suggested_fix="Open the logs and copy the diagnostic report.",
     )
 
+
+def format_user_error(exc: BaseException) -> str:
+    user_error = classify_exception(exc)
+    return "\n".join(
+        [
+            user_error.title,
+            user_error.message,
+            f"Suggested fix: {user_error.suggested_fix}",
+        ]
+    )
+
+
+def _safe_message(message: str) -> str:
+    if "traceback (most recent call last)" not in message.lower():
+        return message
+    for line in reversed(message.splitlines()):
+        stripped = line.strip()
+        if stripped and not stripped.startswith("File ") and not stripped.startswith("^"):
+            return stripped
+    return "Detailed error information was written to the log."
