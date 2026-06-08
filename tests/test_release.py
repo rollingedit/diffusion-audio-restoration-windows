@@ -260,6 +260,23 @@ def test_validate_release_evidence_rejects_incomplete_command_records(tmp_path: 
     assert "Release evidence command must include command, exit 0, and output path: Doctor JSON" in errors
 
 
+def test_validate_release_evidence_rejects_bad_evidence_path_shapes(tmp_path: Path) -> None:
+    evidence = write_release_evidence(tmp_path)
+    text = evidence.read_text(encoding="utf-8")
+    text = text.replace("- Doctor JSON path: evidence/doctor.json", "- Doctor JSON path: evidence/doctor.txt")
+    text = text.replace("- Output WAV path: evidence/out.wav", "- Output WAV path: evidence/out.mp3")
+    text = text.replace("- Screenshot of ready Setup tab: evidence/setup-ready.png", "- Screenshot of ready Setup tab: evidence/setup-ready.jpg")
+    text = text.replace("- Installer artifact folder: dist/installer", "- Installer artifact folder: build/out")
+    evidence.write_text(text, encoding="utf-8")
+
+    errors = validate_release_evidence(evidence)
+
+    assert "Release evidence path has unexpected file type: Doctor JSON path" in errors
+    assert "Release evidence path has unexpected file type: Output WAV path" in errors
+    assert "Release evidence path has unexpected file type: Screenshot of ready Setup tab" in errors
+    assert "Release evidence installer artifact folder must be dist/installer" in errors
+
+
 def test_validate_release_evidence_rejects_weak_hash_and_validation_values(tmp_path: Path) -> None:
     evidence = write_release_evidence(tmp_path)
     text = evidence.read_text(encoding="utf-8")

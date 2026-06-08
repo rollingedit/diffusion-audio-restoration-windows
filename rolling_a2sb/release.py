@@ -82,6 +82,17 @@ REQUIRED_EVIDENCE_PASS_FIELDS = [
     "Uninstall preserved user-downloaded models",
     "Release artifacts validated",
 ]
+EVIDENCE_PATH_SUFFIXES = {
+    "Doctor JSON path": (".json",),
+    "Setup status JSON path": (".json",),
+    "Checkpoint manifest path": (".json",),
+    "Restore log path": (".log", ".txt"),
+    "Input test audio path": (".wav", ".mp3", ".flac"),
+    "Output WAV path": (".wav",),
+    "Screenshot of ready Setup tab": (".png",),
+    "Screenshot of completed Restore tab": (".png",),
+    "Screenshot of Start Menu shortcuts": (".png",),
+}
 
 
 @dataclass(frozen=True)
@@ -245,6 +256,13 @@ def validate_release_evidence(
         value = values.get(field)
         if value and not SHA256_RE.match(value):
             errors.append(f"Release evidence field must be a SHA256 digest: {field}")
+    for field, suffixes in EVIDENCE_PATH_SUFFIXES.items():
+        value = values.get(field, "").lower()
+        if value and not value.endswith(suffixes):
+            errors.append(f"Release evidence path has unexpected file type: {field}")
+    artifact_folder = values.get("Installer artifact folder", "").replace("\\", "/").rstrip("/").lower()
+    if artifact_folder and not artifact_folder.endswith("dist/installer"):
+        errors.append("Release evidence installer artifact folder must be dist/installer")
     for field in REQUIRED_EVIDENCE_COMMAND_FIELDS:
         command_evidence = values.get(field, "")
         if command_evidence and ("exit 0" not in command_evidence.lower() or command_evidence.count(";") < 2):
