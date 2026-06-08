@@ -6,6 +6,7 @@ from rolling_a2sb.release import (
     checksum_artifact_hashes,
     checksum_artifact_names,
     collect_release_artifacts,
+    installer_release_version,
     parse_checksum_file,
     sha256_file,
     validate_release_artifacts,
@@ -51,7 +52,7 @@ def write_release_evidence(
                 "## Release Candidate",
                 "",
                 "- Version: 0.1.0-alpha",
-                "- Git commit: abc123",
+                "- Git commit: abc1234",
                 "- Build machine: builder",
                 "- Test machine: tester",
                 "- Windows version: Windows 11 23H2",
@@ -215,6 +216,26 @@ def test_validate_release_evidence_rejects_installer_artifact_mismatch(tmp_path:
 
     assert "Release evidence installer filename does not match staged artifact" in errors
     assert "Release evidence installer SHA256 does not match staged artifact" in errors
+
+
+def test_validate_release_evidence_rejects_version_and_commit_mismatch(tmp_path: Path) -> None:
+    evidence = write_release_evidence(tmp_path)
+    text = evidence.read_text(encoding="utf-8")
+    text = text.replace("- Version: 0.1.0-alpha", "- Version: 9.9.9")
+    text = text.replace("- Git commit: abc1234", "- Git commit: not-a-sha")
+    evidence.write_text(text, encoding="utf-8")
+
+    errors = validate_release_evidence(evidence, expected_version="0.1.0-alpha")
+
+    assert "Release evidence version does not match installer version" in errors
+    assert "Release evidence Git commit must be a 7-40 character hex SHA" in errors
+
+
+def test_installer_release_version_reads_inno_define(tmp_path: Path) -> None:
+    installer = tmp_path / "a2sb-restorer.iss"
+    installer.write_text('#define MyAppVersion "0.2.0"\n', encoding="utf-8")
+
+    assert installer_release_version(installer) == "0.2.0"
 
 
 def test_validate_release_evidence_rejects_unpassed_required_results(tmp_path: Path) -> None:

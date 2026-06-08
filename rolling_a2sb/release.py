@@ -9,6 +9,7 @@ from pathlib import Path
 RELEASE_BLOCKED_TEXT = "Do not publish release artifacts"
 MIN_SETUP_EXE_BYTES = 1024 * 1024
 SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
+GIT_SHA_RE = re.compile(r"^[0-9a-fA-F]{7,40}$")
 REQUIRED_RELEASE_ARTIFACTS = [
     "A2SB-Restorer-Setup.exe",
     "README-WINDOWS.md",
@@ -165,6 +166,7 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
     errors.extend(
         validate_release_evidence(
             source_root / "docs" / "RELEASE_EVIDENCE.md",
+            expected_version=installer_release_version(source_root / "installer" / "a2sb-restorer.iss"),
             expected_installer_filename="A2SB-Restorer-Setup.exe",
             expected_installer_sha256=expected_installer_sha256,
         )
@@ -174,6 +176,7 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
 
 def validate_release_evidence(
     evidence_path: Path,
+    expected_version: str | None = None,
     expected_installer_filename: str | None = None,
     expected_installer_sha256: str | None = None,
 ) -> list[str]:
@@ -196,6 +199,10 @@ def validate_release_evidence(
         value = values.get(field)
         if value and not SHA256_RE.match(value):
             errors.append(f"Release evidence field must be a SHA256 digest: {field}")
+    if expected_version and values.get("Version") != expected_version:
+        errors.append("Release evidence version does not match installer version")
+    if values.get("Git commit") and not GIT_SHA_RE.match(values["Git commit"]):
+        errors.append("Release evidence Git commit must be a 7-40 character hex SHA")
     before_hash = values.get("Input file hash before restore")
     after_hash = values.get("Input file hash after restore")
     if before_hash and after_hash and before_hash.lower() != after_hash.lower():
@@ -215,6 +222,14 @@ def validate_release_evidence(
     if blocker_lines != ["- None"]:
         errors.append('Release evidence blockers must be exactly "- None" before public release')
     return errors
+
+
+def installer_release_version(installer_path: Path) -> str | None:
+    path = Path(installer_path)
+    if not path.exists():
+        return None
+    match = re.search(r'^#define MyAppVersion "([^"]+)"$', path.read_text(encoding="utf-8"), flags=re.MULTILINE)
+    return match.group(1) if match else None
 
 
 def parse_checksum_file(checksums_path: Path) -> tuple[dict[str, str], list[str]]:
