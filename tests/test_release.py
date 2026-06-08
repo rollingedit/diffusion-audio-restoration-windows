@@ -270,6 +270,21 @@ def test_validate_release_evidence_rejects_placeholder_field_values(tmp_path: Pa
     assert "Release evidence field uses a placeholder value: Test machine" in errors
 
 
+def test_validate_release_evidence_rejects_unit_test_or_dry_run_proof(tmp_path: Path) -> None:
+    evidence = write_release_evidence(tmp_path)
+    text = evidence.read_text(encoding="utf-8")
+    text = text.replace("- Restore produced a WAV: yes", "- Restore produced a WAV: yes, proved by pytest unit test")
+    text = text.replace("- Path-with-spaces restore passed: yes", "- Path-with-spaces restore passed: dry-run passed")
+    text = text.replace("- Cancel left input and final output safe: yes", "- Cancel left input and final output safe: simulated with mock")
+    evidence.write_text(text, encoding="utf-8")
+
+    errors = validate_release_evidence(evidence)
+
+    assert "Release evidence field uses non-smoke-test proof: Restore produced a WAV" in errors
+    assert "Release evidence field uses non-smoke-test proof: Path-with-spaces restore passed" in errors
+    assert "Release evidence field uses non-smoke-test proof: Cancel left input and final output safe" in errors
+
+
 def test_validate_release_evidence_rejects_generic_environment_values(tmp_path: Path) -> None:
     evidence = write_release_evidence(tmp_path)
     text = evidence.read_text(encoding="utf-8")

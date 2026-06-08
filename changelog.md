@@ -149,6 +149,7 @@ This file is local coordination material unless the user explicitly decides to p
 - Added `docs/RELEASE_EVIDENCE.md` as a structured release-candidate evidence template and linked it from the release checklist.
 - Added release evidence validation so public artifact validation requires completed evidence fields and `- None` blockers.
 - Strengthened release evidence validation for SHA256-shaped evidence, unchanged input hashes, and passing artifact-validation status.
+- Strengthened release evidence validation so unit-test, pytest, dry-run, mock, or simulated proof language cannot stand in for real installed-app smoke evidence.
 - Strengthened release evidence validation so build/test machines, Windows version, NVIDIA GPU, driver, and CUDA values must look like real smoke-test environment data.
 - Strengthened release evidence validation so required clean-install, setup, CUDA, restore, path, cancel, checkpoint, uninstall, and artifact-validation results must be marked passing.
 - Strengthened release validation so installer filename and SHA256 evidence must match the staged setup artifact.
@@ -166,7 +167,7 @@ This file is local coordination material unless the user explicitly decides to p
 
 ### Verified
 
-- `.\.venv\Scripts\python.exe -m pytest` passes with 185 tests.
+- `.\.venv\Scripts\python.exe -m pytest` passes with 186 tests.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --report` prints actionable next steps for missing Torch/checkpoints and sandboxed write permissions.
 - `powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist\installer -ValidateOnly` runs and correctly blocks release because artifacts are missing and license notices are placeholders.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.

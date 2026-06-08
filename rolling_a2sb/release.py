@@ -11,6 +11,7 @@ MIN_SETUP_EXE_BYTES = 1024 * 1024
 SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
 GIT_SHA_RE = re.compile(r"^[0-9a-fA-F]{7,40}$")
 BANNED_EVIDENCE_VALUES = {"assumed", "not applicable", "n/a", "na", "todo", "tbd"}
+BANNED_EVIDENCE_PROOF_TOKENS = ["unit test", "pytest", "dry-run", "dry run", "mock", "simulated"]
 GENERIC_EVIDENCE_VALUES = {"builder", "tester", "test machine", "build machine", "test gpu", "nvidia test gpu"}
 REQUIRED_RELEASE_ARTIFACTS = [
     "A2SB-Restorer-Setup.exe",
@@ -304,6 +305,9 @@ def validate_release_evidence(
             values[field] = match.group(1).strip()
             if values[field].strip().lower() in BANNED_EVIDENCE_VALUES:
                 errors.append(f"Release evidence field uses a placeholder value: {field}")
+            lowered_value = values[field].lower()
+            if any(token in lowered_value for token in BANNED_EVIDENCE_PROOF_TOKENS):
+                errors.append(f"Release evidence field uses non-smoke-test proof: {field}")
 
     for field in EVIDENCE_SHA256_FIELDS:
         value = values.get(field)
