@@ -48,6 +48,23 @@ def test_release_validation_blocks_checkpoint_artifacts(tmp_path: Path) -> None:
     assert any("Checkpoint file" in error for error in result.errors)
 
 
+def test_release_validation_blocks_model_weight_artifacts(tmp_path: Path) -> None:
+    artifacts = tmp_path / "artifacts"
+    licenses = tmp_path / "licenses"
+    artifacts.mkdir()
+    setup = artifacts / "A2SB-Restorer-Setup.exe"
+    setup.write_bytes(b"installer")
+    for name in ["model.pt", "model.pth", "model.safetensors"]:
+        (artifacts / name).write_bytes(b"bad")
+    write_sha256sums(list(artifacts.iterdir()), artifacts / "SHA256SUMS.txt")
+    write_notices(licenses)
+
+    result = validate_release_artifacts(artifacts, licenses)
+
+    assert not result.ok
+    assert sum("Model weight file" in error for error in result.errors) == 3
+
+
 def test_release_validation_blocks_placeholder_notices(tmp_path: Path) -> None:
     artifacts = tmp_path / "artifacts"
     licenses = tmp_path / "licenses"
@@ -78,4 +95,3 @@ def test_release_validation_accepts_basic_artifacts(tmp_path: Path) -> None:
 
     assert result.ok
     assert result.errors == []
-
