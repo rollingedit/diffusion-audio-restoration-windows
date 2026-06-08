@@ -93,6 +93,16 @@ EVIDENCE_PATH_SUFFIXES = {
     "Screenshot of completed Restore tab": (".png",),
     "Screenshot of Start Menu shortcuts": (".png",),
 }
+COMMAND_OUTPUT_FIELD_PAIRS = {
+    "Runtime setup": "Setup status JSON path",
+    "Doctor JSON": "Doctor JSON path",
+    "Hugging Face checkpoint download": "Checkpoint manifest path",
+    "CLI smoke restore": "Restore log path",
+    "Launcher build": "Launcher build",
+    "Installer build": "Installer filename",
+    "SHA256 generation": "Installer artifact folder",
+    "Release validation": "Release validation",
+}
 
 
 @dataclass(frozen=True)
@@ -267,6 +277,7 @@ def validate_release_evidence(
         command_evidence = values.get(field, "")
         if command_evidence and ("exit 0" not in command_evidence.lower() or command_evidence.count(";") < 2):
             errors.append(f"Release evidence command must include command, exit 0, and output path: {field}")
+    errors.extend(validate_evidence_command_consistency(values))
     if expected_version and values.get("Version") != expected_version:
         errors.append("Release evidence version does not match installer version")
     if values.get("Git commit") and not GIT_SHA_RE.match(values["Git commit"]):
@@ -298,6 +309,51 @@ def validate_release_evidence(
     if blocker_lines != ["- None"]:
         errors.append('Release evidence blockers must be exactly "- None" before public release')
     return errors
+
+
+def validate_evidence_command_consistency(values: dict[str, str]) -> list[str]:
+    errors: list[str] = []
+    for command_field, evidence_field in COMMAND_OUTPUT_FIELD_PAIRS.items():
+        command_evidence = values.get(command_field)
+        if not command_evidence:
+            continue
+        command_text, output_path = split_command_evidence(command_evidence)
+        if not output_path:
+            continue
+        if evidence_field == "Launcher build":
+            if not output_path.replace("\\", "/").endswith("dist/A2SB Restorer/A2SB Restorer.exe"):
+                errors.append("Release evidence launcher build output must be dist/A2SB Restorer/A2SB Restorer.exe")
+            continue
+        if evidence_field == "Installer filename":
+            if Path(output_path.replace("\\", "/")).name != values.get(evidence_field):
+                errors.append("Release evidence installer build output does not match installer filename")
+            continue
+        if evidence_field == "Installer artifact folder":
+            if not output_path.replace("\\", "/").endswith("dist/installer/SHA256SUMS.txt"):
+                errors.append("Release evidence SHA256 generation output must be dist/installer/SHA256SUMS.txt")
+            continue
+        if evidence_field == "Release validation":
+            if "-validateonly" not in command_text.lower():
+                errors.append("Release evidence validation command must use -ValidateOnly")
+            continue
+        if values.get(evidence_field) and normalize_evidence_path(output_path) != normalize_evidence_path(values[evidence_field]):
+            errors.append(f"Release evidence command output does not match evidence path: {command_field}")
+
+    sha_command, _ = split_command_evidence(values.get("SHA256 generation", ""))
+    if "-validateonly" in sha_command.lower():
+        errors.append("Release evidence SHA256 generation command must not use -ValidateOnly")
+    return errors
+
+
+def split_command_evidence(command_evidence: str) -> tuple[str, str]:
+    parts = [part.strip() for part in command_evidence.split(";")]
+    if len(parts) < 3:
+        return command_evidence.strip(), ""
+    return parts[0], parts[-1]
+
+
+def normalize_evidence_path(value: str) -> str:
+    return value.replace("\\", "/").rstrip("/").lower()
 
 
 def installer_release_version(installer_path: Path) -> str | None:

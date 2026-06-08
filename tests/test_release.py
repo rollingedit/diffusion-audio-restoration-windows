@@ -277,6 +277,41 @@ def test_validate_release_evidence_rejects_bad_evidence_path_shapes(tmp_path: Pa
     assert "Release evidence installer artifact folder must be dist/installer" in errors
 
 
+def test_validate_release_evidence_rejects_command_output_mismatches(tmp_path: Path) -> None:
+    evidence = write_release_evidence(tmp_path)
+    text = evidence.read_text(encoding="utf-8")
+    text = text.replace(
+        "- Doctor JSON: .venv/Scripts/python.exe -m rolling_a2sb.cli doctor --json; exit 0; evidence/doctor.json",
+        "- Doctor JSON: .venv/Scripts/python.exe -m rolling_a2sb.cli doctor --json; exit 0; evidence/other-doctor.json",
+    )
+    text = text.replace(
+        "- Launcher build: powershell -ExecutionPolicy Bypass -File scripts/build_launcher.ps1; exit 0; dist/A2SB Restorer/A2SB Restorer.exe",
+        "- Launcher build: powershell -ExecutionPolicy Bypass -File scripts/build_launcher.ps1; exit 0; dist/wrong.exe",
+    )
+    text = text.replace(
+        "- Installer build: powershell -ExecutionPolicy Bypass -File scripts/build_installer.ps1; exit 0; dist/installer/A2SB-Restorer-Setup.exe",
+        "- Installer build: powershell -ExecutionPolicy Bypass -File scripts/build_installer.ps1; exit 0; dist/installer/Other.exe",
+    )
+    text = text.replace(
+        "- SHA256 generation: powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist/installer; exit 0; dist/installer/SHA256SUMS.txt",
+        "- SHA256 generation: powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist/installer -ValidateOnly; exit 0; dist/installer/OTHER.txt",
+    )
+    text = text.replace(
+        "- Release validation: powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist/installer -ValidateOnly; exit 0; evidence/release_validation.txt",
+        "- Release validation: powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist/installer; exit 0; evidence/release_validation.txt",
+    )
+    evidence.write_text(text, encoding="utf-8")
+
+    errors = validate_release_evidence(evidence)
+
+    assert "Release evidence command output does not match evidence path: Doctor JSON" in errors
+    assert "Release evidence launcher build output must be dist/A2SB Restorer/A2SB Restorer.exe" in errors
+    assert "Release evidence installer build output does not match installer filename" in errors
+    assert "Release evidence SHA256 generation output must be dist/installer/SHA256SUMS.txt" in errors
+    assert "Release evidence SHA256 generation command must not use -ValidateOnly" in errors
+    assert "Release evidence validation command must use -ValidateOnly" in errors
+
+
 def test_validate_release_evidence_rejects_weak_hash_and_validation_values(tmp_path: Path) -> None:
     evidence = write_release_evidence(tmp_path)
     text = evidence.read_text(encoding="utf-8")
