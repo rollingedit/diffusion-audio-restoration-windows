@@ -38,6 +38,7 @@ def run_gui() -> int:
             QMainWindow,
             QMessageBox,
             QPushButton,
+            QProgressBar,
             QSpinBox,
             QTabWidget,
             QTextEdit,
@@ -165,6 +166,7 @@ def run_gui() -> int:
             self.restore_button = QPushButton("Restore")
             self.open_output_button = QPushButton("Open Output Folder")
             self.open_output_button.setEnabled(False)
+            self.restore_another_button = QPushButton("Restore Another File")
             option_row.addWidget(QLabel("Model"))
             option_row.addWidget(self.model_combo)
             option_row.addWidget(QLabel("Steps"))
@@ -174,7 +176,14 @@ def run_gui() -> int:
             option_row.addWidget(self.plan_button)
             option_row.addWidget(self.restore_button)
             option_row.addWidget(self.open_output_button)
+            option_row.addWidget(self.restore_another_button)
             layout.addLayout(option_row)
+
+            self.restore_progress = QProgressBar()
+            self.restore_progress.setRange(0, 0)
+            self.restore_progress.setTextVisible(False)
+            self.restore_progress.hide()
+            layout.addWidget(self.restore_progress)
 
             self.restore_output = QTextEdit()
             self.restore_output.setReadOnly(True)
@@ -187,6 +196,7 @@ def run_gui() -> int:
             self.plan_button.clicked.connect(self.plan_restore)
             self.restore_button.clicked.connect(self.start_restore)
             self.open_output_button.clicked.connect(self.open_output_folder)
+            self.restore_another_button.clicked.connect(self.restore_another_file)
             return tab
 
         def build_logs_tab(self) -> QWidget:
@@ -355,6 +365,7 @@ def run_gui() -> int:
             self.restore_button.setEnabled(False)
             self.plan_button.setEnabled(False)
             self.open_output_button.setEnabled(False)
+            self.restore_progress.show()
             self.restore_output.setPlainText("Preparing restore...\nRestoring...")
             self.restore_thread = RestoreThread(
                 {
@@ -372,7 +383,7 @@ def run_gui() -> int:
             self.restore_thread.start()
 
         def restore_finished(self, text: str) -> None:
-            self.restore_output.setPlainText(text)
+            self.restore_output.setPlainText(f"Restore complete.\n\n{text}")
             try:
                 data = json.loads(text)
                 if data.get("ok") and data.get("output"):
@@ -383,16 +394,25 @@ def run_gui() -> int:
             self.refresh_latest_log()
 
         def restore_failed(self, text: str) -> None:
-            self.restore_output.setPlainText(text)
+            self.restore_output.setPlainText(f"Restore failed.\n\n{text}")
             self.refresh_latest_log()
 
         def restore_thread_finished(self) -> None:
             self.restore_button.setEnabled(True)
             self.plan_button.setEnabled(True)
+            self.restore_progress.hide()
 
         def open_output_folder(self) -> None:
             if self.last_output_folder:
                 self.open_folder(self.last_output_folder)
+
+        def restore_another_file(self) -> None:
+            self.input_edit.clear()
+            self.output_edit.clear()
+            self.restore_output.clear()
+            self.last_output_folder = None
+            self.open_output_button.setEnabled(False)
+            self.input_edit.setFocus()
 
         def current_input_audio(self) -> Path | None:
             text = self.input_edit.text().strip()

@@ -96,6 +96,7 @@ This file is local coordination material unless the user explicitly decides to p
 - Added `docs/UPSTREAM_AUDIT.md` documenting the preserved NVIDIA entrypoint, bypassed research wrappers, generated-config sanitization, and remaining real smoke validation needs.
 - Added release scaffold coverage for the upstream audit document.
 - Added release validation that requires the Windows setup EXE, Windows README, and license notices artifact before a release folder can pass.
+- Added GUI restore completion polish with visible indeterminate progress, explicit complete/failed states, and a Restore Another File reset action.
 
 ### Verified
 

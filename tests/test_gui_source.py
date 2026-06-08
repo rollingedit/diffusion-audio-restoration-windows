@@ -10,9 +10,16 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
     assert "QTabWidget" in text
     assert "Plan Restore" in text
     assert "QThread" in text
+    assert "QProgressBar" in text
     assert "RestoreThread" in text
     assert "execute_restore_text" in text
     assert "Open Output Folder" in text
+    assert "Restore Another File" in text
+    assert "restore_another_file" in text
+    assert "Restore complete." in text
+    assert "Restore failed." in text
+    assert "restore_progress.show()" in text
+    assert "restore_progress.hide()" in text
     assert "start_restore" in text
     assert "Download Recommended Model" in text
     assert "confirm_and_download_model" in text
