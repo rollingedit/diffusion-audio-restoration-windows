@@ -43,6 +43,20 @@ REQUIRED_RELEASE_DOC_TOKENS = {
         "no telemetry",
     ],
 }
+REQUIRED_INSTALLER_METADATA_TOKENS = [
+    '#define MyAppName "A2SB Restorer"',
+    '#define MyAppPublisher "RollingEdit"',
+    '#define MyAppURL "https://github.com/rollingedit/diffusion-audio-restoration-windows"',
+    "AppPublisherURL={#MyAppURL}",
+    "AppSupportURL={#MyAppURL}/issues",
+    "AppUpdatesURL={#MyAppURL}/releases",
+    "DefaultDirName={localappdata}\\Programs\\RollingEdit\\A2SB Restorer",
+    "OutputBaseFilename=A2SB-Restorer-Setup",
+    "PrivilegesRequired=lowest",
+    "ArchitecturesAllowed=x64",
+    "SetupIconFile=assets\\app.ico",
+    'Source: "..\\dist\\A2SB Restorer\\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion',
+]
 REQUIRED_EVIDENCE_FIELDS = [
     "Version",
     "Git commit",
@@ -198,6 +212,7 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
         errors.append("Python package version does not match rolling_a2sb.__version__")
     if installer_version and project_version and installer_version != project_version.replace("a0", "-alpha"):
         errors.append("Installer version does not match Python package release label")
+    errors.extend(validate_installer_metadata(source_root / "installer" / "a2sb-restorer.iss"))
     errors.extend(validate_runtime_lockfile(source_root / "requirements" / "lock-win-cu121.txt"))
 
     artifact_names = {artifact.name for artifact in artifacts}
@@ -508,6 +523,18 @@ def validate_runtime_lockfile(lockfile_path: Path) -> list[str]:
     for requirement in ["torch==2.2.2+cu121", "torchaudio==2.2.2+cu121", "numpy==1.26.4"]:
         if requirement not in lower_lines:
             errors.append(f"Runtime lockfile is missing pinned requirement: {requirement}")
+    return errors
+
+
+def validate_installer_metadata(installer_path: Path) -> list[str]:
+    path = Path(installer_path)
+    if not path.exists():
+        return ["Installer script is missing: installer/a2sb-restorer.iss"]
+    text = path.read_text(encoding="utf-8")
+    errors: list[str] = []
+    for token in REQUIRED_INSTALLER_METADATA_TOKENS:
+        if token not in text:
+            errors.append(f"Installer script is missing required release metadata: {token}")
     return errors
 
 

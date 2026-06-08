@@ -12,6 +12,7 @@ from rolling_a2sb.release import (
     parse_checksum_file,
     project_release_version,
     sha256_file,
+    validate_installer_metadata,
     validate_release_artifacts,
     validate_release_evidence,
     validate_runtime_lockfile,
@@ -69,7 +70,34 @@ def write_version_sources(root: Path, project_version: str = "0.1.0a0", package_
     (package / "__init__.py").write_text(f'__version__ = "{package_version}"\n', encoding="utf-8")
     installer = root / "installer"
     installer.mkdir(parents=True, exist_ok=True)
-    (installer / "a2sb-restorer.iss").write_text(f'#define MyAppVersion "{installer_version}"\n', encoding="utf-8")
+    (installer / "a2sb-restorer.iss").write_text(
+        "\n".join(
+            [
+                '#define MyAppName "A2SB Restorer"',
+                f'#define MyAppVersion "{installer_version}"',
+                '#define MyAppPublisher "RollingEdit"',
+                '#define MyAppURL "https://github.com/rollingedit/diffusion-audio-restoration-windows"',
+                "",
+                "[Setup]",
+                "AppName={#MyAppName}",
+                "AppVersion={#MyAppVersion}",
+                "AppPublisher={#MyAppPublisher}",
+                "AppPublisherURL={#MyAppURL}",
+                "AppSupportURL={#MyAppURL}/issues",
+                "AppUpdatesURL={#MyAppURL}/releases",
+                "DefaultDirName={localappdata}\\Programs\\RollingEdit\\A2SB Restorer",
+                "OutputBaseFilename=A2SB-Restorer-Setup",
+                "PrivilegesRequired=lowest",
+                "ArchitecturesAllowed=x64",
+                "SetupIconFile=assets\\app.ico",
+                "",
+                "[Files]",
+                'Source: "..\\dist\\A2SB Restorer\\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion',
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
 
 
 def write_runtime_lockfile(root: Path, placeholder: bool = False) -> Path:
@@ -505,6 +533,22 @@ def test_project_and_package_version_helpers_read_sources(tmp_path: Path) -> Non
 
     assert project_release_version(tmp_path / "pyproject.toml") == "0.2.0"
     assert package_init_version(tmp_path / "rolling_a2sb" / "__init__.py") == "0.2.0"
+
+
+def test_validate_installer_metadata_requires_public_release_settings(tmp_path: Path) -> None:
+    missing = validate_installer_metadata(tmp_path / "installer" / "a2sb-restorer.iss")
+    assert "Installer script is missing: installer/a2sb-restorer.iss" in missing
+
+    installer = tmp_path / "installer"
+    installer.mkdir()
+    path = installer / "a2sb-restorer.iss"
+    path.write_text('#define MyAppVersion "0.1.0-alpha"\n[Setup]\nPrivilegesRequired=admin\n', encoding="utf-8")
+
+    errors = validate_installer_metadata(path)
+
+    assert 'Installer script is missing required release metadata: #define MyAppName "A2SB Restorer"' in errors
+    assert "Installer script is missing required release metadata: PrivilegesRequired=lowest" in errors
+    assert "Installer script is missing required release metadata: SetupIconFile=assets\\app.ico" in errors
 
 
 def test_validate_runtime_lockfile_requires_pinned_cuda_stack(tmp_path: Path) -> None:
