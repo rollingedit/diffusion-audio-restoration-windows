@@ -160,11 +160,23 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
         for entry in sorted(checksum_names - artifact_names):
             errors.append(f"SHA256SUMS.txt references missing artifact: {entry}")
 
-    errors.extend(validate_release_evidence(source_root / "docs" / "RELEASE_EVIDENCE.md"))
+    setup_artifact = folder / "A2SB-Restorer-Setup.exe"
+    expected_installer_sha256 = sha256_file(setup_artifact) if setup_artifact.exists() and setup_artifact.is_file() else None
+    errors.extend(
+        validate_release_evidence(
+            source_root / "docs" / "RELEASE_EVIDENCE.md",
+            expected_installer_filename="A2SB-Restorer-Setup.exe",
+            expected_installer_sha256=expected_installer_sha256,
+        )
+    )
     return ReleaseCheckResult(ok=not errors, errors=errors)
 
 
-def validate_release_evidence(evidence_path: Path) -> list[str]:
+def validate_release_evidence(
+    evidence_path: Path,
+    expected_installer_filename: str | None = None,
+    expected_installer_sha256: str | None = None,
+) -> list[str]:
     path = Path(evidence_path)
     if not path.exists():
         return [f"Release evidence file is missing: {path}"]
@@ -191,6 +203,10 @@ def validate_release_evidence(evidence_path: Path) -> list[str]:
     for field in REQUIRED_EVIDENCE_PASS_FIELDS:
         if values.get(field, "").lower() not in {"yes", "true", "passed"}:
             errors.append(f"Release evidence must mark required result as passed: {field}")
+    if expected_installer_filename and values.get("Installer filename") != expected_installer_filename:
+        errors.append("Release evidence installer filename does not match staged artifact")
+    if expected_installer_sha256 and values.get("Installer SHA256", "").lower() != expected_installer_sha256.lower():
+        errors.append("Release evidence installer SHA256 does not match staged artifact")
 
     blockers = re.search(r"## Blockers\s*(.*)\Z", text, flags=re.DOTALL)
     blocker_lines = []

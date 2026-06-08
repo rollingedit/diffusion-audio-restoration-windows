@@ -7,6 +7,7 @@ from rolling_a2sb.release import (
     checksum_artifact_names,
     collect_release_artifacts,
     parse_checksum_file,
+    sha256_file,
     validate_release_artifacts,
     validate_release_evidence,
     write_sha256sums,
@@ -33,9 +34,15 @@ def write_release_sources(root: Path, readme_text: str = "readme", notices_text:
     (root / "LICENSE-NOTICES.txt").write_text(notices_text, encoding="utf-8")
 
 
-def write_release_evidence(root: Path, blockers: str = "- None") -> Path:
+def write_release_evidence(
+    root: Path,
+    blockers: str = "- None",
+    installer_filename: str = "A2SB-Restorer-Setup.exe",
+    installer_sha256: str | None = None,
+) -> Path:
     evidence = root / "docs" / "RELEASE_EVIDENCE.md"
     evidence.parent.mkdir(parents=True, exist_ok=True)
+    installer_sha256 = installer_sha256 or "a" * 64
     evidence.write_text(
         "\n".join(
             [
@@ -51,8 +58,8 @@ def write_release_evidence(root: Path, blockers: str = "- None") -> Path:
                 "- GPU model: NVIDIA test GPU",
                 "- NVIDIA driver version: 555.55",
                 "- CUDA reported by PyTorch: 12.1",
-                "- Installer filename: A2SB-Restorer-Setup.exe",
-                "- Installer SHA256: " + "a" * 64,
+                f"- Installer filename: {installer_filename}",
+                f"- Installer SHA256: {installer_sha256}",
                 "- FFmpeg build filename: ffmpeg-master-latest-win64-lgpl.zip",
                 "- FFmpeg source URL: https://github.com/BtbN/FFmpeg-Builds",
                 "",
@@ -195,6 +202,19 @@ def test_validate_release_evidence_rejects_weak_hash_and_validation_values(tmp_p
     assert "Release evidence field must be a SHA256 digest: Installer SHA256" in errors
     assert "Release evidence input hash changed during restore" in errors
     assert "Release evidence must mark required result as passed: Release artifacts validated" in errors
+
+
+def test_validate_release_evidence_rejects_installer_artifact_mismatch(tmp_path: Path) -> None:
+    evidence = write_release_evidence(tmp_path, installer_filename="wrong.exe", installer_sha256="c" * 64)
+
+    errors = validate_release_evidence(
+        evidence,
+        expected_installer_filename="A2SB-Restorer-Setup.exe",
+        expected_installer_sha256="d" * 64,
+    )
+
+    assert "Release evidence installer filename does not match staged artifact" in errors
+    assert "Release evidence installer SHA256 does not match staged artifact" in errors
 
 
 def test_validate_release_evidence_rejects_unpassed_required_results(tmp_path: Path) -> None:
@@ -519,7 +539,7 @@ def test_release_validation_accepts_basic_artifacts(tmp_path: Path) -> None:
     readme.write_text("readme", encoding="utf-8")
     notices.write_text("notices", encoding="utf-8")
     write_release_sources(tmp_path)
-    write_release_evidence(tmp_path)
+    write_release_evidence(tmp_path, installer_sha256=sha256_file(setup))
     write_sha256sums([setup, readme, notices], artifacts / "SHA256SUMS.txt")
     write_notices(licenses)
 
