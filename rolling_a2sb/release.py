@@ -69,6 +69,10 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
             errors.append(f"Checkpoint file must not be a release artifact: {artifact.name}")
         if artifact.name.lower().endswith((".pt", ".pth", ".safetensors")):
             errors.append(f"Model weight file must not be a release artifact: {artifact.name}")
+        if artifact.name in {"README-WINDOWS.md", "LICENSE-NOTICES.txt"}:
+            text = artifact.read_text(encoding="utf-8", errors="replace")
+            if "release-source placeholder" in text or RELEASE_BLOCKED_TEXT in text:
+                errors.append(f"Release artifact still contains blocking placeholder text: {artifact.name}")
 
     for notice in [
         "NVIDIA_A2SB_LICENSE.txt",

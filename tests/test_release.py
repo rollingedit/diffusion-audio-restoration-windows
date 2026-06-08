@@ -125,6 +125,49 @@ def test_release_validation_requires_checksum_entries_for_all_artifacts(tmp_path
     assert "SHA256SUMS.txt is missing artifact entry: LICENSE-NOTICES.txt" in result.errors
 
 
+def test_release_validation_blocks_placeholder_release_notice_artifact(tmp_path: Path) -> None:
+    artifacts = tmp_path / "artifacts"
+    licenses = tmp_path / "licenses"
+    artifacts.mkdir()
+    setup = artifacts / "A2SB-Restorer-Setup.exe"
+    readme = artifacts / "README-WINDOWS.md"
+    notices = artifacts / "LICENSE-NOTICES.txt"
+    setup.write_bytes(b"installer")
+    readme.write_text("readme", encoding="utf-8")
+    notices.write_text(
+        "A2SB Restorer License Notices\n\n"
+        "This file is a release-source placeholder.\n\n"
+        "Do not publish release artifacts\n",
+        encoding="utf-8",
+    )
+    write_sha256sums([setup, readme, notices], artifacts / "SHA256SUMS.txt")
+    write_notices(licenses)
+
+    result = validate_release_artifacts(artifacts, licenses)
+
+    assert not result.ok
+    assert "Release artifact still contains blocking placeholder text: LICENSE-NOTICES.txt" in result.errors
+
+
+def test_release_validation_blocks_placeholder_windows_readme_artifact(tmp_path: Path) -> None:
+    artifacts = tmp_path / "artifacts"
+    licenses = tmp_path / "licenses"
+    artifacts.mkdir()
+    setup = artifacts / "A2SB-Restorer-Setup.exe"
+    readme = artifacts / "README-WINDOWS.md"
+    notices = artifacts / "LICENSE-NOTICES.txt"
+    setup.write_bytes(b"installer")
+    readme.write_text("Do not publish release artifacts\n", encoding="utf-8")
+    notices.write_text("final notices", encoding="utf-8")
+    write_sha256sums([setup, readme, notices], artifacts / "SHA256SUMS.txt")
+    write_notices(licenses)
+
+    result = validate_release_artifacts(artifacts, licenses)
+
+    assert not result.ok
+    assert "Release artifact still contains blocking placeholder text: README-WINDOWS.md" in result.errors
+
+
 def test_release_validation_rejects_stale_checksum_entries(tmp_path: Path) -> None:
     artifacts = tmp_path / "artifacts"
     licenses = tmp_path / "licenses"
