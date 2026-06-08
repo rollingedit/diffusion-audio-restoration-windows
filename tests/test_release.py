@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from rolling_a2sb.release import collect_release_artifacts, validate_release_artifacts, write_sha256sums
+from rolling_a2sb.release import checksum_artifact_names, collect_release_artifacts, validate_release_artifacts, write_sha256sums
 
 
 def write_notices(licenses_dir: Path, placeholder: bool = False) -> None:
@@ -32,6 +32,16 @@ def test_collect_release_artifacts_excludes_sha_file(tmp_path: Path) -> None:
     sums.write_text("hash  file\n", encoding="utf-8")
 
     assert collect_release_artifacts(tmp_path) == [artifact]
+
+
+def test_checksum_artifact_names_parses_generated_checksum_file(tmp_path: Path) -> None:
+    checksums = tmp_path / "SHA256SUMS.txt"
+    checksums.write_text(
+        "0" * 64 + "  A2SB-Restorer-Setup.exe\n" + "1" * 64 + "  *README-WINDOWS.md\n",
+        encoding="utf-8",
+    )
+
+    assert checksum_artifact_names(checksums) == {"A2SB-Restorer-Setup.exe", "README-WINDOWS.md"}
 
 
 def test_release_validation_blocks_checkpoint_artifacts(tmp_path: Path) -> None:
@@ -94,6 +104,46 @@ def test_release_validation_requires_readme_and_license_notices_artifacts(tmp_pa
     assert not result.ok
     assert "Missing release artifact: README-WINDOWS.md" in result.errors
     assert "Missing release artifact: LICENSE-NOTICES.txt" in result.errors
+
+
+def test_release_validation_requires_checksum_entries_for_all_artifacts(tmp_path: Path) -> None:
+    artifacts = tmp_path / "artifacts"
+    licenses = tmp_path / "licenses"
+    artifacts.mkdir()
+    setup = artifacts / "A2SB-Restorer-Setup.exe"
+    readme = artifacts / "README-WINDOWS.md"
+    notices = artifacts / "LICENSE-NOTICES.txt"
+    setup.write_bytes(b"installer")
+    readme.write_text("readme", encoding="utf-8")
+    notices.write_text("notices", encoding="utf-8")
+    write_sha256sums([setup, readme], artifacts / "SHA256SUMS.txt")
+    write_notices(licenses)
+
+    result = validate_release_artifacts(artifacts, licenses)
+
+    assert not result.ok
+    assert "SHA256SUMS.txt is missing artifact entry: LICENSE-NOTICES.txt" in result.errors
+
+
+def test_release_validation_rejects_stale_checksum_entries(tmp_path: Path) -> None:
+    artifacts = tmp_path / "artifacts"
+    licenses = tmp_path / "licenses"
+    artifacts.mkdir()
+    setup = artifacts / "A2SB-Restorer-Setup.exe"
+    readme = artifacts / "README-WINDOWS.md"
+    notices = artifacts / "LICENSE-NOTICES.txt"
+    setup.write_bytes(b"installer")
+    readme.write_text("readme", encoding="utf-8")
+    notices.write_text("notices", encoding="utf-8")
+    write_sha256sums([setup, readme, notices], artifacts / "SHA256SUMS.txt")
+    with (artifacts / "SHA256SUMS.txt").open("a", encoding="utf-8") as handle:
+        handle.write(f"{'0' * 64}  deleted.zip\n")
+    write_notices(licenses)
+
+    result = validate_release_artifacts(artifacts, licenses)
+
+    assert not result.ok
+    assert "SHA256SUMS.txt references missing artifact: deleted.zip" in result.errors
 
 
 def test_release_validation_accepts_basic_artifacts(tmp_path: Path) -> None:

@@ -86,5 +86,22 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
     checksums = folder / "SHA256SUMS.txt"
     if artifacts and not checksums.exists():
         errors.append("SHA256SUMS.txt is missing")
+    elif artifacts:
+        checksum_entries = checksum_artifact_names(checksums)
+        for artifact in artifacts:
+            if artifact.name not in checksum_entries:
+                errors.append(f"SHA256SUMS.txt is missing artifact entry: {artifact.name}")
+        artifact_names = {artifact.name for artifact in artifacts}
+        for entry in sorted(checksum_entries - artifact_names):
+            errors.append(f"SHA256SUMS.txt references missing artifact: {entry}")
 
     return ReleaseCheckResult(ok=not errors, errors=errors)
+
+
+def checksum_artifact_names(checksums_path: Path) -> set[str]:
+    names: set[str] = set()
+    for line in Path(checksums_path).read_text(encoding="utf-8").splitlines():
+        parts = line.split(maxsplit=1)
+        if len(parts) == 2:
+            names.add(parts[1].strip().lstrip("*"))
+    return names
