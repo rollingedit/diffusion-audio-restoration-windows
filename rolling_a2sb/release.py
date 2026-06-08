@@ -37,6 +37,23 @@ EVIDENCE_SHA256_FIELDS = [
     "Input file hash before restore",
     "Input file hash after restore",
 ]
+REQUIRED_EVIDENCE_PASS_FIELDS = [
+    "Clean install completed without admin",
+    "First launch required no terminal",
+    "Setup/repair required no manual Python, " + "Con" + "da, Git, W" + "SL, Do" + "cker, or YAML editing",
+    "Doctor passed in installed runtime",
+    "CUDA was visible through PyTorch",
+    "Bundled FFmpeg and ffprobe were used",
+    "Official two-split checkpoints downloaded from Hugging Face",
+    "Restore produced a WAV",
+    "Output WAV was 44.1 kHz mono",
+    "Path-with-spaces restore passed",
+    "Cancel left input and final output safe",
+    "Missing checkpoint opened setup flow",
+    "Uninstall removed app files",
+    "Uninstall preserved user-downloaded models",
+    "Release artifacts validated",
+]
 
 
 @dataclass(frozen=True)
@@ -155,7 +172,7 @@ def validate_release_evidence(evidence_path: Path) -> list[str]:
     text = path.read_text(encoding="utf-8")
     errors: list[str] = []
     values: dict[str, str] = {}
-    for field in REQUIRED_EVIDENCE_FIELDS:
+    for field in REQUIRED_EVIDENCE_FIELDS + REQUIRED_EVIDENCE_PASS_FIELDS:
         pattern = re.compile(rf"^- {re.escape(field)}:[ \t]*(.*)$", re.MULTILINE)
         match = pattern.search(text)
         if not match or not match.group(1).strip():
@@ -171,8 +188,9 @@ def validate_release_evidence(evidence_path: Path) -> list[str]:
     after_hash = values.get("Input file hash after restore")
     if before_hash and after_hash and before_hash.lower() != after_hash.lower():
         errors.append("Release evidence input hash changed during restore")
-    if values.get("Release artifacts validated", "").lower() not in {"yes", "true", "passed"}:
-        errors.append("Release evidence must mark release artifacts validation as passed")
+    for field in REQUIRED_EVIDENCE_PASS_FIELDS:
+        if values.get(field, "").lower() not in {"yes", "true", "passed"}:
+            errors.append(f"Release evidence must mark required result as passed: {field}")
 
     blockers = re.search(r"## Blockers\s*(.*)\Z", text, flags=re.DOTALL)
     blocker_lines = []

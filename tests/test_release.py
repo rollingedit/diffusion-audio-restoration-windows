@@ -65,6 +65,20 @@ def write_release_evidence(root: Path, blockers: str = "- None") -> Path:
                 "- Input file hash before restore: " + "b" * 64,
                 "- Input file hash after restore: " + "b" * 64,
                 "- Release artifacts validated: yes",
+                "- Clean install completed without admin: yes",
+                "- First launch required no terminal: yes",
+                "- Setup/repair required no manual Python, Conda, Git, WSL, Docker, or YAML editing: yes",
+                "- Doctor passed in installed runtime: yes",
+                "- CUDA was visible through PyTorch: yes",
+                "- Bundled FFmpeg and ffprobe were used: yes",
+                "- Official two-split checkpoints downloaded from Hugging Face: yes",
+                "- Restore produced a WAV: yes",
+                "- Output WAV was 44.1 kHz mono: yes",
+                "- Path-with-spaces restore passed: yes",
+                "- Cancel left input and final output safe: yes",
+                "- Missing checkpoint opened setup flow: yes",
+                "- Uninstall removed app files: yes",
+                "- Uninstall preserved user-downloaded models: yes",
                 "",
                 "## Blockers",
                 "",
@@ -180,7 +194,23 @@ def test_validate_release_evidence_rejects_weak_hash_and_validation_values(tmp_p
 
     assert "Release evidence field must be a SHA256 digest: Installer SHA256" in errors
     assert "Release evidence input hash changed during restore" in errors
-    assert "Release evidence must mark release artifacts validation as passed" in errors
+    assert "Release evidence must mark required result as passed: Release artifacts validated" in errors
+
+
+def test_validate_release_evidence_rejects_unpassed_required_results(tmp_path: Path) -> None:
+    evidence = write_release_evidence(tmp_path)
+    text = evidence.read_text(encoding="utf-8")
+    text = text.replace("- Restore produced a WAV: yes", "- Restore produced a WAV: no")
+    text = text.replace(
+        "- Setup/repair required no manual Python, Conda, Git, WSL, Docker, or YAML editing: yes",
+        "- Setup/repair required no manual Python, Conda, Git, WSL, Docker, or YAML editing:",
+    )
+    evidence.write_text(text, encoding="utf-8")
+
+    errors = validate_release_evidence(evidence)
+
+    assert "Release evidence field is incomplete: Setup/repair required no manual Python, Conda, Git, WSL, Docker, or YAML editing" in errors
+    assert "Release evidence must mark required result as passed: Restore produced a WAV" in errors
 
 
 def test_release_validation_blocks_checkpoint_artifacts(tmp_path: Path) -> None:
