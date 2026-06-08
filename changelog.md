@@ -108,10 +108,11 @@ This file is local coordination material unless the user explicitly decides to p
 - Added workflow and CLI coverage for no-GPU and missing-checkpoint readiness failures, including readable next actions and no traceback output.
 - Added workflow coverage for restore planning with paths containing spaces while proving the original input file remains unchanged.
 - Strengthened CLI and GUI action coverage for the official Hugging Face checkpoint download offer and copyable diagnostic report availability.
+- Added product safety tests guarding V1 non-goals: no WSL/Docker/SaaS/web path, no multi-GPU/AMD/Intel path, and no one-file Torch packaging.
 
 ### Verified
 
-- `.\.venv\Scripts\python.exe -m pytest` passes with 116 tests.
+- `.\.venv\Scripts\python.exe -m pytest` passes with 118 tests.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --report` prints actionable next steps for missing Torch/checkpoints and sandboxed write permissions.
 - `powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist\installer -ValidateOnly` runs and correctly blocks release because artifacts are missing and license notices are placeholders.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.
