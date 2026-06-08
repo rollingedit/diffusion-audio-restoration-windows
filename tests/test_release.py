@@ -5,6 +5,7 @@ from rolling_a2sb.release import (
     checksum_artifact_hashes,
     checksum_artifact_names,
     collect_release_artifacts,
+    parse_checksum_file,
     validate_release_artifacts,
     write_sha256sums,
 )
@@ -66,6 +67,29 @@ def test_checksum_artifact_hashes_preserves_expected_hashes(tmp_path: Path) -> N
         "A2SB-Restorer-Setup.exe": "0" * 64,
         "README-WINDOWS.md": "1" * 64,
     }
+
+
+def test_parse_checksum_file_reports_malformed_lines_invalid_hashes_and_duplicates(tmp_path: Path) -> None:
+    checksums = tmp_path / "SHA256SUMS.txt"
+    checksums.write_text(
+        "not-a-hash  A2SB-Restorer-Setup.exe\n"
+        "malformed\n"
+        + "1" * 64
+        + "  README-WINDOWS.md\n"
+        + "2" * 64
+        + "  README-WINDOWS.md\n",
+        encoding="utf-8",
+    )
+
+    entries, errors = parse_checksum_file(checksums)
+
+    assert entries == {
+        "A2SB-Restorer-Setup.exe": "not-a-hash",
+        "README-WINDOWS.md": "1" * 64,
+    }
+    assert "SHA256SUMS.txt line 1 has invalid SHA256 digest" in errors
+    assert "SHA256SUMS.txt line 2 is malformed" in errors
+    assert "SHA256SUMS.txt has duplicate artifact entry: README-WINDOWS.md" in errors
 
 
 def test_release_validation_blocks_checkpoint_artifacts(tmp_path: Path) -> None:
@@ -269,6 +293,27 @@ def test_release_validation_rejects_checksum_mismatch(tmp_path: Path) -> None:
 
     assert not result.ok
     assert "SHA256SUMS.txt hash does not match artifact: README-WINDOWS.md" in result.errors
+
+
+def test_release_validation_rejects_invalid_checksum_file_format(tmp_path: Path) -> None:
+    artifacts = tmp_path / "artifacts"
+    licenses = tmp_path / "licenses"
+    artifacts.mkdir()
+    setup = artifacts / "A2SB-Restorer-Setup.exe"
+    readme = artifacts / "README-WINDOWS.md"
+    notices = artifacts / "LICENSE-NOTICES.txt"
+    write_setup_exe(setup)
+    readme.write_text("readme", encoding="utf-8")
+    notices.write_text("notices", encoding="utf-8")
+    write_sha256sums([setup, readme, notices], artifacts / "SHA256SUMS.txt")
+    with (artifacts / "SHA256SUMS.txt").open("a", encoding="utf-8") as handle:
+        handle.write("not-a-valid-checksum-line\n")
+    write_notices(licenses)
+
+    result = validate_release_artifacts(artifacts, licenses)
+
+    assert not result.ok
+    assert "SHA256SUMS.txt line 4 is malformed" in result.errors
 
 
 def test_release_validation_accepts_basic_artifacts(tmp_path: Path) -> None:

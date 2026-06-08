@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
 
 RELEASE_BLOCKED_TEXT = "Do not publish release artifacts"
 MIN_SETUP_EXE_BYTES = 1024 * 1024
+SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
 REQUIRED_RELEASE_ARTIFACTS = [
     "A2SB-Restorer-Setup.exe",
     "README-WINDOWS.md",
@@ -98,7 +100,8 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
     if artifacts and not checksums.exists():
         errors.append("SHA256SUMS.txt is missing")
     elif artifacts:
-        checksum_entries = checksum_artifact_hashes(checksums)
+        checksum_entries, checksum_errors = parse_checksum_file(checksums)
+        errors.extend(checksum_errors)
         checksum_names = set(checksum_entries)
         for artifact in artifacts:
             if artifact.name not in checksum_names:
@@ -112,12 +115,31 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
     return ReleaseCheckResult(ok=not errors, errors=errors)
 
 
-def checksum_artifact_hashes(checksums_path: Path) -> dict[str, str]:
+def parse_checksum_file(checksums_path: Path) -> tuple[dict[str, str], list[str]]:
     entries: dict[str, str] = {}
-    for line in Path(checksums_path).read_text(encoding="utf-8").splitlines():
+    errors: list[str] = []
+    for line_number, line in enumerate(Path(checksums_path).read_text(encoding="utf-8").splitlines(), start=1):
+        if not line.strip():
+            continue
         parts = line.split(maxsplit=1)
         if len(parts) == 2:
-            entries[parts[1].strip().lstrip("*")] = parts[0].strip()
+            digest = parts[0].strip()
+            name = parts[1].strip().lstrip("*")
+            if not SHA256_RE.match(digest):
+                errors.append(f"SHA256SUMS.txt line {line_number} has invalid SHA256 digest")
+            if not name:
+                errors.append(f"SHA256SUMS.txt line {line_number} has no artifact name")
+            elif name in entries:
+                errors.append(f"SHA256SUMS.txt has duplicate artifact entry: {name}")
+            else:
+                entries[name] = digest
+        else:
+            errors.append(f"SHA256SUMS.txt line {line_number} is malformed")
+    return entries, errors
+
+
+def checksum_artifact_hashes(checksums_path: Path) -> dict[str, str]:
+    entries, _ = parse_checksum_file(checksums_path)
     return entries
 
 
