@@ -13,6 +13,7 @@ from rolling_a2sb.release import (
     project_release_version,
     sha256_file,
     validate_installer_metadata,
+    validate_release_checklist,
     validate_release_payload_inputs,
     validate_release_artifacts,
     validate_release_evidence,
@@ -72,6 +73,27 @@ PUBLIC_NOTICES_TEXT = (
 def write_release_sources(root: Path, readme_text: str = PUBLIC_README_TEXT, notices_text: str = PUBLIC_NOTICES_TEXT) -> None:
     (root / "README-WINDOWS.md").write_text(readme_text, encoding="utf-8")
     (root / "LICENSE-NOTICES.txt").write_text(notices_text, encoding="utf-8")
+
+
+def write_release_checklist(root: Path, complete: bool = True) -> Path:
+    checklist = root / "docs" / "RELEASE_CHECKLIST.md"
+    checklist.parent.mkdir(parents=True, exist_ok=True)
+    marker = "x" if complete else " "
+    checklist.write_text(
+        "\n".join(
+            [
+                "# Release Checklist",
+                "",
+                f"- [{marker}] Clean Windows 10/11 install tested.",
+                f"- [{marker}] Doctor passes.",
+                f"- [{marker}] Restore smoke test passes.",
+                f"- [{marker}] License notices included.",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return checklist
 
 
 def write_version_sources(root: Path, project_version: str = "0.1.0a0", package_version: str = "0.1.0a0", installer_version: str = "0.1.0-alpha") -> None:
@@ -612,6 +634,16 @@ def test_validate_runtime_lockfile_requires_pinned_cuda_stack(tmp_path: Path) ->
     assert "Runtime lockfile is missing pinned requirement: torch==2.2.2+cu121" in errors
 
 
+def test_validate_release_checklist_requires_all_items_checked(tmp_path: Path) -> None:
+    missing = validate_release_checklist(tmp_path / "docs" / "RELEASE_CHECKLIST.md")
+    assert "Release checklist is missing: docs/RELEASE_CHECKLIST.md" in missing
+
+    checklist = write_release_checklist(tmp_path, complete=False)
+    errors = validate_release_checklist(checklist)
+
+    assert "Release checklist has unchecked item on line 3" in errors
+
+
 def test_git_head_commit_reads_loose_ref(tmp_path: Path) -> None:
     commit = "a" * 40
     ref = tmp_path / ".git" / "refs" / "heads" / "main"
@@ -1041,6 +1073,7 @@ def test_release_validation_accepts_basic_artifacts(tmp_path: Path) -> None:
     notices.write_text(PUBLIC_NOTICES_TEXT, encoding="utf-8")
     write_release_sources(tmp_path)
     write_release_evidence(tmp_path, installer_sha256=sha256_file(setup))
+    write_release_checklist(tmp_path)
     write_version_sources(tmp_path)
     write_release_payload_inputs(tmp_path)
     write_runtime_lockfile(tmp_path)

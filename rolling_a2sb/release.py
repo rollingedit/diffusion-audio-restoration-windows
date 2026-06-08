@@ -218,6 +218,7 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
         errors.append("Installer version does not match Python package release label")
     errors.extend(validate_installer_metadata(source_root / "installer" / "a2sb-restorer.iss"))
     errors.extend(validate_release_payload_inputs(source_root))
+    errors.extend(validate_release_checklist(source_root / "docs" / "RELEASE_CHECKLIST.md"))
     errors.extend(validate_runtime_lockfile(source_root / "requirements" / "lock-win-cu121.txt"))
 
     artifact_names = {artifact.name for artifact in artifacts}
@@ -528,6 +529,20 @@ def validate_runtime_lockfile(lockfile_path: Path) -> list[str]:
     for requirement in ["torch==2.2.2+cu121", "torchaudio==2.2.2+cu121", "numpy==1.26.4"]:
         if requirement not in lower_lines:
             errors.append(f"Runtime lockfile is missing pinned requirement: {requirement}")
+    return errors
+
+
+def validate_release_checklist(checklist_path: Path) -> list[str]:
+    path = Path(checklist_path)
+    if not path.exists():
+        return ["Release checklist is missing: docs/RELEASE_CHECKLIST.md"]
+    text = path.read_text(encoding="utf-8")
+    errors: list[str] = []
+    if RELEASE_BLOCKED_TEXT in text or "placeholder" in text.lower():
+        errors.append("Release checklist still contains release-blocking placeholder text")
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        if re.match(r"^\s*-\s+\[\s\]\s+", line):
+            errors.append(f"Release checklist has unchecked item on line {line_number}")
     return errors
 
 
