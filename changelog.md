@@ -141,10 +141,11 @@ This file is local coordination material unless the user explicitly decides to p
 - Strengthened release validation so staged `README-WINDOWS.md` and `LICENSE-NOTICES.txt` cannot pass while they still contain release-blocking placeholder text.
 - Strengthened release validation so `A2SB-Restorer-Setup.exe` must be a Windows executable-shaped artifact above the minimum expected installer size.
 - Added installer icon source assets and wired Inno/build preflight to require a generated `installer/assets/app.ico` before packaging.
+- Strengthened release validation so `SHA256SUMS.txt` hashes must match the current staged artifact bytes, not only list each artifact name.
 
 ### Verified
 
-- `.\.venv\Scripts\python.exe -m pytest` passes with 152 tests.
+- `.\.venv\Scripts\python.exe -m pytest` passes with 154 tests.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --report` prints actionable next steps for missing Torch/checkpoints and sandboxed write permissions.
 - `powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist\installer -ValidateOnly` runs and correctly blocks release because artifacts are missing and license notices are placeholders.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.

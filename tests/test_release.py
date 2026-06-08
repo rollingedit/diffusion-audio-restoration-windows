@@ -2,6 +2,7 @@ from pathlib import Path
 
 from rolling_a2sb.release import (
     MIN_SETUP_EXE_BYTES,
+    checksum_artifact_hashes,
     checksum_artifact_names,
     collect_release_artifacts,
     validate_release_artifacts,
@@ -52,6 +53,19 @@ def test_checksum_artifact_names_parses_generated_checksum_file(tmp_path: Path) 
     )
 
     assert checksum_artifact_names(checksums) == {"A2SB-Restorer-Setup.exe", "README-WINDOWS.md"}
+
+
+def test_checksum_artifact_hashes_preserves_expected_hashes(tmp_path: Path) -> None:
+    checksums = tmp_path / "SHA256SUMS.txt"
+    checksums.write_text(
+        "0" * 64 + "  A2SB-Restorer-Setup.exe\n" + "1" * 64 + "  *README-WINDOWS.md\n",
+        encoding="utf-8",
+    )
+
+    assert checksum_artifact_hashes(checksums) == {
+        "A2SB-Restorer-Setup.exe": "0" * 64,
+        "README-WINDOWS.md": "1" * 64,
+    }
 
 
 def test_release_validation_blocks_checkpoint_artifacts(tmp_path: Path) -> None:
@@ -235,6 +249,26 @@ def test_release_validation_rejects_stale_checksum_entries(tmp_path: Path) -> No
 
     assert not result.ok
     assert "SHA256SUMS.txt references missing artifact: deleted.zip" in result.errors
+
+
+def test_release_validation_rejects_checksum_mismatch(tmp_path: Path) -> None:
+    artifacts = tmp_path / "artifacts"
+    licenses = tmp_path / "licenses"
+    artifacts.mkdir()
+    setup = artifacts / "A2SB-Restorer-Setup.exe"
+    readme = artifacts / "README-WINDOWS.md"
+    notices = artifacts / "LICENSE-NOTICES.txt"
+    write_setup_exe(setup)
+    readme.write_text("readme", encoding="utf-8")
+    notices.write_text("notices", encoding="utf-8")
+    write_sha256sums([setup, readme, notices], artifacts / "SHA256SUMS.txt")
+    readme.write_text("tampered readme", encoding="utf-8")
+    write_notices(licenses)
+
+    result = validate_release_artifacts(artifacts, licenses)
+
+    assert not result.ok
+    assert "SHA256SUMS.txt hash does not match artifact: README-WINDOWS.md" in result.errors
 
 
 def test_release_validation_accepts_basic_artifacts(tmp_path: Path) -> None:

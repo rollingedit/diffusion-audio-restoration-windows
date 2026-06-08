@@ -98,21 +98,28 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
     if artifacts and not checksums.exists():
         errors.append("SHA256SUMS.txt is missing")
     elif artifacts:
-        checksum_entries = checksum_artifact_names(checksums)
+        checksum_entries = checksum_artifact_hashes(checksums)
+        checksum_names = set(checksum_entries)
         for artifact in artifacts:
-            if artifact.name not in checksum_entries:
+            if artifact.name not in checksum_names:
                 errors.append(f"SHA256SUMS.txt is missing artifact entry: {artifact.name}")
+            elif checksum_entries[artifact.name].lower() != sha256_file(artifact):
+                errors.append(f"SHA256SUMS.txt hash does not match artifact: {artifact.name}")
         artifact_names = {artifact.name for artifact in artifacts}
-        for entry in sorted(checksum_entries - artifact_names):
+        for entry in sorted(checksum_names - artifact_names):
             errors.append(f"SHA256SUMS.txt references missing artifact: {entry}")
 
     return ReleaseCheckResult(ok=not errors, errors=errors)
 
 
-def checksum_artifact_names(checksums_path: Path) -> set[str]:
-    names: set[str] = set()
+def checksum_artifact_hashes(checksums_path: Path) -> dict[str, str]:
+    entries: dict[str, str] = {}
     for line in Path(checksums_path).read_text(encoding="utf-8").splitlines():
         parts = line.split(maxsplit=1)
         if len(parts) == 2:
-            names.add(parts[1].strip().lstrip("*"))
-    return names
+            entries[parts[1].strip().lstrip("*")] = parts[0].strip()
+    return entries
+
+
+def checksum_artifact_names(checksums_path: Path) -> set[str]:
+    return set(checksum_artifact_hashes(checksums_path))
