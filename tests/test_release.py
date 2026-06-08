@@ -312,6 +312,40 @@ def test_validate_release_evidence_rejects_command_output_mismatches(tmp_path: P
     assert "Release evidence validation command must use -ValidateOnly" in errors
 
 
+def test_validate_release_evidence_rejects_unexpected_command_text(tmp_path: Path) -> None:
+    evidence = write_release_evidence(tmp_path)
+    text = evidence.read_text(encoding="utf-8")
+    text = text.replace(
+        "- Runtime setup: powershell -ExecutionPolicy Bypass -File scripts/setup_runtime.ps1 -Json; exit 0; evidence/setup_status.json",
+        "- Runtime setup: powershell -ExecutionPolicy Bypass -File scripts/other_setup.ps1; exit 0; evidence/setup_status.json",
+    )
+    text = text.replace(
+        "- Doctor JSON: .venv/Scripts/python.exe -m rolling_a2sb.cli doctor --json; exit 0; evidence/doctor.json",
+        "- Doctor JSON: .venv/Scripts/python.exe -m rolling_a2sb.cli doctor --report; exit 0; evidence/doctor.json",
+    )
+    text = text.replace(
+        "- Hugging Face checkpoint download: a2sb download-model --model twosplit --yes; exit 0; evidence/checkpoint_manifest.json",
+        "- Hugging Face checkpoint download: a2sb download-model --model onesplit --yes; exit 0; evidence/checkpoint_manifest.json",
+    )
+    text = text.replace(
+        "- Manual checkpoint selection: a2sb select-checkpoints evidence/models --trust; exit 0; evidence/manual_manifest.json",
+        "- Manual checkpoint selection: a2sb select-checkpoints evidence/models; exit 0; evidence/manual_manifest.json",
+    )
+    text = text.replace(
+        "- CLI smoke restore: a2sb restore --input evidence/input.wav --steps 2; exit 0; evidence/restore.log",
+        "- CLI smoke restore: a2sb probe evidence/input.wav --json; exit 0; evidence/restore.log",
+    )
+    evidence.write_text(text, encoding="utf-8")
+
+    errors = validate_release_evidence(evidence)
+
+    assert "Release evidence command is not the expected release command: Runtime setup" in errors
+    assert "Release evidence command is not the expected release command: Doctor JSON" in errors
+    assert "Release evidence command is not the expected release command: Hugging Face checkpoint download" in errors
+    assert "Release evidence command is not the expected release command: Manual checkpoint selection" in errors
+    assert "Release evidence command is not the expected release command: CLI smoke restore" in errors
+
+
 def test_validate_release_evidence_rejects_weak_hash_and_validation_values(tmp_path: Path) -> None:
     evidence = write_release_evidence(tmp_path)
     text = evidence.read_text(encoding="utf-8")

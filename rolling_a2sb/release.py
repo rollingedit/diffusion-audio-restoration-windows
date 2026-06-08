@@ -103,6 +103,18 @@ COMMAND_OUTPUT_FIELD_PAIRS = {
     "SHA256 generation": "Installer artifact folder",
     "Release validation": "Release validation",
 }
+COMMAND_REQUIRED_TOKENS = {
+    "Runtime setup": ("setup_runtime.ps1", "-json"),
+    "Repair runtime": ("repair_runtime.ps1", "-json"),
+    "Doctor JSON": ("doctor", "--json"),
+    "Hugging Face checkpoint download": ("download-model", "--model", "twosplit", "--yes"),
+    "Manual checkpoint selection": ("select-checkpoints", "--trust"),
+    "CLI smoke restore": ("restore", "--input", "--steps"),
+    "Launcher build": ("build_launcher.ps1",),
+    "Installer build": ("build_installer.ps1",),
+    "SHA256 generation": ("write_sha256sums.ps1", "dist/installer"),
+    "Release validation": ("write_sha256sums.ps1", "dist/installer", "-validateonly"),
+}
 
 
 @dataclass(frozen=True)
@@ -313,6 +325,14 @@ def validate_release_evidence(
 
 def validate_evidence_command_consistency(values: dict[str, str]) -> list[str]:
     errors: list[str] = []
+    for command_field, required_tokens in COMMAND_REQUIRED_TOKENS.items():
+        command_text, _ = split_command_evidence(values.get(command_field, ""))
+        normalized_command = normalize_evidence_path(command_text)
+        for token in required_tokens:
+            if token not in normalized_command:
+                errors.append(f"Release evidence command is not the expected release command: {command_field}")
+                break
+
     for command_field, evidence_field in COMMAND_OUTPUT_FIELD_PAIRS.items():
         command_evidence = values.get(command_field)
         if not command_evidence:
