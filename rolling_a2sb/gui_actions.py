@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Callable
 
@@ -14,6 +15,10 @@ from .workflow import execute_restore, prepare_restore
 
 
 LineCallback = Callable[[str, str], None]
+STEP_PROGRESS_PATTERNS = [
+    re.compile(r"\b(?:step|sampling step|predict step)\s*(\d+)\s*(?:/|of)\s*(\d+)\b", re.IGNORECASE),
+    re.compile(r"\b(\d+)\s*/\s*(\d+)\b"),
+]
 
 
 def about_text() -> str:
@@ -99,6 +104,18 @@ def latest_restore_log_text(log_root: Path | None = None) -> str:
         return "No restore logs found."
     latest = logs[0]
     return f"Latest restore log: {latest}\n\n{latest.read_text(encoding='utf-8', errors='replace')}"
+
+
+def parse_restore_step_progress(line: str) -> tuple[int, int] | None:
+    for pattern in STEP_PROGRESS_PATTERNS:
+        match = pattern.search(line)
+        if not match:
+            continue
+        current = int(match.group(1))
+        total = int(match.group(2))
+        if total > 0 and 0 <= current <= total:
+            return current, total
+    return None
 
 
 def select_checkpoint_folder_text(

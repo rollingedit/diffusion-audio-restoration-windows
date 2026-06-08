@@ -112,10 +112,11 @@ This file is local coordination material unless the user explicitly decides to p
 - Added a product safety test enforcing that the Windows product path bypasses the upstream `A2SB_upsample_api.py` shell wrapper and calls `ensembled_inference_api.py`.
 - Added explicit trusted-manual-checkpoint support to `scripts/smoke_restore.ps1` and tests for smoke-script restore defaults/runtime fallback.
 - Tightened release validation so `SHA256SUMS.txt` must list every artifact and must not reference stale missing artifacts.
+- Added restore-progress parsing for streamed step lines so the GUI switches from indeterminate progress to exact step progress when upstream output includes counts.
 
 ### Verified
 
-- `.\.venv\Scripts\python.exe -m pytest` passes with 124 tests.
+- `.\.venv\Scripts\python.exe -m pytest` passes with 126 tests.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --report` prints actionable next steps for missing Torch/checkpoints and sandboxed write permissions.
 - `powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist\installer -ValidateOnly` runs and correctly blocks release because artifacts are missing and license notices are placeholders.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.

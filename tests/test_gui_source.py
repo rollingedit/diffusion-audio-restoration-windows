@@ -16,6 +16,9 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
     assert "QProgressBar" in text
     assert "restore_line = Signal(str, str)" in text
     assert "restore_line_received" in text
+    assert "parse_restore_step_progress" in text
+    assert "self.restore_progress.setFormat" in text
+    assert "Step {current} of {total}" in text
     assert "on_line=lambda stream_name, line" in text
     assert "self.restore_output.append" in text
     assert "Loading model..." in text

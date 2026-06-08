@@ -10,6 +10,7 @@ from rolling_a2sb.gui_actions import (
     execute_restore_text,
     latest_restore_log_text,
     model_download_confirmation_text,
+    parse_restore_step_progress,
     prepare_restore_dry_run,
     restore_plan_text,
     select_checkpoint_folder_text,
@@ -118,6 +119,18 @@ def test_latest_restore_log_text_reads_newest_log(tmp_path: Path) -> None:
 
     assert "Latest restore log:" in text
     assert "new" in text
+
+
+def test_parse_restore_step_progress_recognizes_common_step_lines() -> None:
+    assert parse_restore_step_progress("step 3/50") == (3, 50)
+    assert parse_restore_step_progress("sampling step 4 of 20") == (4, 20)
+    assert parse_restore_step_progress("  7/10 [00:01<00:02]") == (7, 10)
+
+
+def test_parse_restore_step_progress_ignores_invalid_lines() -> None:
+    assert parse_restore_step_progress("loading model") is None
+    assert parse_restore_step_progress("step 12/10") is None
+    assert parse_restore_step_progress("step 1/0") is None
 
 
 def test_prepare_restore_dry_run_returns_plan_and_log(tmp_path: Path, monkeypatch) -> None:

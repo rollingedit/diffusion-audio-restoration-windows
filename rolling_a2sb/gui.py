@@ -15,6 +15,7 @@ from .gui_actions import (
     execute_restore_text,
     latest_restore_log_text,
     model_download_confirmation_text,
+    parse_restore_step_progress,
     prepare_restore_dry_run,
     restore_plan_text,
     select_checkpoint_folder_text,
@@ -449,6 +450,8 @@ def run_gui() -> int:
             self.restore_button.setEnabled(False)
             self.plan_button.setEnabled(False)
             self.open_output_button.setEnabled(False)
+            self.restore_progress.setRange(0, 0)
+            self.restore_progress.setTextVisible(False)
             self.restore_progress.show()
             self.restore_output.setPlainText("Preparing restore...\nLoading model...\nRestoring...")
             self.restore_thread = RestoreThread(
@@ -468,6 +471,13 @@ def run_gui() -> int:
             self.restore_thread.start()
 
         def restore_line_received(self, stream_name: str, line: str) -> None:
+            progress = parse_restore_step_progress(line)
+            if progress:
+                current, total = progress
+                self.restore_progress.setRange(0, total)
+                self.restore_progress.setValue(current)
+                self.restore_progress.setFormat(f"Step {current} of {total}")
+                self.restore_progress.setTextVisible(True)
             self.restore_output.append(f"{stream_name}: {line}")
 
         def restore_finished(self, text: str) -> None:
