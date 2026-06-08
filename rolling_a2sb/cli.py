@@ -7,11 +7,13 @@ from pathlib import Path
 
 from . import paths
 from .audio_probe import audio_info_dict, probe_audio
-from .checkpoint_manager import checkpoint_paths_from_validation, validate_checkpoint_folder
+from .checkpoint_manager import checkpoint_paths_from_validation, trusted_manual_checkpoint_warning, validate_checkpoint_folder
 from .config_builder import RestoreConfigRequest, write_restore_config
 from .downloader import build_download_plan, download_model
 from .job import create_restore_job, with_config_path
+from .log import append_block, append_log
 from .runtime_check import doctor
+from .settings import load_settings, remember_input, reset_model_settings, update_settings
 from .worker import inference_command, run_restore_config
 
 
@@ -39,8 +41,10 @@ def main(argv: list[str] | None = None) -> int:
     restore_parser.add_argument("--steps", type=int, default=50)
     restore_parser.add_argument("--model", choices=["twosplit", "onesplit"], default="twosplit")
     restore_parser.add_argument("--checkpoint-folder", type=Path)
+    restore_parser.add_argument("--trust-manual-checkpoints", action="store_true")
     restore_parser.add_argument("--dry-run", action="store_true")
 
+    subparsers.add_parser("reset-models")
     subparsers.add_parser("open-model-folder")
     subparsers.add_parser("open-logs")
 
@@ -103,9 +107,28 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "restore":
         probe_audio(args.input)
-        validation = validate_checkpoint_folder(args.checkpoint_folder or Path.cwd(), mode=args.model)
+        settings = load_settings()
+        checkpoint_folder = args.checkpoint_folder or (Path(settings.checkpoint_folder) if settings.checkpoint_folder else paths.models_dir())
+        if args.checkpoint_folder:
+            if not args.trust_manual_checkpoints:
+                print(trusted_manual_checkpoint_warning())
+                print("Rerun with --trust-manual-checkpoints after confirming the source is trusted.")
+                return 2
+            update_settings(
+                model_mode=args.model,
+                checkpoint_folder=str(checkpoint_folder.resolve()),
+                checkpoint_manifest=None,
+                trusted_manual_checkpoint_folder=True,
+            )
+
+        validation = validate_checkpoint_folder(checkpoint_folder, mode=args.model)
         checkpoint_paths = checkpoint_paths_from_validation(validation)
         job = create_restore_job(args.input, output_audio=args.output, steps=args.steps, model_mode=args.model)
+        remember_input(args.input)
+        append_log(Path(job.log_path), f"created restore job {job.job_id}")
+        append_log(Path(job.log_path), f"input={Path(args.input).resolve()}")
+        append_log(Path(job.log_path), f"output={job.output_audio}")
+        append_log(Path(job.log_path), f"checkpoint_folder={Path(checkpoint_folder).resolve()}")
         config_path = write_restore_config(
             RestoreConfigRequest(
                 input_audio=args.input,
@@ -117,16 +140,37 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
         job = with_config_path(job, config_path)
+        append_log(Path(job.log_path), f"config={config_path}")
 
         if args.dry_run:
             command = inference_command(config_path)
-            print(json.dumps({"job": job.job_id, "config": str(config_path), "command": [str(part) for part in command]}, indent=2))
+            append_log(Path(job.log_path), "dry-run: restore subprocess was not started")
+            print(
+                json.dumps(
+                    {
+                        "job": job.job_id,
+                        "job_dir": job.job_dir,
+                        "log": job.log_path,
+                        "config": str(config_path),
+                        "command": [str(part) for part in command],
+                    },
+                    indent=2,
+                )
+            )
             return 0
 
         result = run_restore_config(config_path)
+        append_block(Path(job.log_path), "stdout", result.stdout)
+        append_block(Path(job.log_path), "stderr", result.stderr)
+        append_log(Path(job.log_path), f"returncode={result.returncode}")
         print(result.stdout, end="")
         print(result.stderr, end="")
         return result.returncode
+
+    if args.command == "reset-models":
+        settings = reset_model_settings()
+        print(json.dumps({"ok": True, "settings": settings.__dict__}, indent=2))
+        return 0
 
     if args.command == "open-model-folder":
         return _open_folder(paths.models_dir())

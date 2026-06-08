@@ -10,6 +10,7 @@ from typing import Any
 
 from . import paths
 from .checkpoint_manager import validate_checkpoint_folder
+from .settings import load_settings
 
 
 def check_python() -> dict[str, Any]:
@@ -106,23 +107,27 @@ def check_write_permissions() -> dict[str, Any]:
         return {"ok": False, "error": str(exc)}
 
 
-def check_checkpoints(mode: str = "twosplit", folder: Path | None = None, min_size_bytes: int | None = None) -> dict[str, Any]:
+def check_checkpoints(mode: str | None = None, folder: Path | None = None, min_size_bytes: int | None = None) -> dict[str, Any]:
+    settings = load_settings()
+    selected_mode = mode or settings.model_mode
+    selected_folder = folder or (Path(settings.checkpoint_folder) if settings.checkpoint_folder else paths.models_dir())
     validation = validate_checkpoint_folder(
-        folder or paths.models_dir(),
-        mode=mode,
+        selected_folder,
+        mode=selected_mode,
         min_size_bytes=min_size_bytes if min_size_bytes is not None else 2_000_000_000,
         compute_hashes=False,
     )
     return {
         "ok": validation.ok,
         "mode": validation.mode,
+        "folder": str(selected_folder),
         "files": [str(file.path) for file in validation.files],
         "missing": validation.missing,
         "errors": validation.errors,
     }
 
 
-def doctor(mode: str = "twosplit", checkpoint_min_size_bytes: int | None = None) -> dict[str, Any]:
+def doctor(mode: str | None = None, checkpoint_min_size_bytes: int | None = None) -> dict[str, Any]:
     checks = {
         "python": check_python(),
         "imports": check_imports(),

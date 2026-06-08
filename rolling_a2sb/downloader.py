@@ -14,6 +14,7 @@ from .checkpoint_manager import (
     save_manifest,
     validate_checkpoint_folder,
 )
+from .settings import update_settings
 
 ProgressCallback = Callable[[str], None]
 
@@ -108,6 +109,12 @@ def download_model(
 
     manifest = manifest_from_validation(validation)
     manifest_path = save_manifest(manifest, plan.target_dir / "checkpoint_manifest.json")
+    update_settings(
+        model_mode=mode,
+        checkpoint_folder=str(plan.target_dir.resolve()),
+        checkpoint_manifest=str(manifest_path.resolve()),
+        trusted_manual_checkpoint_folder=False,
+    )
     _emit(progress, "Model download complete")
     return DownloadResult(mode=mode, files=downloaded, validation=validation, manifest_path=manifest_path)
 

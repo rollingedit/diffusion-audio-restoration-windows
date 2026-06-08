@@ -145,6 +145,10 @@ def save_manifest(manifest: dict, path: Path | None = None) -> Path:
     return target
 
 
+def load_manifest(path: Path) -> dict:
+    return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
 def checkpoint_paths_from_validation(validation: CheckpointValidation) -> list[Path]:
     if not validation.ok:
         details = "; ".join(validation.errors + [f"missing {name}" for name in validation.missing])
@@ -161,4 +165,3 @@ def trusted_manual_checkpoint_warning() -> str:
         "PyTorch checkpoint files can execute code when loaded. Only use checkpoint "
         "files from NVIDIA's official Hugging Face repository or another source you trust."
     )
-

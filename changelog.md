@@ -27,10 +27,15 @@ This file is local coordination material unless the user explicitly decides to p
 - Added Inno Setup installer skeleton for per-user install, app files, scripts, docs, license notices, and Start Menu shortcuts without checkpoint bundling.
 - Added minimal `rolling_a2sb.app` and PySide6 GUI shell with doctor status, diagnostics, and model/log folder actions.
 - Added launcher, installer, and app entrypoint tests.
+- Added persistent `settings.json` handling for model state and recent inputs.
+- Added job log helpers and restore dry-run logging.
+- Updated restore to use saved checkpoint settings by default and require explicit trust for manual checkpoint folders.
+- Added `a2sb reset-models`.
+- Added settings and stateful CLI dry-run tests.
 
 ### Verified
 
-- `.\.venv\Scripts\python.exe -m pytest` passes with 36 tests.
+- `.\.venv\Scripts\python.exe -m pytest` passes with 42 tests.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.
 - `powershell -ExecutionPolicy Bypass -File scripts/setup_runtime.ps1 -DryRun -Json` succeeds without modifying the runtime.
 
