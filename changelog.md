@@ -173,6 +173,7 @@ This file is local coordination material unless the user explicitly decides to p
 - Strengthened release validation so `docs\RELEASE_CHECKLIST.md` must exist and all checklist items must be checked before public artifacts can pass.
 - Strengthened release validation so agent-critical source files for CI/release-validation workflows, the app, launcher, runtime/build/smoke scripts, Windows configs, and release docs must exist.
 - Strengthened release validation so CI/release-validation workflows must run tests/validation with read-only permissions and must not publish artifacts.
+- Updated release evidence validation to expect `a2sb release-check --artifacts-dir dist/installer --licenses-dir LICENSES` for release-validation proof.
 
 ### Verified
 

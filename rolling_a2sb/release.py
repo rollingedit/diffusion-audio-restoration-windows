@@ -180,7 +180,7 @@ COMMAND_REQUIRED_TOKENS = {
     "Launcher build": ("build_launcher.ps1",),
     "Installer build": ("build_installer.ps1",),
     "SHA256 generation": ("write_sha256sums.ps1", "dist/installer"),
-    "Release validation": ("write_sha256sums.ps1", "dist/installer", "-validateonly"),
+    "Release validation": ("release-check", "--artifacts-dir", "dist/installer", "--licenses-dir", "licenses"),
 }
 
 
@@ -494,8 +494,9 @@ def validate_evidence_command_consistency(values: dict[str, str]) -> list[str]:
                 errors.append("Release evidence SHA256 generation output must be dist/installer/SHA256SUMS.txt")
             continue
         if evidence_field == "Release validation":
-            if "-validateonly" not in command_text.lower():
-                errors.append("Release evidence validation command must use -ValidateOnly")
+            normalized_output = normalize_evidence_path(output_path)
+            if not normalized_output.endswith("evidence/release_validation.txt"):
+                errors.append("Release evidence validation output must be evidence/release_validation.txt")
             continue
         if values.get(evidence_field) and normalize_evidence_path(output_path) != normalize_evidence_path(values[evidence_field]):
             errors.append(f"Release evidence command output does not match evidence path: {command_field}")

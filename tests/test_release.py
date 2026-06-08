@@ -252,7 +252,7 @@ def write_release_evidence(
                 "- Launcher build: powershell -ExecutionPolicy Bypass -File scripts/build_launcher.ps1; exit 0; dist/A2SB Restorer/A2SB Restorer.exe",
                 "- Installer build: powershell -ExecutionPolicy Bypass -File scripts/build_installer.ps1; exit 0; dist/installer/A2SB-Restorer-Setup.exe",
                 "- SHA256 generation: powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist/installer; exit 0; dist/installer/SHA256SUMS.txt",
-                "- Release validation: powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist/installer -ValidateOnly; exit 0; evidence/release_validation.txt",
+                "- Release validation: a2sb release-check --artifacts-dir dist/installer --licenses-dir LICENSES; exit 0; evidence/release_validation.txt",
                 "",
                 "## Evidence Files",
                 "",
@@ -504,8 +504,8 @@ def test_validate_release_evidence_rejects_command_output_mismatches(tmp_path: P
         "- SHA256 generation: powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist/installer -ValidateOnly; exit 0; dist/installer/OTHER.txt",
     )
     text = text.replace(
-        "- Release validation: powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist/installer -ValidateOnly; exit 0; evidence/release_validation.txt",
-        "- Release validation: powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist/installer; exit 0; evidence/release_validation.txt",
+        "- Release validation: a2sb release-check --artifacts-dir dist/installer --licenses-dir LICENSES; exit 0; evidence/release_validation.txt",
+        "- Release validation: a2sb release-check --artifacts-dir dist/installer --licenses-dir LICENSES; exit 0; evidence/other_release_validation.txt",
     )
     evidence.write_text(text, encoding="utf-8")
 
@@ -516,7 +516,7 @@ def test_validate_release_evidence_rejects_command_output_mismatches(tmp_path: P
     assert "Release evidence installer build output does not match installer filename" in errors
     assert "Release evidence SHA256 generation output must be dist/installer/SHA256SUMS.txt" in errors
     assert "Release evidence SHA256 generation command must not use -ValidateOnly" in errors
-    assert "Release evidence validation command must use -ValidateOnly" in errors
+    assert "Release evidence validation output must be evidence/release_validation.txt" in errors
 
 
 def test_validate_release_evidence_rejects_unexpected_command_text(tmp_path: Path) -> None:
