@@ -213,6 +213,7 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
     if installer_version and project_version and installer_version != project_version.replace("a0", "-alpha"):
         errors.append("Installer version does not match Python package release label")
     errors.extend(validate_installer_metadata(source_root / "installer" / "a2sb-restorer.iss"))
+    errors.extend(validate_release_payload_inputs(source_root))
     errors.extend(validate_runtime_lockfile(source_root / "requirements" / "lock-win-cu121.txt"))
 
     artifact_names = {artifact.name for artifact in artifacts}
@@ -535,6 +536,32 @@ def validate_installer_metadata(installer_path: Path) -> list[str]:
     for token in REQUIRED_INSTALLER_METADATA_TOKENS:
         if token not in text:
             errors.append(f"Installer script is missing required release metadata: {token}")
+    return errors
+
+
+def validate_release_payload_inputs(source_root: Path) -> list[str]:
+    root = Path(source_root)
+    errors: list[str] = []
+    executable_payloads = [
+        ("bin/ffmpeg.exe", "FFmpeg binary"),
+        ("bin/ffprobe.exe", "ffprobe binary"),
+    ]
+    for relative_path, label in executable_payloads:
+        path = root / relative_path
+        if not path.exists() or not path.is_file():
+            errors.append(f"Release payload input is missing: {relative_path}")
+            continue
+        with path.open("rb") as handle:
+            if handle.read(2) != b"MZ":
+                errors.append(f"Release payload input is not a Windows executable: {label}")
+
+    icon = root / "installer" / "assets" / "app.ico"
+    if not icon.exists() or not icon.is_file():
+        errors.append("Release payload input is missing: installer/assets/app.ico")
+    else:
+        with icon.open("rb") as handle:
+            if handle.read(4) != b"\x00\x00\x01\x00":
+                errors.append("Release payload input is not a Windows icon: installer/assets/app.ico")
     return errors
 
 

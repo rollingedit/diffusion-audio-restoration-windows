@@ -166,10 +166,11 @@ This file is local coordination material unless the user explicitly decides to p
 - Strengthened release validation so final NVIDIA, FFmpeg, and Python notice files must include minimum provenance and license text, not only avoid placeholder wording.
 - Strengthened release evidence validation so smoke evidence must use dated restore job folders, distinct input/output paths, distinct PNG screenshots, doctor report file types, and no evidence files inside `dist/installer`.
 - Strengthened release validation so the Inno installer script must keep public release metadata, per-user/x64 settings, branded icon wiring, GitHub support URLs, and the mandatory launcher payload.
+- Strengthened release validation so source payload inputs must include Windows-executable `bin\ffmpeg.exe` and `bin\ffprobe.exe` plus a generated Windows `installer\assets\app.ico`.
 
 ### Verified
 
-- `.\.venv\Scripts\python.exe -m pytest` passes with 188 tests.
+- `.\.venv\Scripts\python.exe -m pytest` passes with 189 tests.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --report` prints actionable next steps for missing Torch/checkpoints and sandboxed write permissions.
 - `powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist\installer -ValidateOnly` runs and correctly blocks release because artifacts are missing and license notices are placeholders.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.

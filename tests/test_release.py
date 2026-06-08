@@ -13,6 +13,7 @@ from rolling_a2sb.release import (
     project_release_version,
     sha256_file,
     validate_installer_metadata,
+    validate_release_payload_inputs,
     validate_release_artifacts,
     validate_release_evidence,
     validate_runtime_lockfile,
@@ -40,6 +41,16 @@ def write_notices(licenses_dir: Path, placeholder: bool = False) -> None:
 
 def write_setup_exe(path: Path) -> None:
     path.write_bytes(b"MZ" + b"\0" * (MIN_SETUP_EXE_BYTES - 2))
+
+
+def write_release_payload_inputs(root: Path) -> None:
+    bin_dir = root / "bin"
+    bin_dir.mkdir(parents=True, exist_ok=True)
+    (bin_dir / "ffmpeg.exe").write_bytes(b"MZffmpeg")
+    (bin_dir / "ffprobe.exe").write_bytes(b"MZffprobe")
+    assets = root / "installer" / "assets"
+    assets.mkdir(parents=True, exist_ok=True)
+    (assets / "app.ico").write_bytes(b"\x00\x00\x01\x00ico")
 
 
 PUBLIC_README_TEXT = (
@@ -551,6 +562,23 @@ def test_validate_installer_metadata_requires_public_release_settings(tmp_path: 
     assert "Installer script is missing required release metadata: SetupIconFile=assets\\app.ico" in errors
 
 
+def test_validate_release_payload_inputs_require_bundled_binaries_and_icon(tmp_path: Path) -> None:
+    missing = validate_release_payload_inputs(tmp_path)
+
+    assert "Release payload input is missing: bin/ffmpeg.exe" in missing
+    assert "Release payload input is missing: bin/ffprobe.exe" in missing
+    assert "Release payload input is missing: installer/assets/app.ico" in missing
+
+    write_release_payload_inputs(tmp_path)
+    (tmp_path / "bin" / "ffmpeg.exe").write_bytes(b"not-exe")
+    (tmp_path / "installer" / "assets" / "app.ico").write_bytes(b"not-ico")
+
+    errors = validate_release_payload_inputs(tmp_path)
+
+    assert "Release payload input is not a Windows executable: FFmpeg binary" in errors
+    assert "Release payload input is not a Windows icon: installer/assets/app.ico" in errors
+
+
 def test_validate_runtime_lockfile_requires_pinned_cuda_stack(tmp_path: Path) -> None:
     missing = validate_runtime_lockfile(tmp_path / "requirements" / "lock-win-cu121.txt")
     assert "Runtime lockfile is missing: requirements/lock-win-cu121.txt" in missing
@@ -992,6 +1020,7 @@ def test_release_validation_accepts_basic_artifacts(tmp_path: Path) -> None:
     write_release_sources(tmp_path)
     write_release_evidence(tmp_path, installer_sha256=sha256_file(setup))
     write_version_sources(tmp_path)
+    write_release_payload_inputs(tmp_path)
     write_runtime_lockfile(tmp_path)
     write_sha256sums([setup, readme, notices], artifacts / "SHA256SUMS.txt")
     write_notices(licenses)
