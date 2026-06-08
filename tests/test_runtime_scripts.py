@@ -78,6 +78,7 @@ def test_collect_release_evidence_records_build_facts_without_smoke_claims() -> 
     assert "ffmpeg-manifest.json" in text
     assert "git rev-parse HEAD" in text
     assert "nvidia-smi --query-gpu=name" in text
+    assert "test_machine" in text
     assert "Restore produced a WAV" not in text
 
 
@@ -92,3 +93,17 @@ def test_installed_app_smoke_can_install_check_doctor_restore_and_uninstall() ->
     assert "bin\\ffmpeg.exe" in text
     assert "bin\\ffprobe.exe" in text
     assert "unins*.exe" in text
+
+
+def test_prefill_release_evidence_only_copies_factual_fields() -> None:
+    text = (ROOT / "scripts" / "prefill_release_evidence.ps1").read_text(encoding="utf-8")
+
+    assert "release_build_facts.json" in text
+    assert "docs\\RELEASE_EVIDENCE.md" in text
+    assert "Set-EvidenceField" in text
+    assert '"Installer SHA256"' in text
+    assert '"FFmpeg manifest path"' in text
+    assert '"Installer artifact folder"' in text
+    assert "Smoke-test commands, pass/fail results" in text
+    assert '"Restore produced a WAV"' not in text
+    assert '"Clean install completed without admin"' not in text

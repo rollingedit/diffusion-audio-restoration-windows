@@ -25,6 +25,7 @@ Complete this file before any public release. Do not replace checklist items wit
 Record the exact command, exit code, and output path for each command.
 Use `a2sb release-status --artifacts-dir dist\installer --licenses-dir LICENSES` to inspect blockers, then use `a2sb release-check --artifacts-dir dist\installer --licenses-dir LICENSES` for the release validation command.
 Use `scripts\collect_release_evidence.ps1` to generate `evidence\release_build_facts.json` with build artifact hashes and FFmpeg provenance. Do not use it as proof for installed-app smoke results.
+Use `scripts\prefill_release_evidence.ps1` to copy factual release-candidate fields from `evidence\release_build_facts.json` into this file. It does not mark smoke-test results as passed.
 Use `scripts\installed_app_smoke.ps1` for installed-app install/doctor/restore/uninstall evidence after the setup EXE exists.
 
 - Runtime setup:

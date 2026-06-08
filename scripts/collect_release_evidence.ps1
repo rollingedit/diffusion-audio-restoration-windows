@@ -67,6 +67,7 @@ $facts = [ordered]@{
     version = Read-InnoVersion $InstallerScript
     git_commit = Get-CommandText "git rev-parse HEAD"
     build_machine = $env:COMPUTERNAME
+    test_machine = $env:COMPUTERNAME
     windows_version = if ($os) { "$($os.Caption) $($os.Version)" } else { $null }
     gpu_model = Get-CommandText "nvidia-smi --query-gpu=name --format=csv,noheader"
     nvidia_driver_version = Get-CommandText "nvidia-smi --query-gpu=driver_version --format=csv,noheader"

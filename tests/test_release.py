@@ -138,6 +138,7 @@ def write_release_source_tree(root: Path) -> None:
         "scripts/fetch_ffmpeg.ps1",
         "scripts/generate_icon.ps1",
         "scripts/installed_app_smoke.ps1",
+        "scripts/prefill_release_evidence.ps1",
         "scripts/release_status.ps1",
         "scripts/write_sha256sums.ps1",
         "configs/windows/base_twosplit_windows.yaml",
