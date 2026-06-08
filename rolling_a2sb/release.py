@@ -56,6 +56,10 @@ REQUIRED_INSTALLER_METADATA_TOKENS = [
     "ArchitecturesAllowed=x64",
     "SetupIconFile=assets\\app.ico",
     'Source: "..\\dist\\A2SB Restorer\\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion',
+    'Source: "..\\bin\\ffmpeg.exe"; DestDir: "{app}\\bin"; Flags: ignoreversion',
+    'Source: "..\\bin\\ffprobe.exe"; DestDir: "{app}\\bin"; Flags: ignoreversion',
+    'Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\\scripts\\setup_runtime.ps1"""; Flags: runhidden',
+    'Type: filesandordirs; Name: "{app}\\runtime"',
 ]
 REQUIRED_EVIDENCE_FIELDS = [
     "Version",
@@ -536,7 +540,18 @@ def validate_installer_metadata(installer_path: Path) -> list[str]:
     for token in REQUIRED_INSTALLER_METADATA_TOKENS:
         if token not in text:
             errors.append(f"Installer script is missing required release metadata: {token}")
+    run_section = installer_section(text, "Run")
+    if "-DryRun" in run_section:
+        errors.append("Installer script must run real runtime setup, not setup_runtime.ps1 -DryRun")
+    uninstall_section = installer_section(text, "UninstallDelete")
+    if "models" in uninstall_section.lower():
+        errors.append("Installer uninstall section must not delete user-downloaded models")
     return errors
+
+
+def installer_section(text: str, section: str) -> str:
+    match = re.search(rf"^\[{re.escape(section)}\]\s*(.*?)(?=^\[[^\]]+\]|\Z)", text, flags=re.MULTILINE | re.DOTALL)
+    return match.group(1) if match else ""
 
 
 def validate_release_payload_inputs(source_root: Path) -> list[str]:

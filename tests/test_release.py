@@ -104,6 +104,14 @@ def write_version_sources(root: Path, project_version: str = "0.1.0a0", package_
                 "",
                 "[Files]",
                 'Source: "..\\dist\\A2SB Restorer\\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion',
+                'Source: "..\\bin\\ffmpeg.exe"; DestDir: "{app}\\bin"; Flags: ignoreversion',
+                'Source: "..\\bin\\ffprobe.exe"; DestDir: "{app}\\bin"; Flags: ignoreversion',
+                "",
+                "[Run]",
+                'Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\\scripts\\setup_runtime.ps1"""; Flags: runhidden',
+                "",
+                "[UninstallDelete]",
+                'Type: filesandordirs; Name: "{app}\\runtime"',
                 "",
             ]
         ),
@@ -560,6 +568,20 @@ def test_validate_installer_metadata_requires_public_release_settings(tmp_path: 
     assert 'Installer script is missing required release metadata: #define MyAppName "A2SB Restorer"' in errors
     assert "Installer script is missing required release metadata: PrivilegesRequired=lowest" in errors
     assert "Installer script is missing required release metadata: SetupIconFile=assets\\app.ico" in errors
+
+
+def test_validate_installer_metadata_rejects_dry_run_setup_and_model_deletion(tmp_path: Path) -> None:
+    write_version_sources(tmp_path)
+    path = tmp_path / "installer" / "a2sb-restorer.iss"
+    text = path.read_text(encoding="utf-8")
+    text = text.replace("setup_runtime.ps1", "setup_runtime.ps1 -DryRun")
+    text = text.replace('Type: filesandordirs; Name: "{app}\\runtime"', 'Type: filesandordirs; Name: "{userappdata}\\RollingEdit\\A2SB Restorer\\models"')
+    path.write_text(text, encoding="utf-8")
+
+    errors = validate_installer_metadata(path)
+
+    assert "Installer script must run real runtime setup, not setup_runtime.ps1 -DryRun" in errors
+    assert "Installer uninstall section must not delete user-downloaded models" in errors
 
 
 def test_validate_release_payload_inputs_require_bundled_binaries_and_icon(tmp_path: Path) -> None:
