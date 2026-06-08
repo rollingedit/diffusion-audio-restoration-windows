@@ -33,6 +33,15 @@ def test_download_model_requires_confirmation(tmp_path: Path, capsys) -> None:
     assert "nvidia/audio_to_audio_schrodinger_bridge" in output
 
 
+def test_doctor_report_cli_prints_copyable_report(capsys) -> None:
+    exit_code = main(["doctor", "--report"])
+
+    assert exit_code in (0, 1)
+    output = capsys.readouterr().out
+    assert "A2SB Restorer diagnostic report" in output
+    assert "next:" in output
+
+
 def write_checkpoint(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(b"x" * 16)

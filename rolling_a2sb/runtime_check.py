@@ -15,8 +15,9 @@ from .settings import load_settings
 
 def check_python() -> dict[str, Any]:
     version = ".".join(str(part) for part in sys.version_info[:3])
+    ok = sys.version_info >= (3, 10) and sys.version_info < (3, 12)
     return {
-        "ok": sys.version_info >= (3, 10) and sys.version_info < (3, 12),
+        "ok": ok,
         "version": version,
         "executable": sys.executable,
     }
@@ -31,7 +32,7 @@ def check_import(module_name: str) -> dict[str, Any]:
 
 
 def check_imports(module_names: list[str] | None = None) -> dict[str, Any]:
-    modules = {name: check_import(name) for name in (module_names or ["yaml"])}
+    modules = {name: check_import(name) for name in (module_names or ["yaml", "huggingface_hub", "requests"])}
     return {"ok": all(check["ok"] for check in modules.values()), "modules": modules}
 
 
@@ -96,6 +97,16 @@ def check_ffmpeg() -> dict[str, Any]:
     }
 
 
+def check_ffprobe() -> dict[str, Any]:
+    bundled = paths.ffprobe_path()
+    found = bundled if bundled.exists() else shutil.which("ffprobe")
+    return {
+        "ok": bool(found),
+        "path": str(found) if found else str(bundled),
+        "bundled_expected": str(bundled),
+    }
+
+
 def check_write_permissions() -> dict[str, Any]:
     try:
         created = paths.ensure_app_dirs()
@@ -134,10 +145,32 @@ def doctor(mode: str | None = None, checkpoint_min_size_bytes: int | None = None
         "torch": check_torch_cuda(),
         "nvidia_smi": check_nvidia_smi(),
         "ffmpeg": check_ffmpeg(),
+        "ffprobe": check_ffprobe(),
         "write_permissions": check_write_permissions(),
         "checkpoints": check_checkpoints(mode=mode, min_size_bytes=checkpoint_min_size_bytes),
     }
+    checks = add_next_actions(checks)
     return {"ok": all(check.get("ok", False) for check in checks.values()), **checks}
+
+
+def add_next_actions(checks: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    actions = {
+        "python": "Use the packaged runtime or install Python 3.10 x64.",
+        "imports": "Run Repair Runtime to reinstall app dependencies.",
+        "torch": "Run Repair Runtime. If Torch installs but CUDA is unavailable, update the NVIDIA driver.",
+        "nvidia_smi": "Install or update the NVIDIA driver, then run Doctor again.",
+        "ffmpeg": "Use the packaged app build with bundled FFmpeg or add ffmpeg.exe to PATH for development.",
+        "ffprobe": "Use the packaged app build with bundled ffprobe or add ffprobe.exe to PATH for development.",
+        "write_permissions": "Choose a writable per-user install/app-data location or run Repair Runtime.",
+        "checkpoints": "Download the recommended model or select a trusted checkpoint folder.",
+    }
+    enriched: dict[str, dict[str, Any]] = {}
+    for name, check in checks.items():
+        updated = dict(check)
+        if not updated.get("ok", False):
+            updated["next_action"] = actions.get(name, "Review the diagnostic report and logs.")
+        enriched[name] = updated
+    return enriched
 
 
 def doctor_json(**kwargs: Any) -> str:
@@ -157,4 +190,6 @@ def diagnostic_text(report: dict[str, Any] | None = None) -> str:
                 lines.append(f"  error: {value['error']}")
             if value.get("missing"):
                 lines.append(f"  missing: {', '.join(value['missing'])}")
+            if value.get("next_action"):
+                lines.append(f"  next: {value['next_action']}")
     return "\n".join(lines) + "\n"

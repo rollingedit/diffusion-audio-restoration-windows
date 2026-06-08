@@ -41,6 +41,7 @@ Do not publish a release until every required item is checked with evidence.
 - [ ] No terminal is required for normal use.
 - [ ] No YAML editing is required.
 - [ ] No Conda, WSL, Docker, or Git is required.
+- [ ] Doctor report includes actionable next steps for failed checks.
 - [ ] Missing CUDA shows a readable diagnostic.
 - [ ] Missing checkpoints show setup flow.
 - [ ] Missing dependencies offer repair.

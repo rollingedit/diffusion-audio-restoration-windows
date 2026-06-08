@@ -12,6 +12,14 @@ powershell -ExecutionPolicy Bypass -File scripts/setup_runtime.ps1
 
 The full runtime install downloads PyTorch CUDA wheels and can take time.
 
+For a copyable report:
+
+```powershell
+a2sb doctor --report
+```
+
+The report includes `next:` lines for failed checks.
+
 ## Doctor Says CUDA Is Not Available
 
 This app targets NVIDIA CUDA GPUs. Check:

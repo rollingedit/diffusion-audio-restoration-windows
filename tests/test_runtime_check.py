@@ -1,6 +1,6 @@
 import sys
 
-from rolling_a2sb.runtime_check import check_imports, check_python, diagnostic_text
+from rolling_a2sb.runtime_check import add_next_actions, check_imports, check_python, diagnostic_text
 
 
 def test_check_python_reports_supported_dev_python() -> None:
@@ -37,3 +37,23 @@ def test_diagnostic_text_includes_missing_checkpoints() -> None:
     assert "checkpoints: needs attention" in text
     assert "missing: a.ckpt, b.ckpt" in text
 
+
+def test_next_actions_added_to_failed_checks() -> None:
+    checks = add_next_actions({"torch": {"ok": False, "error": "missing"}})
+
+    assert "Repair Runtime" in checks["torch"]["next_action"]
+
+
+def test_diagnostic_text_includes_next_action() -> None:
+    report = {
+        "ok": False,
+        "torch": {
+            "ok": False,
+            "error": "No module named 'torch'",
+            "next_action": "Run Repair Runtime.",
+        },
+    }
+
+    text = diagnostic_text(report)
+
+    assert "next: Run Repair Runtime." in text

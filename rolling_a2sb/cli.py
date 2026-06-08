@@ -12,7 +12,7 @@ from .config_builder import RestoreConfigRequest, write_restore_config
 from .downloader import build_download_plan, download_model
 from .job import create_restore_job, with_config_path
 from .log import append_block, append_log
-from .runtime_check import doctor
+from .runtime_check import diagnostic_text, doctor
 from .settings import load_settings, remember_input, reset_model_settings, update_settings
 from .worker import inference_command, run_restore_config_streaming
 
@@ -23,6 +23,7 @@ def main(argv: list[str] | None = None) -> int:
 
     doctor_parser = subparsers.add_parser("doctor")
     doctor_parser.add_argument("--json", action="store_true", dest="as_json")
+    doctor_parser.add_argument("--report", action="store_true", help="Print a copyable diagnostic report.")
 
     download_parser = subparsers.add_parser("download-model")
     download_parser.add_argument("--model", choices=["twosplit", "onesplit"], default="twosplit")
@@ -54,12 +55,16 @@ def main(argv: list[str] | None = None) -> int:
         report = doctor()
         if args.as_json:
             print(json.dumps(report, indent=2))
+        elif args.report:
+            print(diagnostic_text(report), end="")
         else:
             print("A2SB Restorer doctor:", "ready" if report["ok"] else "not ready")
             for name, check in report.items():
                 if name == "ok":
                     continue
                 print(f"- {name}: {'ok' if check.get('ok') else 'needs attention'}")
+                if check.get("next_action"):
+                    print(f"  next: {check['next_action']}")
         return 0 if report["ok"] else 1
 
     if args.command == "download-model":
