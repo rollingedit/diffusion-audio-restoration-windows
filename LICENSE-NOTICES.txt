@@ -1,0 +1,20 @@
+A2SB Restorer License Notices
+
+This file is a release-source placeholder and must be replaced with final notice text before publishing artifacts.
+
+Do not publish release artifacts while any file under `LICENSES/` contains placeholder text.
+
+Included notice sources:
+
+- `LICENSES/NVIDIA_A2SB_LICENSE.txt`
+- `LICENSES/FFMPEG_NOTICE.txt`
+- `LICENSES/PYTHON_NOTICE.txt`
+- `docs/LICENSE_NOTICES.md`
+
+Required final release statements:
+
+- Preserve upstream NVIDIA A2SB copyright and license terms.
+- State that RollingEdit A2SB Restorer is not affiliated with or endorsed by NVIDIA.
+- Document the FFmpeg binary source and redistribution obligations.
+- Include Python/runtime notices where applicable.
+- State that user audio files stay local unless the user separately moves or uploads them.

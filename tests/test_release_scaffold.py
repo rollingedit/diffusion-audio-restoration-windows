@@ -19,6 +19,8 @@ def test_runtime_scripts_exist() -> None:
 
 def test_release_docs_exist() -> None:
     for rel_path in [
+        "README-WINDOWS.md",
+        "LICENSE-NOTICES.txt",
         "docs/USER_GUIDE.md",
         "docs/TROUBLESHOOTING.md",
         "docs/RELEASE_CHECKLIST.md",
@@ -44,3 +46,11 @@ def test_release_checklist_requires_no_checkpoint_release_assets() -> None:
 
     assert "GitHub release does not include checkpoint files" in text
     assert "No terminal is required for normal use" in text
+
+
+def test_windows_readme_documents_release_blockers() -> None:
+    text = (ROOT / "README-WINDOWS.md").read_text(encoding="utf-8")
+
+    assert "not public-release-ready yet" in text
+    assert "nvidia/audio_to_audio_schrodinger_bridge" in text
+    assert "must not be bundled" in text
