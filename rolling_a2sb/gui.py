@@ -59,6 +59,10 @@ def run_gui() -> int:
         def __init__(self, restore_kwargs: dict) -> None:
             super().__init__()
             self.restore_kwargs = restore_kwargs
+            self.cancel_requested = False
+
+        def cancel(self) -> None:
+            self.cancel_requested = True
 
         def run(self) -> None:
             try:
@@ -66,6 +70,7 @@ def run_gui() -> int:
                     execute_restore_text(
                         **self.restore_kwargs,
                         on_line=lambda stream_name, line: self.restore_line.emit(stream_name, line),
+                        should_cancel=lambda: self.cancel_requested,
                     )
                 )
             except Exception as exc:
@@ -176,6 +181,8 @@ def run_gui() -> int:
             self.inspect_button = QPushButton("Inspect")
             self.plan_button = QPushButton("Plan Restore")
             self.restore_button = QPushButton("Restore")
+            self.cancel_button = QPushButton("Cancel")
+            self.cancel_button.setEnabled(False)
             self.open_output_button = QPushButton("Open Output Folder")
             self.open_output_button.setEnabled(False)
             self.restore_another_button = QPushButton("Restore Another File")
@@ -187,6 +194,7 @@ def run_gui() -> int:
             option_row.addWidget(self.inspect_button)
             option_row.addWidget(self.plan_button)
             option_row.addWidget(self.restore_button)
+            option_row.addWidget(self.cancel_button)
             option_row.addWidget(self.open_output_button)
             option_row.addWidget(self.restore_another_button)
             layout.addLayout(option_row)
@@ -207,6 +215,7 @@ def run_gui() -> int:
             self.inspect_button.clicked.connect(self.inspect_audio)
             self.plan_button.clicked.connect(self.plan_restore)
             self.restore_button.clicked.connect(self.start_restore)
+            self.cancel_button.clicked.connect(self.cancel_restore)
             self.open_output_button.clicked.connect(self.open_output_folder)
             self.restore_another_button.clicked.connect(self.restore_another_file)
             return tab
@@ -467,6 +476,7 @@ def run_gui() -> int:
                 return
             self.restore_button.setEnabled(False)
             self.plan_button.setEnabled(False)
+            self.cancel_button.setEnabled(True)
             self.open_output_button.setEnabled(False)
             self.restore_progress.setRange(0, 0)
             self.restore_progress.setTextVisible(False)
@@ -487,6 +497,12 @@ def run_gui() -> int:
             self.restore_thread.restore_failed.connect(self.restore_failed)
             self.restore_thread.finished.connect(self.restore_thread_finished)
             self.restore_thread.start()
+
+        def cancel_restore(self) -> None:
+            if self.restore_thread:
+                self.restore_thread.cancel()
+                self.cancel_button.setEnabled(False)
+                self.restore_output.append("Cancel requested. Waiting for restore process to stop...")
 
         def restore_line_received(self, stream_name: str, line: str) -> None:
             progress = parse_restore_step_progress(line)
@@ -516,6 +532,7 @@ def run_gui() -> int:
         def restore_thread_finished(self) -> None:
             self.restore_button.setEnabled(True)
             self.plan_button.setEnabled(True)
+            self.cancel_button.setEnabled(False)
             self.restore_progress.hide()
 
         def open_output_folder(self) -> None:

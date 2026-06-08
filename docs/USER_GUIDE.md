@@ -39,7 +39,8 @@ The Restore tab also exposes `onesplit` as an advanced model mode. Keep `twospli
 2. Confirm the output folder.
 3. Click Restore.
 4. Wait for the job to complete.
-5. Click Open Output Folder.
+5. Use Cancel if you need to stop a running restore.
+6. Click Open Output Folder.
 
 The default output path should be:
 
@@ -47,7 +48,7 @@ The default output path should be:
 <input folder>\A2SB Restored\<input name>__a2sb.wav
 ```
 
-The original input file must never be modified.
+The original input file must never be modified, including after cancellation.
 
 ## Logs and Diagnostics
 

@@ -222,6 +222,35 @@ def test_execute_restore_text_forwards_stream_lines(tmp_path: Path, monkeypatch)
     assert seen == [("stdout", "loading model")]
 
 
+def test_execute_restore_text_forwards_cancel_callback(tmp_path: Path, monkeypatch) -> None:
+    from rolling_a2sb.workflow import RestoreExecution, RestorePreparation
+
+    plan = RestorePreparation(
+        job_id="job",
+        job_dir=str(tmp_path / "job"),
+        log_path=str(tmp_path / "restore.log"),
+        input_audio=str(tmp_path / "in.wav"),
+        prepared_input_audio=str(tmp_path / "in.wav"),
+        audio_converted=False,
+        output_audio=str(tmp_path / "out.wav"),
+        partial_output_audio=str(tmp_path / "out.partial"),
+        config_path=str(tmp_path / "restore.yaml"),
+        command=["python", "engine.py"],
+    )
+    seen = {"cancel": False}
+
+    def fake_execute_restore(**kwargs):
+        seen["cancel"] = kwargs["should_cancel"]()
+        return RestoreExecution(plan=plan, returncode=1, stdout="", stderr="", cancelled=True)
+
+    monkeypatch.setattr("rolling_a2sb.gui_actions.execute_restore", fake_execute_restore)
+
+    text = execute_restore_text(tmp_path / "in.wav", should_cancel=lambda: True)
+
+    assert seen["cancel"] is True
+    assert '"cancelled": true' in text
+
+
 def test_select_checkpoint_folder_text_requires_trust(tmp_path: Path) -> None:
     try:
         select_checkpoint_folder_text(tmp_path / "models", trusted=False)

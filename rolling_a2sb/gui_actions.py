@@ -163,6 +163,7 @@ def execute_restore_text(
     checkpoint_folder: Path | None = None,
     trust_manual_checkpoints: bool = False,
     on_line: LineCallback | None = None,
+    should_cancel: Callable[[], bool] | None = None,
 ) -> str:
     execution = execute_restore(
         input_audio=input_audio,
@@ -172,6 +173,7 @@ def execute_restore_text(
         checkpoint_folder=checkpoint_folder,
         trust_manual_checkpoints=trust_manual_checkpoints,
         on_line=on_line,
+        should_cancel=should_cancel,
     )
     return json.dumps(
         {
