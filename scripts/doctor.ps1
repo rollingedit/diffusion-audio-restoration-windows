@@ -16,10 +16,14 @@ if (Test-Path $RuntimePython) {
     $Python = "python"
 }
 
-if ($Json) {
-    & $Python -m rolling_a2sb.cli doctor --json
-} else {
-    & $Python -m rolling_a2sb.cli doctor
+Push-Location $AppRoot
+try {
+    if ($Json) {
+        & $Python -m rolling_a2sb.cli doctor --json
+    } else {
+        & $Python -m rolling_a2sb.cli doctor
+    }
+    exit $LASTEXITCODE
+} finally {
+    Pop-Location
 }
-exit $LASTEXITCODE
-

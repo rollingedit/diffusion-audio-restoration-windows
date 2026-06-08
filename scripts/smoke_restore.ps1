@@ -29,5 +29,10 @@ if ($CheckpointFolder) { $args += @("--checkpoint-folder", $CheckpointFolder) }
 if ($TrustManualCheckpoints) { $args += @("--trust-manual-checkpoints") }
 if ($DryRun) { $args += @("--dry-run") }
 
-& $Python @args
-exit $LASTEXITCODE
+Push-Location $AppRoot
+try {
+    & $Python @args
+    exit $LASTEXITCODE
+} finally {
+    Pop-Location
+}

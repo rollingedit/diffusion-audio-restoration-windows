@@ -67,13 +67,13 @@ try {
             "/SUPPRESSMSGBOXES",
             "/NORESTART",
             "/SP-",
-            "/DIR=$InstallDir",
+            "/DIR=""$InstallDir""",
             "/LOG=$InstallLog"
         )
-        & $Installer @installArgs
-        $summary.install_exit = $LASTEXITCODE
-        if ($LASTEXITCODE -ne 0) {
-            throw "Installer exited with code $LASTEXITCODE."
+        $installProcess = Start-Process -FilePath $Installer -ArgumentList $installArgs -Wait -PassThru -WindowStyle Hidden
+        $summary.install_exit = $installProcess.ExitCode
+        if ($installProcess.ExitCode -ne 0) {
+            throw "Installer exited with code $($installProcess.ExitCode)."
         }
     }
 
@@ -102,11 +102,14 @@ try {
     }
     $summary.installed = $true
 
-    $doctor = Join-Path $InstallDir "scripts\doctor.ps1"
-    & powershell -ExecutionPolicy Bypass -File $doctor -Json *> $DoctorJson
-    $summary.doctor_exit = $LASTEXITCODE
-    if ($RequireDoctorPass -and $LASTEXITCODE -ne 0) {
-        throw "Installed doctor failed with code $LASTEXITCODE."
+    $shouldRunDoctor = (-not $Uninstall) -or $RequireDoctorPass -or [bool]$Input
+    if ($shouldRunDoctor) {
+        $doctor = Join-Path $InstallDir "scripts\doctor.ps1"
+        & powershell -ExecutionPolicy Bypass -File $doctor -Json *> $DoctorJson
+        $summary.doctor_exit = $LASTEXITCODE
+        if ($RequireDoctorPass -and $LASTEXITCODE -ne 0) {
+            throw "Installed doctor failed with code $LASTEXITCODE."
+        }
     }
 
     if ($Input) {
@@ -127,10 +130,11 @@ try {
         if (-not $uninstaller) {
             throw "Uninstaller was not found under $InstallDir."
         }
-        & $uninstaller.FullName "/VERYSILENT" "/SUPPRESSMSGBOXES" "/NORESTART" "/LOG=$UninstallLog"
-        $summary.uninstall_exit = $LASTEXITCODE
-        if ($LASTEXITCODE -ne 0) {
-            throw "Uninstaller exited with code $LASTEXITCODE."
+        $uninstallArgs = @("/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/LOG=$UninstallLog")
+        $uninstallProcess = Start-Process -FilePath $uninstaller.FullName -ArgumentList $uninstallArgs -Wait -PassThru -WindowStyle Hidden
+        $summary.uninstall_exit = $uninstallProcess.ExitCode
+        if ($uninstallProcess.ExitCode -ne 0) {
+            throw "Uninstaller exited with code $($uninstallProcess.ExitCode)."
         }
     }
 

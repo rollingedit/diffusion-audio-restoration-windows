@@ -24,6 +24,8 @@ def test_inno_installer_is_per_user_and_has_shortcuts() -> None:
     text = (ROOT / "installer" / "a2sb-restorer.iss").read_text(encoding="utf-8")
 
     assert "PrivilegesRequired=lowest" in text
+    assert "DefaultDirName={localappdata}\\Programs\\RollingEdit\\A2SB Restorer" in text
+    assert "UsePreviousAppDir=no" in text
     assert "A2SB Restorer" in text
     assert "A2SB Doctor" in text
     assert "Repair Runtime" in text
@@ -81,6 +83,7 @@ def test_inno_launcher_payload_is_mandatory() -> None:
 
     assert launcher_lines
     assert all("skipifsourcedoesntexist" not in line.lower() for line in launcher_lines)
+    assert 'Source: "..\\pyproject.toml"; DestDir: "{app}"; Flags: ignoreversion' in text
 
 
 def test_inno_source_payload_excludes_cache_and_finder_metadata() -> None:

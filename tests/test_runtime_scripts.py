@@ -9,10 +9,22 @@ def test_setup_runtime_uses_private_python_310_runtime() -> None:
 
     assert '$Runtime = Join-Path $AppRoot "runtime"' in text
     assert '$Python = Join-Path $Runtime "Scripts\\python.exe"' in text
+    assert "function Find-Python310" in text
+    assert 'Programs\\Python\\Python310\\python.exe' in text
     assert "& py -3.10 -m venv $Runtime" in text
+    assert "& $Python310 -m venv $Runtime" in text
     assert "Python 3.10 virtual environment" in text
     assert "-m pip install -e $AppRoot" in text
     assert "setup-status.json" in text
+
+
+def test_runtime_entry_scripts_execute_from_app_root() -> None:
+    doctor = (ROOT / "scripts" / "doctor.ps1").read_text(encoding="utf-8")
+    smoke = (ROOT / "scripts" / "smoke_restore.ps1").read_text(encoding="utf-8")
+
+    for text in [doctor, smoke]:
+        assert "Push-Location $AppRoot" in text
+        assert "Pop-Location" in text
 
 
 def test_setup_runtime_checks_private_runtime_with_doctor_json() -> None:
@@ -31,8 +43,12 @@ def test_setup_runtime_prefers_lockfile_when_available() -> None:
 
     assert '$LockRequirements = Join-Path $AppRoot "requirements\\lock-win-cu121.txt"' in text
     assert "$RuntimeRequirements = if (Test-Path $LockRequirements) { $LockRequirements } else { $Requirements }" in text
-    assert "& $Python -m pip install -r $RuntimeRequirements" in text
+    assert "requirements-no-ssr-eval.txt" in text
+    assert "$_ -notmatch '^\\s*ssr-eval=='" in text
+    assert "& $Python -m pip install -r $FilteredRequirements" in text
+    assert "& $Python -m pip install --no-deps ssr-eval==0.0.7" in text
     assert "lockfile_used" in text
+    assert "ssr_eval_no_deps" in text
 
 
 def test_repair_runtime_delegates_to_setup_runtime_repair_mode() -> None:
@@ -87,6 +103,10 @@ def test_installed_app_smoke_can_install_check_doctor_restore_and_uninstall() ->
 
     assert "A2SB-Restorer-Setup.exe" in text
     assert "/VERYSILENT" in text
+    assert '"/DIR=""$InstallDir"""' in text
+    assert "Start-Process -FilePath $Installer" in text
+    assert "Start-Process -FilePath $uninstaller.FullName" in text
+    assert "$shouldRunDoctor = (-not $Uninstall) -or $RequireDoctorPass -or [bool]$Input" in text
     assert "installed_app_smoke.json" in text
     assert "scripts\\doctor.ps1" in text
     assert "scripts\\smoke_restore.ps1" in text

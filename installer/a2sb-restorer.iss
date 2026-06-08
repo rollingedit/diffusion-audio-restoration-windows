@@ -15,6 +15,7 @@ AppUpdatesURL={#MyAppURL}/releases
 UninstallDisplayName={#MyAppName}
 UninstallDisplayIcon={app}\{#MyAppExeName}
 DefaultDirName={localappdata}\Programs\RollingEdit\A2SB Restorer
+UsePreviousAppDir=no
 DefaultGroupName=RollingEdit\A2SB Restorer
 DisableProgramGroupPage=yes
 OutputDir=..\dist\installer
@@ -54,6 +55,7 @@ Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\README-WINDOWS.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LICENSE-NOTICES.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\pyproject.toml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\dist\A2SB Restorer\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 
 [Icons]

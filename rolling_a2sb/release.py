@@ -52,6 +52,7 @@ REQUIRED_INSTALLER_METADATA_TOKENS = [
     "AppSupportURL={#MyAppURL}/issues",
     "AppUpdatesURL={#MyAppURL}/releases",
     "DefaultDirName={localappdata}\\Programs\\RollingEdit\\A2SB Restorer",
+    "UsePreviousAppDir=no",
     "OutputBaseFilename=A2SB-Restorer-Setup",
     "PrivilegesRequired=lowest",
     "ArchitecturesAllowed=x64",
@@ -59,6 +60,7 @@ REQUIRED_INSTALLER_METADATA_TOKENS = [
     'Source: "..\\dist\\A2SB Restorer\\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion',
     'Source: "..\\bin\\ffmpeg.exe"; DestDir: "{app}\\bin"; Flags: ignoreversion',
     'Source: "..\\bin\\ffprobe.exe"; DestDir: "{app}\\bin"; Flags: ignoreversion',
+    'Source: "..\\pyproject.toml"; DestDir: "{app}"; Flags: ignoreversion',
     'Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\\scripts\\setup_runtime.ps1"""; Flags: runhidden',
     'Type: filesandordirs; Name: "{app}\\runtime"',
 ]

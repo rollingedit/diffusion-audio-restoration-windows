@@ -33,6 +33,28 @@ function Write-Status {
     }
 }
 
+function Find-Python310 {
+    $pyLauncher = Get-Command py -ErrorAction SilentlyContinue
+    if ($pyLauncher) {
+        & py -3.10 -c "import sys; print(sys.executable)" 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            return "py"
+        }
+    }
+
+    $candidates = @(
+        (Join-Path $env:LOCALAPPDATA "Programs\Python\Python310\python.exe"),
+        (Join-Path $env:ProgramFiles "Python310\python.exe"),
+        (Join-Path ${env:ProgramFiles(x86)} "Python310\python.exe")
+    )
+    foreach ($candidate in $candidates) {
+        if ($candidate -and (Test-Path $candidate)) {
+            return $candidate
+        }
+    }
+    return $null
+}
+
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $AppRoot = Resolve-Path (Join-Path $ScriptDir "..")
 $Runtime = Join-Path $AppRoot "runtime"
@@ -41,6 +63,7 @@ $Requirements = Join-Path $AppRoot "requirements\win-cu121.txt"
 $LockRequirements = Join-Path $AppRoot "requirements\lock-win-cu121.txt"
 $GuiRequirements = Join-Path $AppRoot "requirements\gui.txt"
 $SetupStatus = Join-Path $Runtime "setup-status.json"
+$FilteredRequirements = Join-Path $Runtime "requirements-no-ssr-eval.txt"
 
 $steps = New-Object System.Collections.Generic.List[object]
 
@@ -63,11 +86,15 @@ try {
     }
 
     if (-not (Test-Path $Python)) {
-        $pyLauncher = Get-Command py -ErrorAction SilentlyContinue
-        if (-not $pyLauncher) {
-            throw "Python launcher 'py' was not found. Install Python 3.10 x64 or use the packaged runtime."
+        $Python310 = Find-Python310
+        if (-not $Python310) {
+            throw "Python 3.10 x64 was not found. Install Python 3.10 x64 or use the packaged runtime."
         }
-        & py -3.10 -m venv $Runtime
+        if ($Python310 -eq "py") {
+            & py -3.10 -m venv $Runtime
+        } else {
+            & $Python310 -m venv $Runtime
+        }
         if ($LASTEXITCODE -ne 0) {
             throw "Failed to create Python 3.10 virtual environment at $Runtime."
         }
@@ -83,11 +110,18 @@ try {
     $steps.Add((New-Status $true "pip" "Upgraded pip, setuptools, and wheel." @{}))
 
     $RuntimeRequirements = if (Test-Path $LockRequirements) { $LockRequirements } else { $Requirements }
-    & $Python -m pip install -r $RuntimeRequirements
+    New-Item -ItemType Directory -Force -Path $Runtime | Out-Null
+    $runtimeRequirementLines = Get-Content $RuntimeRequirements | Where-Object { $_ -notmatch '^\s*ssr-eval==' }
+    $runtimeRequirementLines | Set-Content -Encoding UTF8 -Path $FilteredRequirements
+    & $Python -m pip install -r $FilteredRequirements
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to install CUDA runtime requirements."
     }
-    $steps.Add((New-Status $true "requirements" "Installed CUDA runtime requirements." @{ requirements = $RuntimeRequirements; lockfile_used = (Test-Path $LockRequirements) }))
+    & $Python -m pip install --no-deps ssr-eval==0.0.7
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to install ssr-eval without broken Windows transitive dependencies."
+    }
+    $steps.Add((New-Status $true "requirements" "Installed CUDA runtime requirements." @{ requirements = $RuntimeRequirements; filtered_requirements = $FilteredRequirements; lockfile_used = (Test-Path $LockRequirements); ssr_eval_no_deps = $true }))
 
     & $Python -m pip install -r $GuiRequirements
     if ($LASTEXITCODE -ne 0) {
