@@ -32,6 +32,11 @@ REQUIRED_EVIDENCE_FIELDS = [
     "Input file hash after restore",
     "Release artifacts validated",
 ]
+EVIDENCE_SHA256_FIELDS = [
+    "Installer SHA256",
+    "Input file hash before restore",
+    "Input file hash after restore",
+]
 
 
 @dataclass(frozen=True)
@@ -149,11 +154,25 @@ def validate_release_evidence(evidence_path: Path) -> list[str]:
 
     text = path.read_text(encoding="utf-8")
     errors: list[str] = []
+    values: dict[str, str] = {}
     for field in REQUIRED_EVIDENCE_FIELDS:
         pattern = re.compile(rf"^- {re.escape(field)}:[ \t]*(.*)$", re.MULTILINE)
         match = pattern.search(text)
         if not match or not match.group(1).strip():
             errors.append(f"Release evidence field is incomplete: {field}")
+        elif match:
+            values[field] = match.group(1).strip()
+
+    for field in EVIDENCE_SHA256_FIELDS:
+        value = values.get(field)
+        if value and not SHA256_RE.match(value):
+            errors.append(f"Release evidence field must be a SHA256 digest: {field}")
+    before_hash = values.get("Input file hash before restore")
+    after_hash = values.get("Input file hash after restore")
+    if before_hash and after_hash and before_hash.lower() != after_hash.lower():
+        errors.append("Release evidence input hash changed during restore")
+    if values.get("Release artifacts validated", "").lower() not in {"yes", "true", "passed"}:
+        errors.append("Release evidence must mark release artifacts validation as passed")
 
     blockers = re.search(r"## Blockers\s*(.*)\Z", text, flags=re.DOTALL)
     blocker_lines = []

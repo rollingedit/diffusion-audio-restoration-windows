@@ -168,6 +168,21 @@ def test_validate_release_evidence_rejects_blank_fields_and_open_blockers(tmp_pa
     assert 'Release evidence blockers must be exactly "- None" before public release' in errors
 
 
+def test_validate_release_evidence_rejects_weak_hash_and_validation_values(tmp_path: Path) -> None:
+    evidence = write_release_evidence(tmp_path)
+    text = evidence.read_text(encoding="utf-8")
+    text = text.replace("- Installer SHA256: " + "a" * 64, "- Installer SHA256: not-a-hash")
+    text = text.replace("- Input file hash after restore: " + "b" * 64, "- Input file hash after restore: " + "c" * 64)
+    text = text.replace("- Release artifacts validated: yes", "- Release artifacts validated: not yet")
+    evidence.write_text(text, encoding="utf-8")
+
+    errors = validate_release_evidence(evidence)
+
+    assert "Release evidence field must be a SHA256 digest: Installer SHA256" in errors
+    assert "Release evidence input hash changed during restore" in errors
+    assert "Release evidence must mark release artifacts validation as passed" in errors
+
+
 def test_release_validation_blocks_checkpoint_artifacts(tmp_path: Path) -> None:
     artifacts = tmp_path / "artifacts"
     licenses = tmp_path / "licenses"
