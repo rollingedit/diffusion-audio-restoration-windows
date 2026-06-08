@@ -1,4 +1,7 @@
+import re
 from pathlib import Path
+
+import rolling_a2sb
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,6 +32,27 @@ def test_release_docs_exist() -> None:
         "docs/UPSTREAM_AUDIT.md",
     ]:
         assert (ROOT / rel_path).exists(), rel_path
+
+
+def test_package_and_installer_versions_match_release_label() -> None:
+    pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    installer = (ROOT / "installer" / "a2sb-restorer.iss").read_text(encoding="utf-8")
+    project_version = re.search(r'^version = "([^"]+)"$', pyproject, flags=re.MULTILINE)
+    installer_version = re.search(r'^#define MyAppVersion "([^"]+)"$', installer, flags=re.MULTILINE)
+
+    assert project_version is not None
+    assert installer_version is not None
+    assert rolling_a2sb.__version__ == project_version.group(1)
+    assert installer_version.group(1) == project_version.group(1).replace("a0", "-alpha")
+
+
+def test_inno_installer_has_public_support_metadata() -> None:
+    installer = (ROOT / "installer" / "a2sb-restorer.iss").read_text(encoding="utf-8")
+
+    assert '#define MyAppURL "https://github.com/rollingedit/diffusion-audio-restoration-windows"' in installer
+    assert "AppPublisherURL={#MyAppURL}" in installer
+    assert "AppSupportURL={#MyAppURL}/issues" in installer
+    assert "AppUpdatesURL={#MyAppURL}/releases" in installer
 
 
 def test_license_placeholders_are_release_blockers() -> None:

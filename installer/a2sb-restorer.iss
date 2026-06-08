@@ -1,6 +1,7 @@
 #define MyAppName "A2SB Restorer"
 #define MyAppVersion "0.1.0-alpha"
 #define MyAppPublisher "RollingEdit"
+#define MyAppURL "https://github.com/rollingedit/diffusion-audio-restoration-windows"
 #define MyAppExeName "A2SB Restorer.exe"
 
 [Setup]
@@ -8,6 +9,9 @@ AppId={{F65F7B76-DBD2-41DE-A67A-057E6B50B3F2}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
+AppPublisherURL={#MyAppURL}
+AppSupportURL={#MyAppURL}/issues
+AppUpdatesURL={#MyAppURL}/releases
 UninstallDisplayName={#MyAppName}
 UninstallDisplayIcon={app}\{#MyAppExeName}
 DefaultDirName={localappdata}\Programs\RollingEdit\A2SB Restorer
