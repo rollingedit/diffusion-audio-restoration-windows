@@ -6,6 +6,7 @@ from pathlib import Path
 
 
 RELEASE_BLOCKED_TEXT = "Do not publish release artifacts"
+MIN_SETUP_EXE_BYTES = 1024 * 1024
 REQUIRED_RELEASE_ARTIFACTS = [
     "A2SB-Restorer-Setup.exe",
     "README-WINDOWS.md",
@@ -65,6 +66,12 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
             errors.append(f"Missing release artifact: {required}")
 
     for artifact in artifacts:
+        if artifact.name == "A2SB-Restorer-Setup.exe":
+            if artifact.stat().st_size < MIN_SETUP_EXE_BYTES:
+                errors.append("A2SB-Restorer-Setup.exe is too small to be a real installer artifact")
+            with artifact.open("rb") as handle:
+                if handle.read(2) != b"MZ":
+                    errors.append("A2SB-Restorer-Setup.exe is not a Windows executable")
         if artifact.suffix.lower() == ".ckpt":
             errors.append(f"Checkpoint file must not be a release artifact: {artifact.name}")
         if artifact.name.lower().endswith((".pt", ".pth", ".safetensors")):

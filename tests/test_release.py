@@ -1,6 +1,12 @@
 from pathlib import Path
 
-from rolling_a2sb.release import checksum_artifact_names, collect_release_artifacts, validate_release_artifacts, write_sha256sums
+from rolling_a2sb.release import (
+    MIN_SETUP_EXE_BYTES,
+    checksum_artifact_names,
+    collect_release_artifacts,
+    validate_release_artifacts,
+    write_sha256sums,
+)
 
 
 def write_notices(licenses_dir: Path, placeholder: bool = False) -> None:
@@ -12,6 +18,10 @@ def write_notices(licenses_dir: Path, placeholder: bool = False) -> None:
         "PYTHON_NOTICE.txt",
     ]:
         (licenses_dir / name).write_text(text, encoding="utf-8")
+
+
+def write_setup_exe(path: Path) -> None:
+    path.write_bytes(b"MZ" + b"\0" * (MIN_SETUP_EXE_BYTES - 2))
 
 
 def test_write_sha256sums(tmp_path: Path) -> None:
@@ -106,6 +116,44 @@ def test_release_validation_requires_readme_and_license_notices_artifacts(tmp_pa
     assert "Missing release artifact: LICENSE-NOTICES.txt" in result.errors
 
 
+def test_release_validation_blocks_tiny_setup_artifact(tmp_path: Path) -> None:
+    artifacts = tmp_path / "artifacts"
+    licenses = tmp_path / "licenses"
+    artifacts.mkdir()
+    setup = artifacts / "A2SB-Restorer-Setup.exe"
+    readme = artifacts / "README-WINDOWS.md"
+    notices = artifacts / "LICENSE-NOTICES.txt"
+    setup.write_bytes(b"MZtiny")
+    readme.write_text("readme", encoding="utf-8")
+    notices.write_text("notices", encoding="utf-8")
+    write_sha256sums([setup, readme, notices], artifacts / "SHA256SUMS.txt")
+    write_notices(licenses)
+
+    result = validate_release_artifacts(artifacts, licenses)
+
+    assert not result.ok
+    assert "A2SB-Restorer-Setup.exe is too small to be a real installer artifact" in result.errors
+
+
+def test_release_validation_blocks_non_windows_setup_artifact(tmp_path: Path) -> None:
+    artifacts = tmp_path / "artifacts"
+    licenses = tmp_path / "licenses"
+    artifacts.mkdir()
+    setup = artifacts / "A2SB-Restorer-Setup.exe"
+    readme = artifacts / "README-WINDOWS.md"
+    notices = artifacts / "LICENSE-NOTICES.txt"
+    setup.write_bytes(b"NO" + b"\0" * (MIN_SETUP_EXE_BYTES - 2))
+    readme.write_text("readme", encoding="utf-8")
+    notices.write_text("notices", encoding="utf-8")
+    write_sha256sums([setup, readme, notices], artifacts / "SHA256SUMS.txt")
+    write_notices(licenses)
+
+    result = validate_release_artifacts(artifacts, licenses)
+
+    assert not result.ok
+    assert "A2SB-Restorer-Setup.exe is not a Windows executable" in result.errors
+
+
 def test_release_validation_requires_checksum_entries_for_all_artifacts(tmp_path: Path) -> None:
     artifacts = tmp_path / "artifacts"
     licenses = tmp_path / "licenses"
@@ -196,7 +244,7 @@ def test_release_validation_accepts_basic_artifacts(tmp_path: Path) -> None:
     setup = artifacts / "A2SB-Restorer-Setup.exe"
     readme = artifacts / "README-WINDOWS.md"
     notices = artifacts / "LICENSE-NOTICES.txt"
-    setup.write_bytes(b"installer")
+    write_setup_exe(setup)
     readme.write_text("readme", encoding="utf-8")
     notices.write_text("notices", encoding="utf-8")
     write_sha256sums([setup, readme, notices], artifacts / "SHA256SUMS.txt")
