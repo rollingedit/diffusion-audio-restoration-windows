@@ -324,6 +324,7 @@ def test_validate_release_evidence_rejects_bad_evidence_path_shapes(tmp_path: Pa
     evidence = write_release_evidence(tmp_path)
     text = evidence.read_text(encoding="utf-8")
     text = text.replace("- Doctor JSON path: evidence/doctor.json", "- Doctor JSON path: evidence/doctor.txt")
+    text = text.replace("- Doctor report path: evidence/doctor.txt", "- Doctor report path: evidence/doctor.json")
     text = text.replace("- Output WAV path: evidence/out.wav", "- Output WAV path: evidence/out.mp3")
     text = text.replace("- Screenshot of ready Setup tab: evidence/setup-ready.png", "- Screenshot of ready Setup tab: evidence/setup-ready.jpg")
     text = text.replace("- Installer artifact folder: dist/installer", "- Installer artifact folder: build/out")
@@ -332,9 +333,27 @@ def test_validate_release_evidence_rejects_bad_evidence_path_shapes(tmp_path: Pa
     errors = validate_release_evidence(evidence)
 
     assert "Release evidence path has unexpected file type: Doctor JSON path" in errors
+    assert "Release evidence path has unexpected file type: Doctor report path" in errors
     assert "Release evidence path has unexpected file type: Output WAV path" in errors
     assert "Release evidence path has unexpected file type: Screenshot of ready Setup tab" in errors
     assert "Release evidence installer artifact folder must be dist/installer" in errors
+
+
+def test_validate_release_evidence_rejects_weak_file_relationships(tmp_path: Path) -> None:
+    evidence = write_release_evidence(tmp_path)
+    text = evidence.read_text(encoding="utf-8")
+    text = text.replace("- Restore job folder: evidence/jobs/20260608-120000", "- Restore job folder: evidence/jobs/latest")
+    text = text.replace("- Output WAV path: evidence/out.wav", "- Output WAV path: dist/installer/input.wav")
+    text = text.replace("- Input test audio path: evidence/input.wav", "- Input test audio path: dist/installer/input.wav")
+    text = text.replace("- Screenshot of completed Restore tab: evidence/restore-complete.png", "- Screenshot of completed Restore tab: evidence/setup-ready.png")
+    evidence.write_text(text, encoding="utf-8")
+
+    errors = validate_release_evidence(evidence)
+
+    assert "Release evidence restore job folder must be a dated job folder" in errors
+    assert "Release evidence input and output audio paths must be different" in errors
+    assert "Release evidence file path must not be inside release artifacts: Input test audio path" in errors
+    assert "Release evidence screenshots must use distinct PNG files" in errors
 
 
 def test_validate_release_evidence_rejects_command_output_mismatches(tmp_path: Path) -> None:
@@ -460,7 +479,7 @@ def test_validate_release_evidence_rejects_bad_ffmpeg_provenance(tmp_path: Path)
     text = evidence.read_text(encoding="utf-8")
     text = text.replace(
         "- FFmpeg build filename: ffmpeg-master-latest-win64-lgpl.zip",
-        "- FFmpeg build filename: ffmpeg-gpl.exe",
+        "- FFmpeg build filename: latest-win64-lgpl.zip",
     )
     text = text.replace(
         "- FFmpeg source URL: https://github.com/BtbN/FFmpeg-Builds",

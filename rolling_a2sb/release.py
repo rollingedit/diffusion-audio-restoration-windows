@@ -110,6 +110,7 @@ REQUIRED_EVIDENCE_PASS_FIELDS = [
 ]
 EVIDENCE_PATH_SUFFIXES = {
     "Doctor JSON path": (".json",),
+    "Doctor report path": (".txt", ".md"),
     "Setup status JSON path": (".json",),
     "Checkpoint manifest path": (".json",),
     "Restore log path": (".log", ".txt"),
@@ -321,6 +322,7 @@ def validate_release_evidence(
     artifact_folder = values.get("Installer artifact folder", "").replace("\\", "/").rstrip("/").lower()
     if artifact_folder and not artifact_folder.endswith("dist/installer"):
         errors.append("Release evidence installer artifact folder must be dist/installer")
+    errors.extend(validate_evidence_file_relationships(values))
     for field in REQUIRED_EVIDENCE_COMMAND_FIELDS:
         command_evidence = values.get(field, "")
         if command_evidence and ("exit 0" not in command_evidence.lower() or command_evidence.count(";") < 2):
@@ -333,7 +335,12 @@ def validate_release_evidence(
     if expected_git_commit and values.get("Git commit") != expected_git_commit[: len(values.get("Git commit", ""))]:
         errors.append("Release evidence Git commit does not match repository HEAD")
     ffmpeg_filename = values.get("FFmpeg build filename", "").lower()
-    if ffmpeg_filename and not ("win64" in ffmpeg_filename and "lgpl" in ffmpeg_filename and ffmpeg_filename.endswith(".zip")):
+    if ffmpeg_filename and not (
+        ffmpeg_filename.startswith("ffmpeg-")
+        and "win64" in ffmpeg_filename
+        and "lgpl" in ffmpeg_filename
+        and ffmpeg_filename.endswith(".zip")
+    ):
         errors.append("Release evidence FFmpeg build filename must be a Windows x64 LGPL ZIP")
     ffmpeg_source_url = values.get("FFmpeg source URL", "")
     if ffmpeg_source_url and not ffmpeg_source_url.startswith("https://github.com/BtbN/FFmpeg-Builds"):
@@ -356,6 +363,34 @@ def validate_release_evidence(
         blocker_lines = [line.strip() for line in blockers.group(1).splitlines() if line.strip().startswith("-")]
     if blocker_lines != ["- None"]:
         errors.append('Release evidence blockers must be exactly "- None" before public release')
+    return errors
+
+
+def validate_evidence_file_relationships(values: dict[str, str]) -> list[str]:
+    errors: list[str] = []
+    restore_job_folder = normalize_evidence_path(values.get("Restore job folder", ""))
+    if restore_job_folder and not re.search(r"/jobs/\d{8}-\d{6}$", restore_job_folder):
+        errors.append("Release evidence restore job folder must be a dated job folder")
+
+    input_path = normalize_evidence_path(values.get("Input test audio path", ""))
+    output_path = normalize_evidence_path(values.get("Output WAV path", ""))
+    if input_path and output_path and input_path == output_path:
+        errors.append("Release evidence input and output audio paths must be different")
+
+    release_artifact_folder = "dist/installer"
+    for field in ["Input test audio path", "Output WAV path", "Restore job folder"]:
+        value = normalize_evidence_path(values.get(field, ""))
+        if value.startswith(release_artifact_folder + "/"):
+            errors.append(f"Release evidence file path must not be inside release artifacts: {field}")
+
+    screenshot_fields = [
+        "Screenshot of ready Setup tab",
+        "Screenshot of completed Restore tab",
+        "Screenshot of Start Menu shortcuts",
+    ]
+    screenshot_paths = [normalize_evidence_path(values.get(field, "")) for field in screenshot_fields if values.get(field)]
+    if len(screenshot_paths) != len(set(screenshot_paths)):
+        errors.append("Release evidence screenshots must use distinct PNG files")
     return errors
 
 
