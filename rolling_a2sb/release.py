@@ -239,6 +239,7 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
     if installer_version and project_version and installer_version != project_version.replace("a0", "-alpha"):
         errors.append("Installer version does not match Python package release label")
     errors.extend(validate_release_source_tree(source_root))
+    errors.extend(validate_release_workflows(source_root))
     errors.extend(validate_installer_metadata(source_root / "installer" / "a2sb-restorer.iss"))
     errors.extend(validate_release_payload_inputs(source_root))
     errors.extend(validate_release_checklist(source_root / "docs" / "RELEASE_CHECKLIST.md"))
@@ -576,6 +577,34 @@ def validate_release_source_tree(source_root: Path) -> list[str]:
         path = root / relative_path
         if not path.exists() or not path.is_file():
             errors.append(f"Release source path is missing: {relative_path}")
+    return errors
+
+
+def validate_release_workflows(source_root: Path) -> list[str]:
+    root = Path(source_root)
+    errors: list[str] = []
+    ci = root / ".github" / "workflows" / "ci.yml"
+    release_validate = root / ".github" / "workflows" / "release-validate.yml"
+
+    if ci.exists():
+        ci_text = ci.read_text(encoding="utf-8").lower()
+        if "python -m pytest" not in ci_text:
+            errors.append("CI workflow must run python -m pytest")
+        if "contents: read" not in ci_text:
+            errors.append("CI workflow must use read-only contents permission")
+
+    if release_validate.exists():
+        release_text = release_validate.read_text(encoding="utf-8")
+        release_lower = release_text.lower()
+        if "workflow_dispatch:" not in release_text:
+            errors.append("Release validation workflow must be manually dispatched")
+        if "-ValidateOnly" not in release_text:
+            errors.append("Release validation workflow must use -ValidateOnly")
+        if "contents: read" not in release_lower:
+            errors.append("Release validation workflow must use read-only contents permission")
+        for forbidden in ["upload-artifact", "gh release", "softprops/action-gh-release", "contents: write"]:
+            if forbidden in release_lower:
+                errors.append(f"Release validation workflow must not publish artifacts: {forbidden}")
     return errors
 
 

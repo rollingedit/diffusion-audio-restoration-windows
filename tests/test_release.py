@@ -18,6 +18,7 @@ from rolling_a2sb.release import (
     validate_release_artifacts,
     validate_release_evidence,
     validate_release_source_tree,
+    validate_release_workflows,
     validate_runtime_lockfile,
     write_sha256sums,
 )
@@ -124,6 +125,34 @@ def write_release_source_tree(root: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         if not path.exists():
             path.write_text("release source fixture\n", encoding="utf-8")
+
+
+def write_release_workflows(root: Path, publish: bool = False) -> None:
+    workflows = root / ".github" / "workflows"
+    workflows.mkdir(parents=True, exist_ok=True)
+    (workflows / "ci.yml").write_text(
+        "\n".join(
+            [
+                "permissions:",
+                "  contents: read",
+                "steps:",
+                "  - run: python -m pytest",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    release_lines = [
+        "on:",
+        "  workflow_dispatch:",
+        "permissions:",
+        "  contents: read",
+        "steps:",
+        "  - run: .\\scripts\\write_sha256sums.ps1 -ArtifactsDir dist\\installer -ValidateOnly",
+    ]
+    if publish:
+        release_lines.extend(["  - uses: actions/upload-artifact@v4", "permissions:", "  contents: write"])
+    (workflows / "release-validate.yml").write_text("\n".join(release_lines) + "\n", encoding="utf-8")
 
 
 def write_version_sources(root: Path, project_version: str = "0.1.0a0", package_version: str = "0.1.0a0", installer_version: str = "0.1.0-alpha") -> None:
@@ -684,6 +713,23 @@ def test_validate_release_source_tree_requires_agent_build_files(tmp_path: Path)
     assert validate_release_source_tree(tmp_path) == []
 
 
+def test_validate_release_workflows_requires_safe_non_publishing_validation(tmp_path: Path) -> None:
+    write_release_workflows(tmp_path, publish=True)
+    ci = tmp_path / ".github" / "workflows" / "ci.yml"
+    ci.write_text("permissions:\n  contents: write\nsteps:\n  - run: echo skipped\n", encoding="utf-8")
+
+    errors = validate_release_workflows(tmp_path)
+
+    assert "CI workflow must run python -m pytest" in errors
+    assert "CI workflow must use read-only contents permission" in errors
+    assert "Release validation workflow must not publish artifacts: upload-artifact" in errors
+    assert "Release validation workflow must not publish artifacts: contents: write" in errors
+
+    write_release_workflows(tmp_path)
+
+    assert validate_release_workflows(tmp_path) == []
+
+
 def test_git_head_commit_reads_loose_ref(tmp_path: Path) -> None:
     commit = "a" * 40
     ref = tmp_path / ".git" / "refs" / "heads" / "main"
@@ -1115,6 +1161,7 @@ def test_release_validation_accepts_basic_artifacts(tmp_path: Path) -> None:
     write_release_evidence(tmp_path, installer_sha256=sha256_file(setup))
     write_release_checklist(tmp_path)
     write_release_source_tree(tmp_path)
+    write_release_workflows(tmp_path)
     write_version_sources(tmp_path)
     write_release_payload_inputs(tmp_path)
     write_runtime_lockfile(tmp_path)
