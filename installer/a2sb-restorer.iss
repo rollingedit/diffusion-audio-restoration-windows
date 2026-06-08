@@ -47,7 +47,7 @@ Source: "..\plotting_utils.py"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\utils.py"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\dist\A2SB Restorer\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion skipifsourcedoesntexist
+Source: "..\dist\A2SB Restorer\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 
 [Icons]
 Name: "{group}\A2SB Restorer"; Filename: "{app}\{#MyAppExeName}"

@@ -74,6 +74,14 @@ def test_installer_build_requires_launcher_output_before_packaging() -> None:
     assert text.index("Launcher EXE missing") < text.index("Get-Command ISCC.exe")
 
 
+def test_inno_launcher_payload_is_mandatory() -> None:
+    text = (ROOT / "installer" / "a2sb-restorer.iss").read_text(encoding="utf-8")
+    launcher_lines = [line for line in text.splitlines() if "..\\dist\\A2SB Restorer\\*" in line]
+
+    assert launcher_lines
+    assert all("skipifsourcedoesntexist" not in line.lower() for line in launcher_lines)
+
+
 def test_installer_build_requires_ffmpeg_binaries_before_packaging() -> None:
     text = (ROOT / "scripts" / "build_installer.ps1").read_text(encoding="utf-8")
 

@@ -129,10 +129,11 @@ This file is local coordination material unless the user explicitly decides to p
 - Added installer build preflight checks that block setup EXE creation until approved redistributable `bin\ffmpeg.exe` and `bin\ffprobe.exe` are present.
 - Updated `README-WINDOWS.md` to remove stale "planning only" GUI restore language and document the implemented background restore/progress/cancel/Open Output Folder path.
 - Updated installer build packaging so `README-WINDOWS.md` and `LICENSE-NOTICES.txt` are staged into `dist\installer` before checksum generation and release validation.
+- Made the built launcher folder a mandatory Inno payload so the setup script cannot silently omit `A2SB Restorer.exe`.
 
 ### Verified
 
-- `.\.venv\Scripts\python.exe -m pytest` passes with 139 tests.
+- `.\.venv\Scripts\python.exe -m pytest` passes with 140 tests.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --report` prints actionable next steps for missing Torch/checkpoints and sandboxed write permissions.
 - `powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist\installer -ValidateOnly` runs and correctly blocks release because artifacts are missing and license notices are placeholders.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.
