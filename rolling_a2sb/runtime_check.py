@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib
 import json
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -28,6 +29,11 @@ def check_import(module_name: str) -> dict[str, Any]:
     return {"ok": True, "module": module_name, "version": getattr(module, "__version__", None)}
 
 
+def check_imports(module_names: list[str] | None = None) -> dict[str, Any]:
+    modules = {name: check_import(name) for name in (module_names or ["yaml"])}
+    return {"ok": all(check["ok"] for check in modules.values()), "modules": modules}
+
+
 def check_torch_cuda() -> dict[str, Any]:
     try:
         import torch
@@ -49,6 +55,34 @@ def check_torch_cuda() -> dict[str, Any]:
         except Exception as exc:
             result["vram_error"] = str(exc)
     return result
+
+
+def check_nvidia_smi() -> dict[str, Any]:
+    executable = shutil.which("nvidia-smi")
+    if not executable:
+        return {"ok": False, "available": False, "error": "nvidia-smi not found"}
+
+    completed = subprocess.run(
+        [executable, "--query-gpu=name,memory.total,driver_version", "--format=csv,noheader,nounits"],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        shell=False,
+        check=False,
+    )
+    if completed.returncode != 0:
+        return {"ok": False, "available": True, "error": completed.stderr.strip()}
+
+    first_line = completed.stdout.strip().splitlines()[0] if completed.stdout.strip() else ""
+    parts = [part.strip() for part in first_line.split(",")]
+    return {
+        "ok": bool(first_line),
+        "available": True,
+        "raw": first_line,
+        "name": parts[0] if len(parts) > 0 else None,
+        "memory_total_mb": int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else None,
+        "driver_version": parts[2] if len(parts) > 2 else None,
+    }
 
 
 def check_ffmpeg() -> dict[str, Any]:
@@ -91,10 +125,9 @@ def check_checkpoints(mode: str = "twosplit", folder: Path | None = None, min_si
 def doctor(mode: str = "twosplit", checkpoint_min_size_bytes: int | None = None) -> dict[str, Any]:
     checks = {
         "python": check_python(),
-        "imports": {
-            "yaml": check_import("yaml"),
-        },
+        "imports": check_imports(),
         "torch": check_torch_cuda(),
+        "nvidia_smi": check_nvidia_smi(),
         "ffmpeg": check_ffmpeg(),
         "write_permissions": check_write_permissions(),
         "checkpoints": check_checkpoints(mode=mode, min_size_bytes=checkpoint_min_size_bytes),
@@ -105,3 +138,18 @@ def doctor(mode: str = "twosplit", checkpoint_min_size_bytes: int | None = None)
 def doctor_json(**kwargs: Any) -> str:
     return json.dumps(doctor(**kwargs), indent=2)
 
+
+def diagnostic_text(report: dict[str, Any] | None = None) -> str:
+    report = report or doctor()
+    lines = ["A2SB Restorer diagnostic report", f"overall: {'ok' if report.get('ok') else 'not ready'}"]
+    for name, value in report.items():
+        if name == "ok":
+            continue
+        status = "ok" if isinstance(value, dict) and value.get("ok") else "needs attention"
+        lines.append(f"{name}: {status}")
+        if isinstance(value, dict):
+            if value.get("error"):
+                lines.append(f"  error: {value['error']}")
+            if value.get("missing"):
+                lines.append(f"  missing: {', '.join(value['missing'])}")
+    return "\n".join(lines) + "\n"
