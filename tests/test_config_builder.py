@@ -2,7 +2,12 @@ from pathlib import Path
 
 import yaml
 
-from rolling_a2sb.config_builder import RestoreConfigRequest, build_restore_config, write_restore_config
+from rolling_a2sb.config_builder import (
+    RestoreConfigRequest,
+    build_restore_config,
+    validate_generated_config,
+    write_restore_config,
+)
 
 
 def test_twosplit_config_sanitizes_upstream_hpc_defaults(tmp_path: Path) -> None:
@@ -104,3 +109,22 @@ def test_config_builder_rejects_missing_input(tmp_path: Path) -> None:
         assert "input audio does not exist" in str(exc)
     else:
         raise AssertionError("missing input should fail")
+
+
+def test_generated_config_validator_rejects_upstream_placeholders() -> None:
+    config = {
+        "trainer": {"strategy": "auto", "devices": 1, "num_nodes": 1},
+        "data": {
+            "num_workers": 0,
+            "batch_size": 1,
+            "predict_filelist": [{"filepath": "PATH/TO/input.wav"}],
+        },
+        "model": {"pretrained_checkpoints": ["model.ckpt"]},
+    }
+
+    try:
+        validate_generated_config(config)
+    except ValueError as exc:
+        assert "PATH/TO" in str(exc)
+    else:
+        raise AssertionError("generated config validation should reject upstream placeholders")
