@@ -45,6 +45,22 @@ def test_create_restore_job_writes_manifest(tmp_path: Path, monkeypatch) -> None
     assert Path(data["partial_output_audio"]).name == "input__a2sb.wav.partial"
 
 
+def test_create_restore_job_supports_unicode_paths_where_practical(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(tmp_path / "logs"))
+    input_dir = tmp_path / "audio cafe \u97f3"
+    input_audio = input_dir / "take \u00e9lan.wav"
+    input_dir.mkdir()
+    input_audio.write_bytes(b"")
+
+    job = create_restore_job(input_audio, steps=2)
+    manifest = Path(job.job_dir) / "job.json"
+    data = json.loads(manifest.read_text(encoding="utf-8"))
+
+    assert data["input_audio"] == str(input_audio.resolve())
+    assert Path(data["output_audio"]).name == "take \u00e9lan__a2sb.wav"
+
+
 def test_partial_output_path_can_live_in_job_dir(tmp_path: Path) -> None:
     output = tmp_path / "A2SB Restored" / "song__a2sb.wav"
     job_dir = tmp_path / "jobs" / "123"
