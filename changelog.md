@@ -104,10 +104,11 @@ This file is local coordination material unless the user explicitly decides to p
 - Added non-blocking dry-run engine import validation so restore dry-runs report whether `ensembled_inference_api.py` imports from the current app root.
 - Added explicit Inno uninstall display metadata while preserving the guard against deleting user-downloaded model data.
 - Added tests proving model/job/log paths stay in user app data while restored WAV output defaults beside the input under `A2SB Restored`.
+- Added runtime setup script contract tests for private Python 3.10 runtime creation, editable app install, doctor JSON status, and repair delegation.
 
 ### Verified
 
-- `.\.venv\Scripts\python.exe -m pytest` passes with 108 tests.
+- `.\.venv\Scripts\python.exe -m pytest` passes with 111 tests.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --report` prints actionable next steps for missing Torch/checkpoints and sandboxed write permissions.
 - `powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist\installer -ValidateOnly` runs and correctly blocks release because artifacts are missing and license notices are placeholders.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.
