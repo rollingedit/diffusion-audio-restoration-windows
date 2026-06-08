@@ -76,10 +76,18 @@ def test_privacy_and_network_statements_are_documented() -> None:
 def test_license_notices_document_attribution_and_non_affiliation() -> None:
     notices = (ROOT / "docs" / "LICENSE_NOTICES.md").read_text(encoding="utf-8")
     release_notes = (ROOT / "LICENSE-NOTICES.txt").read_text(encoding="utf-8")
+    installer = (ROOT / "installer" / "a2sb-restorer.iss").read_text(encoding="utf-8")
 
     assert "not affiliated with or endorsed by NVIDIA" in notices
     assert "RollingEdit A2SB Restorer is not affiliated with or endorsed by NVIDIA" in release_notes
     assert "preserve NVIDIA copyright" in notices
+    assert 'Source: "..\\LICENSE-NOTICES.txt"; DestDir: "{app}"' in installer
+
+
+def test_windows_readme_is_installed_with_app_payload() -> None:
+    installer = (ROOT / "installer" / "a2sb-restorer.iss").read_text(encoding="utf-8")
+
+    assert 'Source: "..\\README-WINDOWS.md"; DestDir: "{app}"' in installer
 
 
 def test_ffmpeg_release_source_and_installer_payload_are_documented() -> None:

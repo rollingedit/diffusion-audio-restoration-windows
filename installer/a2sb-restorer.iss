@@ -46,6 +46,8 @@ Source: "..\networks.py"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\plotting_utils.py"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\utils.py"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\README-WINDOWS.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\LICENSE-NOTICES.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\dist\A2SB Restorer\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 
