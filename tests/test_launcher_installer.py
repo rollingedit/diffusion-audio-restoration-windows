@@ -55,3 +55,20 @@ def test_launcher_spec_uses_one_folder_not_one_file_torch_bundle() -> None:
     assert "COLLECT(" in text
     assert "exclude_binaries=True" in text
     assert "torch" not in text.lower()
+
+
+def test_launcher_build_outputs_to_installer_payload_location() -> None:
+    text = (ROOT / "scripts" / "build_launcher.ps1").read_text(encoding="utf-8")
+
+    assert '$DistDir = Join-Path $AppRoot "dist"' in text
+    assert '$ExpectedExe = Join-Path $DistDir "A2SB Restorer\\A2SB Restorer.exe"' in text
+    assert '--distpath $DistDir --workpath $WorkDir' in text
+    assert "did not produce expected one-folder app" in text
+
+
+def test_installer_build_requires_launcher_output_before_packaging() -> None:
+    text = (ROOT / "scripts" / "build_installer.ps1").read_text(encoding="utf-8")
+
+    assert 'dist\\A2SB Restorer\\A2SB Restorer.exe' in text
+    assert "Run scripts\\build_launcher.ps1 first" in text
+    assert text.index("Launcher EXE missing") < text.index("Get-Command ISCC.exe")

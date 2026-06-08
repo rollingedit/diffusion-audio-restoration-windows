@@ -114,10 +114,13 @@ This file is local coordination material unless the user explicitly decides to p
 - Tightened release validation so `SHA256SUMS.txt` must list every artifact and must not reference stale missing artifacts.
 - Added restore-progress parsing for streamed step lines so the GUI switches from indeterminate progress to exact step progress when upstream output includes counts.
 - Strengthened downloader and CLI coverage for official Hugging Face checkpoint download arguments, resume behavior, local model folder writes, and manifest output.
+- Fixed launcher packaging output so PyInstaller writes the one-folder app to repo-root `dist\A2SB Restorer`, matching the Inno installer payload path.
+- Added installer preflight validation that refuses to build the setup EXE until `dist\A2SB Restorer\A2SB Restorer.exe` exists.
+- Added launcher/installer contract tests for the one-folder output path and preflight packaging guard.
 
 ### Verified
 
-- `.\.venv\Scripts\python.exe -m pytest` passes with 127 tests.
+- `.\.venv\Scripts\python.exe -m pytest` passes with 129 tests.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --report` prints actionable next steps for missing Torch/checkpoints and sandboxed write permissions.
 - `powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist\installer -ValidateOnly` runs and correctly blocks release because artifacts are missing and license notices are placeholders.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.
