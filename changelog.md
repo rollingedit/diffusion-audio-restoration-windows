@@ -93,10 +93,12 @@ This file is local coordination material unless the user explicitly decides to p
 - Added installer/launcher tests proving uninstall does not delete user model data and launcher packaging remains one-folder without bundled Torch.
 - Added GUI About tab text with NVIDIA A2SB attribution, non-affiliation notice, local-audio statement, and license notice location.
 - Added tests for About attribution and release notice attribution/non-affiliation statements.
+- Added `docs/UPSTREAM_AUDIT.md` documenting the preserved NVIDIA entrypoint, bypassed research wrappers, generated-config sanitization, and remaining real smoke validation needs.
+- Added release scaffold coverage for the upstream audit document.
 
 ### Verified
 
-- `.\.venv\Scripts\python.exe -m pytest` passes with 98 tests.
+- `.\.venv\Scripts\python.exe -m pytest` passes with 99 tests.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --report` prints actionable next steps for missing Torch/checkpoints and sandboxed write permissions.
 - `powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist\installer -ValidateOnly` runs and correctly blocks release because artifacts are missing and license notices are placeholders.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.

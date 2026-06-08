@@ -26,6 +26,7 @@ def test_release_docs_exist() -> None:
         "docs/RELEASE_CHECKLIST.md",
         "docs/LICENSE_NOTICES.md",
         "docs/WHAT_SETUP_INSTALLS.md",
+        "docs/UPSTREAM_AUDIT.md",
     ]:
         assert (ROOT / rel_path).exists(), rel_path
 
@@ -74,3 +75,14 @@ def test_license_notices_document_attribution_and_non_affiliation() -> None:
     assert "not affiliated with or endorsed by NVIDIA" in notices
     assert "RollingEdit A2SB Restorer is not affiliated with or endorsed by NVIDIA" in release_notes
     assert "preserve NVIDIA copyright" in notices
+
+
+def test_upstream_audit_documents_bypassed_research_assumptions() -> None:
+    text = (ROOT / "docs" / "UPSTREAM_AUDIT.md").read_text(encoding="utf-8")
+
+    assert "ensembled_inference_api.py" in text
+    assert "LightningCLI" in text
+    assert "shell=True" in text
+    assert "PATH/TO" in text
+    assert "SLURMEnvironment" in text
+    assert "argument-array subprocess execution" in text
