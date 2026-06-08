@@ -26,6 +26,7 @@ ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
 WizardStyle=modern
 LicenseFile=..\LICENSES\NVIDIA_A2SB_LICENSE.txt
+SetupIconFile=assets\app.ico
 
 [Files]
 Source: "..\rolling_a2sb\*"; DestDir: "{app}\rolling_a2sb"; Flags: recursesubdirs ignoreversion

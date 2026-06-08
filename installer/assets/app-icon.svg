@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">A2SB Restorer icon source</title>
+  <desc id="desc">RollingEdit Windows audio restoration mark with a waveform, bridge arc, and restoration spark.</desc>
+  <rect width="256" height="256" rx="48" fill="#111827"/>
+  <path d="M38 150c20-48 49-72 87-72 42 0 68 27 93 72" fill="none" stroke="#38bdf8" stroke-width="16" stroke-linecap="round"/>
+  <path d="M48 135h20l12-34 20 74 20-92 22 92 18-54 14 31h34" fill="none" stroke="#f9fafb" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="197" cy="75" r="18" fill="#facc15"/>
+  <path d="M197 42v16M197 92v16M164 75h16M214 75h16M174 52l11 11M209 87l11 11M220 52l-11 11M185 87l-11 11" stroke="#facc15" stroke-width="8" stroke-linecap="round"/>
+  <path d="M64 198h128" stroke="#38bdf8" stroke-width="14" stroke-linecap="round"/>
+</svg>

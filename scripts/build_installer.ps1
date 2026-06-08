@@ -9,6 +9,7 @@ $Iss = Join-Path $AppRoot "installer\a2sb-restorer.iss"
 $LauncherExe = Join-Path $AppRoot "dist\A2SB Restorer\A2SB Restorer.exe"
 $FfmpegExe = Join-Path $AppRoot "bin\ffmpeg.exe"
 $FfprobeExe = Join-Path $AppRoot "bin\ffprobe.exe"
+$InstallerIcon = Join-Path $AppRoot "installer\assets\app.ico"
 $ArtifactsDir = Join-Path $AppRoot "dist\installer"
 $Readme = Join-Path $AppRoot "README-WINDOWS.md"
 $Notices = Join-Path $AppRoot "LICENSE-NOTICES.txt"
@@ -18,6 +19,7 @@ if ($DryRun) {
     Write-Host "Requires launcher output: $LauncherExe"
     Write-Host "Requires FFmpeg: $FfmpegExe"
     Write-Host "Requires ffprobe: $FfprobeExe"
+    Write-Host "Requires installer icon: $InstallerIcon"
     Write-Host "Would stage release docs into: $ArtifactsDir"
     exit 0
 }
@@ -33,6 +35,9 @@ if (-not (Test-Path $FfmpegExe)) {
 }
 if (-not (Test-Path $FfprobeExe)) {
     throw "ffprobe binary missing: $FfprobeExe. Bundle the approved redistributable ffprobe.exe before building the installer."
+}
+if (-not (Test-Path $InstallerIcon)) {
+    throw "Installer icon missing: $InstallerIcon. Generate installer\assets\app.ico from installer\assets\app-icon.svg before building the installer."
 }
 if (-not (Test-Path $Readme)) {
     throw "Windows README missing: $Readme"

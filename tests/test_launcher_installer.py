@@ -93,6 +93,27 @@ def test_installer_build_requires_ffmpeg_binaries_before_packaging() -> None:
     assert text.index("ffprobe binary missing") < text.index("Get-Command ISCC.exe")
 
 
+def test_installer_build_requires_branded_icon_before_packaging() -> None:
+    text = (ROOT / "scripts" / "build_installer.ps1").read_text(encoding="utf-8")
+    installer = (ROOT / "installer" / "a2sb-restorer.iss").read_text(encoding="utf-8")
+
+    assert 'installer\\assets\\app.ico' in text
+    assert "Installer icon missing" in text
+    assert "app-icon.svg" in text
+    assert "SetupIconFile=assets\\app.ico" in installer
+    assert text.index("Installer icon missing") < text.index("Get-Command ISCC.exe")
+
+
+def test_installer_asset_source_exists_until_final_ico_is_generated() -> None:
+    readme = (ROOT / "installer" / "assets" / "README.md").read_text(encoding="utf-8")
+    svg = (ROOT / "installer" / "assets" / "app-icon.svg").read_text(encoding="utf-8")
+
+    assert "Do not build the public installer with the default Inno Setup icon" in readme
+    assert "app.ico" in readme
+    assert "<svg" in svg
+    assert "A2SB Restorer icon source" in svg
+
+
 def test_installer_build_stages_release_docs_before_checksums() -> None:
     text = (ROOT / "scripts" / "build_installer.ps1").read_text(encoding="utf-8")
 
