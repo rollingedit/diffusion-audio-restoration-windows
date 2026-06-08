@@ -61,6 +61,26 @@ REQUIRED_INSTALLER_METADATA_TOKENS = [
     'Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\\scripts\\setup_runtime.ps1"""; Flags: runhidden',
     'Type: filesandordirs; Name: "{app}\\runtime"',
 ]
+REQUIRED_RELEASE_SOURCE_PATHS = [
+    "rolling_a2sb/cli.py",
+    "rolling_a2sb/app.py",
+    "rolling_a2sb/gui.py",
+    "rolling_a2sb/release.py",
+    "launcher/launcher.py",
+    "launcher/launcher.spec",
+    "scripts/setup_runtime.ps1",
+    "scripts/repair_runtime.ps1",
+    "scripts/build_launcher.ps1",
+    "scripts/build_installer.ps1",
+    "scripts/smoke_restore.ps1",
+    "scripts/doctor.ps1",
+    "scripts/write_sha256sums.ps1",
+    "configs/windows/base_twosplit_windows.yaml",
+    "configs/windows/base_onesplit_windows.yaml",
+    "docs/USER_GUIDE.md",
+    "docs/TROUBLESHOOTING.md",
+    "docs/RELEASE_EVIDENCE.md",
+]
 REQUIRED_EVIDENCE_FIELDS = [
     "Version",
     "Git commit",
@@ -216,6 +236,7 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
         errors.append("Python package version does not match rolling_a2sb.__version__")
     if installer_version and project_version and installer_version != project_version.replace("a0", "-alpha"):
         errors.append("Installer version does not match Python package release label")
+    errors.extend(validate_release_source_tree(source_root))
     errors.extend(validate_installer_metadata(source_root / "installer" / "a2sb-restorer.iss"))
     errors.extend(validate_release_payload_inputs(source_root))
     errors.extend(validate_release_checklist(source_root / "docs" / "RELEASE_CHECKLIST.md"))
@@ -543,6 +564,16 @@ def validate_release_checklist(checklist_path: Path) -> list[str]:
     for line_number, line in enumerate(text.splitlines(), start=1):
         if re.match(r"^\s*-\s+\[\s\]\s+", line):
             errors.append(f"Release checklist has unchecked item on line {line_number}")
+    return errors
+
+
+def validate_release_source_tree(source_root: Path) -> list[str]:
+    root = Path(source_root)
+    errors: list[str] = []
+    for relative_path in REQUIRED_RELEASE_SOURCE_PATHS:
+        path = root / relative_path
+        if not path.exists() or not path.is_file():
+            errors.append(f"Release source path is missing: {relative_path}")
     return errors
 
 

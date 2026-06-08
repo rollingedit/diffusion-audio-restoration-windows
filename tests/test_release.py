@@ -17,6 +17,7 @@ from rolling_a2sb.release import (
     validate_release_payload_inputs,
     validate_release_artifacts,
     validate_release_evidence,
+    validate_release_source_tree,
     validate_runtime_lockfile,
     write_sha256sums,
 )
@@ -94,6 +95,33 @@ def write_release_checklist(root: Path, complete: bool = True) -> Path:
         encoding="utf-8",
     )
     return checklist
+
+
+def write_release_source_tree(root: Path) -> None:
+    for relative_path in [
+        "rolling_a2sb/cli.py",
+        "rolling_a2sb/app.py",
+        "rolling_a2sb/gui.py",
+        "rolling_a2sb/release.py",
+        "launcher/launcher.py",
+        "launcher/launcher.spec",
+        "scripts/setup_runtime.ps1",
+        "scripts/repair_runtime.ps1",
+        "scripts/build_launcher.ps1",
+        "scripts/build_installer.ps1",
+        "scripts/smoke_restore.ps1",
+        "scripts/doctor.ps1",
+        "scripts/write_sha256sums.ps1",
+        "configs/windows/base_twosplit_windows.yaml",
+        "configs/windows/base_onesplit_windows.yaml",
+        "docs/USER_GUIDE.md",
+        "docs/TROUBLESHOOTING.md",
+        "docs/RELEASE_EVIDENCE.md",
+    ]:
+        path = root / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if not path.exists():
+            path.write_text("release source fixture\n", encoding="utf-8")
 
 
 def write_version_sources(root: Path, project_version: str = "0.1.0a0", package_version: str = "0.1.0a0", installer_version: str = "0.1.0-alpha") -> None:
@@ -644,6 +672,16 @@ def test_validate_release_checklist_requires_all_items_checked(tmp_path: Path) -
     assert "Release checklist has unchecked item on line 3" in errors
 
 
+def test_validate_release_source_tree_requires_agent_build_files(tmp_path: Path) -> None:
+    missing = validate_release_source_tree(tmp_path)
+    assert "Release source path is missing: rolling_a2sb/cli.py" in missing
+    assert "Release source path is missing: scripts/build_installer.ps1" in missing
+
+    write_release_source_tree(tmp_path)
+
+    assert validate_release_source_tree(tmp_path) == []
+
+
 def test_git_head_commit_reads_loose_ref(tmp_path: Path) -> None:
     commit = "a" * 40
     ref = tmp_path / ".git" / "refs" / "heads" / "main"
@@ -1074,6 +1112,7 @@ def test_release_validation_accepts_basic_artifacts(tmp_path: Path) -> None:
     write_release_sources(tmp_path)
     write_release_evidence(tmp_path, installer_sha256=sha256_file(setup))
     write_release_checklist(tmp_path)
+    write_release_source_tree(tmp_path)
     write_version_sources(tmp_path)
     write_release_payload_inputs(tmp_path)
     write_runtime_lockfile(tmp_path)
