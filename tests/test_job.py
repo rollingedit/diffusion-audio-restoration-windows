@@ -45,6 +45,25 @@ def test_create_restore_job_writes_manifest(tmp_path: Path, monkeypatch) -> None
     assert Path(data["partial_output_audio"]).name == "input__a2sb.wav.partial"
 
 
+def test_create_restore_job_defaults_output_near_input_and_logs_in_app_data(tmp_path: Path, monkeypatch) -> None:
+    data_dir = tmp_path / "App Data"
+    log_dir = tmp_path / "Logs"
+    monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(log_dir))
+    input_dir = tmp_path / "Session With Spaces"
+    input_audio = input_dir / "take.wav"
+    input_dir.mkdir()
+    input_audio.write_bytes(b"")
+
+    job = create_restore_job(input_audio, steps=2)
+
+    assert Path(job.output_audio).parent == (input_dir / "A2SB Restored").resolve()
+    assert Path(job.output_audio).name == "take__a2sb.wav"
+    assert Path(job.job_dir).is_relative_to((data_dir / "jobs").resolve())
+    assert Path(job.log_path).parent == Path(job.job_dir)
+    assert not Path(job.output_audio).is_relative_to(data_dir.resolve())
+
+
 def test_create_restore_job_supports_unicode_paths_where_practical(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(tmp_path / "data"))
     monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(tmp_path / "logs"))
