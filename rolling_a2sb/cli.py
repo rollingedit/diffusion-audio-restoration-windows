@@ -10,7 +10,7 @@ from .audio_probe import audio_info_dict, probe_audio
 from .checkpoint_manager import cleanup_app_model_files, select_manual_checkpoint_folder
 from .downloader import build_download_plan, download_model
 from .errors import RestoreProcessError, format_user_error
-from .release import collect_release_artifacts, validate_release_artifacts, write_sha256sums
+from .release import collect_release_artifacts, release_status_summary, validate_release_artifacts, write_sha256sums
 from .runtime_check import diagnostic_text, doctor
 from .settings import reset_model_settings
 from .worker import check_engine_imports
@@ -61,6 +61,9 @@ def main(argv: list[str] | None = None) -> int:
     release_parser.add_argument("--artifacts-dir", type=Path, default=Path("dist") / "installer")
     release_parser.add_argument("--licenses-dir", type=Path, default=Path("LICENSES"))
     release_parser.add_argument("--write-sha256", action="store_true", help="Regenerate SHA256SUMS.txt before validation.")
+    status_parser = subparsers.add_parser("release-status")
+    status_parser.add_argument("--artifacts-dir", type=Path, default=Path("dist") / "installer")
+    status_parser.add_argument("--licenses-dir", type=Path, default=Path("LICENSES"))
 
     args = parser.parse_args(argv)
 
@@ -249,6 +252,10 @@ def main(argv: list[str] | None = None) -> int:
         result = validate_release_artifacts(artifacts_dir, licenses_dir)
         print(json.dumps({"ok": result.ok, "errors": result.errors}, indent=2))
         return 0 if result.ok else 1
+
+    if args.command == "release-status":
+        print(json.dumps(release_status_summary(args.artifacts_dir, args.licenses_dir), indent=2))
+        return 0
 
     return 2
 

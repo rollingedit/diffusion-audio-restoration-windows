@@ -11,6 +11,7 @@ from rolling_a2sb.release import (
     package_init_version,
     parse_checksum_file,
     project_release_version,
+    release_status_summary,
     sha256_file,
     validate_installer_metadata,
     validate_release_checklist,
@@ -114,6 +115,7 @@ def write_release_source_tree(root: Path) -> None:
         "scripts/build_installer.ps1",
         "scripts/smoke_restore.ps1",
         "scripts/doctor.ps1",
+        "scripts/release_status.ps1",
         "scripts/write_sha256sums.ps1",
         "configs/windows/base_twosplit_windows.yaml",
         "configs/windows/base_onesplit_windows.yaml",
@@ -1145,6 +1147,22 @@ def test_release_validation_requires_runtime_lockfile(tmp_path: Path) -> None:
 
     assert not result.ok
     assert "Runtime lockfile is missing: requirements/lock-win-cu121.txt" in result.errors
+
+
+def test_release_status_summary_reports_artifacts_and_blockers(tmp_path: Path) -> None:
+    artifacts = tmp_path / "artifacts"
+    licenses = tmp_path / "LICENSES"
+    artifacts.mkdir()
+    (artifacts / "A2SB-Restorer-Setup.exe").write_bytes(b"MZtiny")
+    write_notices(licenses)
+
+    summary = release_status_summary(artifacts, licenses)
+
+    assert summary["ok"] is False
+    assert summary["artifact_count"] == 1
+    assert summary["artifacts"] == ["A2SB-Restorer-Setup.exe"]
+    assert summary["blocker_count"] == len(summary["blockers"])
+    assert "a2sb release-check" in str(summary["next_command"])
 
 
 def test_release_validation_accepts_basic_artifacts(tmp_path: Path) -> None:

@@ -76,6 +76,7 @@ REQUIRED_RELEASE_SOURCE_PATHS = [
     "scripts/build_installer.ps1",
     "scripts/smoke_restore.ps1",
     "scripts/doctor.ps1",
+    "scripts/release_status.ps1",
     "scripts/write_sha256sums.ps1",
     "configs/windows/base_twosplit_windows.yaml",
     "configs/windows/base_onesplit_windows.yaml",
@@ -188,6 +189,24 @@ COMMAND_REQUIRED_TOKENS = {
 class ReleaseCheckResult:
     ok: bool
     errors: list[str]
+
+
+def release_status_summary(folder: Path, licenses_dir: Path) -> dict[str, object]:
+    artifacts_dir = Path(folder)
+    artifacts = collect_release_artifacts(artifacts_dir)
+    result = validate_release_artifacts(artifacts_dir, licenses_dir)
+    return {
+        "ok": result.ok,
+        "artifacts_dir": str(artifacts_dir),
+        "licenses_dir": str(Path(licenses_dir)),
+        "artifact_count": len(artifacts),
+        "artifacts": [artifact.name for artifact in artifacts],
+        "blocker_count": len(result.errors),
+        "blockers": result.errors,
+        "next_command": None
+        if result.ok
+        else "a2sb release-check --artifacts-dir dist/installer --licenses-dir LICENSES",
+    }
 
 
 def sha256_file(path: Path, chunk_size: int = 1024 * 1024) -> str:

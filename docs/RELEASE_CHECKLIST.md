@@ -58,6 +58,7 @@ Do not publish a release until every required item is checked with evidence. Rec
 - [ ] Uninstall removes app files.
 - [ ] Uninstall does not silently delete downloaded models.
 - [ ] `scripts/write_sha256sums.ps1` passes.
+- [ ] `scripts/release_status.ps1` reports zero blockers.
 - [ ] `a2sb release-check --artifacts-dir dist\installer --licenses-dir LICENSES` passes.
 - [ ] `SHA256SUMS.txt` is generated.
 - [ ] Release validation has no placeholder license notices.

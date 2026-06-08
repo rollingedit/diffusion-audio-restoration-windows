@@ -20,7 +20,7 @@ Complete this file before any public release. Do not replace checklist items wit
 ## Commands
 
 Record the exact command, exit code, and output path for each command.
-Use `a2sb release-check --artifacts-dir dist\installer --licenses-dir LICENSES` for the release validation command.
+Use `a2sb release-status --artifacts-dir dist\installer --licenses-dir LICENSES` to inspect blockers, then use `a2sb release-check --artifacts-dir dist\installer --licenses-dir LICENSES` for the release validation command.
 
 - Runtime setup:
 - Repair runtime:

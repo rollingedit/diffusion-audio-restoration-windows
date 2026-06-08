@@ -350,3 +350,30 @@ def test_release_check_cli_can_regenerate_sha256_before_validation(tmp_path: Pat
     assert exit_code == 0
     assert calls == [[artifact]]
     assert json.loads(capsys.readouterr().out) == {"ok": True, "errors": []}
+
+
+def test_release_status_cli_prints_blockers_without_failing(tmp_path: Path, monkeypatch, capsys) -> None:
+    artifacts = tmp_path / "dist" / "installer"
+    licenses = tmp_path / "LICENSES"
+
+    monkeypatch.setattr(
+        "rolling_a2sb.cli.release_status_summary",
+        lambda artifacts_dir, licenses_dir: {
+            "ok": False,
+            "artifacts_dir": str(artifacts_dir),
+            "licenses_dir": str(licenses_dir),
+            "artifact_count": 0,
+            "artifacts": [],
+            "blocker_count": 1,
+            "blockers": ["missing installer"],
+            "next_command": "a2sb release-check --artifacts-dir dist/installer --licenses-dir LICENSES",
+        },
+    )
+
+    exit_code = main(["release-status", "--artifacts-dir", str(artifacts), "--licenses-dir", str(licenses)])
+
+    assert exit_code == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["ok"] is False
+    assert output["blocker_count"] == 1
+    assert output["blockers"] == ["missing installer"]
