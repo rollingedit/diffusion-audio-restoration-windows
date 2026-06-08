@@ -2,6 +2,7 @@ from pathlib import Path
 import wave
 
 from rolling_a2sb.gui_actions import (
+    about_text,
     audio_probe_text,
     doctor_report_text,
     download_plan_text,
@@ -30,6 +31,15 @@ def write_checkpoint(path: Path) -> None:
 
 def test_doctor_report_text_contains_header() -> None:
     assert "A2SB Restorer diagnostic report" in doctor_report_text()
+
+
+def test_about_text_contains_attribution_and_non_affiliation() -> None:
+    text = about_text()
+
+    assert "NVIDIA Audio-to-Audio Schrodinger Bridge" in text
+    assert "not affiliated with or endorsed by NVIDIA" in text
+    assert "Audio stays local" in text
+    assert "License notices" in text
 
 
 def test_download_plan_text_contains_official_repo(tmp_path: Path) -> None:

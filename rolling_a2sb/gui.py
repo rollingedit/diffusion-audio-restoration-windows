@@ -7,6 +7,7 @@ from pathlib import Path
 from . import paths
 from .errors import format_user_error
 from .gui_actions import (
+    about_text,
     audio_probe_text,
     doctor_report_text,
     download_plan_text,
@@ -84,6 +85,7 @@ def run_gui() -> int:
             self.tabs.addTab(self.build_restore_tab(), "Restore")
             self.tabs.addTab(self.build_setup_tab(), "Setup")
             self.tabs.addTab(self.build_logs_tab(), "Logs")
+            self.tabs.addTab(self.build_about_tab(), "About")
             layout.addWidget(self.tabs, 1)
 
             self.setCentralWidget(root)
@@ -208,6 +210,16 @@ def run_gui() -> int:
             self.refresh_log_button.clicked.connect(self.refresh_latest_log)
             self.copy_log_button.clicked.connect(self.copy_log)
             self.open_logs_tab_button.clicked.connect(lambda: self.open_folder(paths.logs_dir()))
+            return tab
+
+        def build_about_tab(self) -> QWidget:
+            tab = QWidget()
+            layout = QVBoxLayout(tab)
+
+            self.about_view = QTextEdit()
+            self.about_view.setReadOnly(True)
+            self.about_view.setPlainText(about_text())
+            layout.addWidget(self.about_view, 1)
             return tab
 
         def refresh_report(self) -> None:

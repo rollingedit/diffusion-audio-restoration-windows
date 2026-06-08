@@ -65,3 +65,12 @@ def test_privacy_and_network_statements_are_documented() -> None:
     assert "does not upload user audio" in readme
     assert "internet access" in readme.lower()
     assert "telemetry by default" in combined
+
+
+def test_license_notices_document_attribution_and_non_affiliation() -> None:
+    notices = (ROOT / "docs" / "LICENSE_NOTICES.md").read_text(encoding="utf-8")
+    release_notes = (ROOT / "LICENSE-NOTICES.txt").read_text(encoding="utf-8")
+
+    assert "not affiliated with or endorsed by NVIDIA" in notices
+    assert "RollingEdit A2SB Restorer is not affiliated with or endorsed by NVIDIA" in release_notes
+    assert "preserve NVIDIA copyright" in notices

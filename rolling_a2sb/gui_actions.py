@@ -12,6 +12,21 @@ from .workflow import RestorePreparation as DryRunRestorePlan
 from .workflow import execute_restore, prepare_restore
 
 
+def about_text() -> str:
+    return "\n".join(
+        [
+            "A2SB Restorer",
+            "RollingEdit Windows wrapper for NVIDIA Audio-to-Audio Schrodinger Bridge.",
+            "",
+            "Uses upstream NVIDIA A2SB engine code and official NVIDIA Hugging Face checkpoints.",
+            "This project is not affiliated with or endorsed by NVIDIA.",
+            "Audio stays local on this PC.",
+            "",
+            "License notices are installed under the app LICENSES and docs folders.",
+        ]
+    )
+
+
 def doctor_report_text() -> str:
     return diagnostic_text(doctor())
 
