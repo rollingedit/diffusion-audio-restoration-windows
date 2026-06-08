@@ -8,6 +8,7 @@ from rolling_a2sb.release import (
     collect_release_artifacts,
     parse_checksum_file,
     validate_release_artifacts,
+    validate_release_evidence,
     write_sha256sums,
 )
 
@@ -30,6 +31,50 @@ def write_setup_exe(path: Path) -> None:
 def write_release_sources(root: Path, readme_text: str = "readme", notices_text: str = "notices") -> None:
     (root / "README-WINDOWS.md").write_text(readme_text, encoding="utf-8")
     (root / "LICENSE-NOTICES.txt").write_text(notices_text, encoding="utf-8")
+
+
+def write_release_evidence(root: Path, blockers: str = "- None") -> Path:
+    evidence = root / "docs" / "RELEASE_EVIDENCE.md"
+    evidence.parent.mkdir(parents=True, exist_ok=True)
+    evidence.write_text(
+        "\n".join(
+            [
+                "# Release Evidence",
+                "",
+                "## Release Candidate",
+                "",
+                "- Version: 0.1.0-alpha",
+                "- Git commit: abc123",
+                "- Build machine: builder",
+                "- Test machine: tester",
+                "- Windows version: Windows 11 23H2",
+                "- GPU model: NVIDIA test GPU",
+                "- NVIDIA driver version: 555.55",
+                "- CUDA reported by PyTorch: 12.1",
+                "- Installer filename: A2SB-Restorer-Setup.exe",
+                "- Installer SHA256: " + "a" * 64,
+                "- FFmpeg build filename: ffmpeg-master-latest-win64-lgpl.zip",
+                "- FFmpeg source URL: https://github.com/BtbN/FFmpeg-Builds",
+                "",
+                "## Evidence Files",
+                "",
+                "- Doctor JSON path: evidence/doctor.json",
+                "- Checkpoint manifest path: evidence/checkpoint_manifest.json",
+                "- Restore log path: evidence/restore.log",
+                "- Output WAV path: evidence/out.wav",
+                "- Input file hash before restore: " + "b" * 64,
+                "- Input file hash after restore: " + "b" * 64,
+                "- Release artifacts validated: yes",
+                "",
+                "## Blockers",
+                "",
+                blockers,
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return evidence
 
 
 def test_allowed_release_artifacts_match_public_payload() -> None:
@@ -104,6 +149,23 @@ def test_parse_checksum_file_reports_malformed_lines_invalid_hashes_and_duplicat
     assert "SHA256SUMS.txt line 1 has invalid SHA256 digest" in errors
     assert "SHA256SUMS.txt line 2 is malformed" in errors
     assert "SHA256SUMS.txt has duplicate artifact entry: README-WINDOWS.md" in errors
+
+
+def test_validate_release_evidence_accepts_completed_evidence(tmp_path: Path) -> None:
+    evidence = write_release_evidence(tmp_path)
+
+    assert validate_release_evidence(evidence) == []
+
+
+def test_validate_release_evidence_rejects_blank_fields_and_open_blockers(tmp_path: Path) -> None:
+    evidence = write_release_evidence(tmp_path, blockers="- CUDA smoke test still missing")
+    text = evidence.read_text(encoding="utf-8").replace("- GPU model: NVIDIA test GPU", "- GPU model:")
+    evidence.write_text(text, encoding="utf-8")
+
+    errors = validate_release_evidence(evidence)
+
+    assert "Release evidence field is incomplete: GPU model" in errors
+    assert 'Release evidence blockers must be exactly "- None" before public release' in errors
 
 
 def test_release_validation_blocks_checkpoint_artifacts(tmp_path: Path) -> None:
@@ -412,6 +474,7 @@ def test_release_validation_accepts_basic_artifacts(tmp_path: Path) -> None:
     readme.write_text("readme", encoding="utf-8")
     notices.write_text("notices", encoding="utf-8")
     write_release_sources(tmp_path)
+    write_release_evidence(tmp_path)
     write_sha256sums([setup, readme, notices], artifacts / "SHA256SUMS.txt")
     write_notices(licenses)
 

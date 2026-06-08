@@ -15,6 +15,23 @@ REQUIRED_RELEASE_ARTIFACTS = [
     "LICENSE-NOTICES.txt",
 ]
 ALLOWED_RELEASE_ARTIFACTS = set(REQUIRED_RELEASE_ARTIFACTS)
+REQUIRED_EVIDENCE_FIELDS = [
+    "Version",
+    "Git commit",
+    "Windows version",
+    "GPU model",
+    "NVIDIA driver version",
+    "CUDA reported by PyTorch",
+    "Installer filename",
+    "Installer SHA256",
+    "Doctor JSON path",
+    "Checkpoint manifest path",
+    "Restore log path",
+    "Output WAV path",
+    "Input file hash before restore",
+    "Input file hash after restore",
+    "Release artifacts validated",
+]
 
 
 @dataclass(frozen=True)
@@ -58,6 +75,7 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
     errors: list[str] = []
     folder = Path(folder)
     licenses_dir = Path(licenses_dir)
+    source_root = licenses_dir.parent
 
     artifacts = collect_release_artifacts(folder)
     if not artifacts:
@@ -85,7 +103,7 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
             text = artifact.read_text(encoding="utf-8", errors="replace")
             if "release-source placeholder" in text or RELEASE_BLOCKED_TEXT in text:
                 errors.append(f"Release artifact still contains blocking placeholder text: {artifact.name}")
-            source_path = licenses_dir.parent / artifact.name
+            source_path = source_root / artifact.name
             if not source_path.exists():
                 errors.append(f"Release source file is missing: {artifact.name}")
             elif artifact.read_bytes() != source_path.read_bytes():
@@ -120,7 +138,30 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
         for entry in sorted(checksum_names - artifact_names):
             errors.append(f"SHA256SUMS.txt references missing artifact: {entry}")
 
+    errors.extend(validate_release_evidence(source_root / "docs" / "RELEASE_EVIDENCE.md"))
     return ReleaseCheckResult(ok=not errors, errors=errors)
+
+
+def validate_release_evidence(evidence_path: Path) -> list[str]:
+    path = Path(evidence_path)
+    if not path.exists():
+        return [f"Release evidence file is missing: {path}"]
+
+    text = path.read_text(encoding="utf-8")
+    errors: list[str] = []
+    for field in REQUIRED_EVIDENCE_FIELDS:
+        pattern = re.compile(rf"^- {re.escape(field)}:[ \t]*(.*)$", re.MULTILINE)
+        match = pattern.search(text)
+        if not match or not match.group(1).strip():
+            errors.append(f"Release evidence field is incomplete: {field}")
+
+    blockers = re.search(r"## Blockers\s*(.*)\Z", text, flags=re.DOTALL)
+    blocker_lines = []
+    if blockers:
+        blocker_lines = [line.strip() for line in blockers.group(1).splitlines() if line.strip().startswith("-")]
+    if blocker_lines != ["- None"]:
+        errors.append('Release evidence blockers must be exactly "- None" before public release')
+    return errors
 
 
 def parse_checksum_file(checksums_path: Path) -> tuple[dict[str, str], list[str]]:
