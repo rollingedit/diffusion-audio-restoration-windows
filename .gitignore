@@ -1,0 +1,36 @@
+# Python/runtime
+.venv/
+runtime/
+__pycache__/
+*.py[cod]
+*.pyd
+*.egg-info/
+.pytest_cache/
+.local_app_data/
+.local_logs/
+
+# Build/package outputs
+build/
+dist/
+*.exe
+*.msi
+*.zip
+SHA256SUMS.txt
+
+# Local app/model data
+models/
+logs/
+jobs/
+temp/
+checkpoint_manifest.json
+settings.json
+
+# Large model/checkpoint artifacts
+*.ckpt
+*.safetensors
+*.pt
+*.pth
+
+# Audio outputs and smoke-test scratch
+A2SB Restored/
+*.partial

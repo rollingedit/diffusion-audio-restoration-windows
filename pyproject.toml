@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rolling-a2sb-restorer"
+version = "0.1.0a0"
+description = "Windows-first RollingEdit wrapper for NVIDIA A2SB audio restoration."
+requires-python = ">=3.10,<3.12"
+dependencies = [
+  "platformdirs>=4.2.2",
+  "PyYAML>=6.0.2",
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest>=8.0",
+]
+
+[project.scripts]
+a2sb = "rolling_a2sb.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["rolling_a2sb*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
