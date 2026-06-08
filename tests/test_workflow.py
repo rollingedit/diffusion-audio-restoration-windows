@@ -89,6 +89,70 @@ def test_require_runtime_ready_blocks_failed_checks(monkeypatch) -> None:
         raise AssertionError("restore should be blocked when runtime checks fail")
 
 
+def test_require_runtime_ready_reports_no_gpu_path(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "rolling_a2sb.workflow.doctor",
+        lambda mode: {
+            "ok": False,
+            "python": {"ok": True},
+            "imports": {"ok": True},
+            "torch": {
+                "ok": False,
+                "cuda_available": False,
+                "error": "CUDA unavailable",
+                "next_action": "Run Repair Runtime. If Torch installs but CUDA is unavailable, update the NVIDIA driver.",
+            },
+            "ffmpeg": {"ok": True},
+            "ffprobe": {"ok": True},
+            "write_permissions": {"ok": True},
+            "checkpoints": {"ok": True},
+        },
+    )
+
+    try:
+        require_runtime_ready()
+    except RuntimeError as exc:
+        message = str(exc)
+        assert "Restore cannot start" in message
+        assert "torch" in message
+        assert "CUDA unavailable" in message
+        assert "update the NVIDIA driver" in message
+    else:
+        raise AssertionError("restore should be blocked when CUDA is unavailable")
+
+
+def test_require_runtime_ready_reports_missing_checkpoint_setup_path(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "rolling_a2sb.workflow.doctor",
+        lambda mode: {
+            "ok": False,
+            "python": {"ok": True},
+            "imports": {"ok": True},
+            "torch": {"ok": True, "cuda_available": True},
+            "ffmpeg": {"ok": True},
+            "ffprobe": {"ok": True},
+            "write_permissions": {"ok": True},
+            "checkpoints": {
+                "ok": False,
+                "missing": ["A2SB_twosplit_0.0_0.5_release.ckpt"],
+                "next_action": "Download the recommended model or select a trusted checkpoint folder.",
+            },
+        },
+    )
+
+    try:
+        require_runtime_ready()
+    except RuntimeError as exc:
+        message = str(exc)
+        assert "Restore cannot start" in message
+        assert "checkpoints" in message
+        assert "A2SB_twosplit_0.0_0.5_release.ckpt" in message
+        assert "Download the recommended model" in message
+        assert "Traceback" not in message
+    else:
+        raise AssertionError("restore should be blocked when checkpoints are missing")
+
+
 def test_execute_restore_runs_shared_plan_and_writes_result_log(tmp_path: Path, monkeypatch) -> None:
     log_path = tmp_path / "restore.log"
     plan = RestorePreparation(

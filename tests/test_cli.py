@@ -140,6 +140,52 @@ def test_restore_non_dry_run_prints_readiness_failure(tmp_path: Path, monkeypatc
     assert "Restore cannot start" in capsys.readouterr().out
 
 
+def test_restore_cli_prints_no_gpu_readiness_failure(tmp_path: Path, monkeypatch, capsys) -> None:
+    monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(tmp_path / "logs"))
+    monkeypatch.setattr("rolling_a2sb.cli.execute_restore", lambda **kwargs: (_ for _ in ()).throw(
+        RuntimeError(
+            "Restore cannot start because setup is not ready: torch\n\n"
+            "torch: needs attention\n"
+            "  error: CUDA unavailable\n"
+            "  next: Run Repair Runtime. If Torch installs but CUDA is unavailable, update the NVIDIA driver.\n"
+        )
+    ))
+    audio = tmp_path / "short.wav"
+    write_wav(audio)
+
+    exit_code = main(["restore", "--input", str(audio)])
+
+    assert exit_code == 1
+    output = capsys.readouterr().out
+    assert "CUDA unavailable" in output
+    assert "update the NVIDIA driver" in output
+    assert "Traceback" not in output
+
+
+def test_restore_cli_prints_missing_checkpoint_setup_failure(tmp_path: Path, monkeypatch, capsys) -> None:
+    monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(tmp_path / "logs"))
+    monkeypatch.setattr("rolling_a2sb.cli.execute_restore", lambda **kwargs: (_ for _ in ()).throw(
+        RuntimeError(
+            "Restore cannot start because setup is not ready: checkpoints\n\n"
+            "checkpoints: needs attention\n"
+            "  missing: A2SB_twosplit_0.0_0.5_release.ckpt\n"
+            "  next: Download the recommended model or select a trusted checkpoint folder.\n"
+        )
+    ))
+    audio = tmp_path / "short.wav"
+    write_wav(audio)
+
+    exit_code = main(["restore", "--input", str(audio)])
+
+    assert exit_code == 1
+    output = capsys.readouterr().out
+    assert "A2SB_twosplit_0.0_0.5_release.ckpt" in output
+    assert "Download the recommended model" in output
+    assert "Traceback" not in output
+
+
 def test_restore_nonzero_process_prints_user_error(tmp_path: Path, monkeypatch, capsys) -> None:
     monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(tmp_path / "data"))
     monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(tmp_path / "logs"))
