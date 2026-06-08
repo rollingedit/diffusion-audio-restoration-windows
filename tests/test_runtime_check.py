@@ -1,6 +1,14 @@
 import sys
+from types import SimpleNamespace
 
-from rolling_a2sb.runtime_check import add_next_actions, check_imports, check_python, diagnostic_text
+from rolling_a2sb.runtime_check import (
+    add_next_actions,
+    check_ffmpeg,
+    check_imports,
+    check_python,
+    check_torch_cuda,
+    diagnostic_text,
+)
 
 
 def test_check_python_reports_supported_dev_python() -> None:
@@ -22,6 +30,31 @@ def test_check_imports_reports_missing_module() -> None:
 
     assert result["ok"] is False
     assert result["modules"]["definitely_missing_a2sb_module"]["ok"] is False
+
+
+def test_check_torch_cuda_reports_cuda_false(monkeypatch) -> None:
+    fake_torch = SimpleNamespace(
+        __version__="2.2.2+cu121",
+        version=SimpleNamespace(cuda="12.1"),
+        cuda=SimpleNamespace(is_available=lambda: False),
+    )
+    monkeypatch.setitem(sys.modules, "torch", fake_torch)
+
+    result = check_torch_cuda()
+
+    assert result["ok"] is False
+    assert result["cuda_available"] is False
+    assert result["cuda_version"] == "12.1"
+
+
+def test_check_ffmpeg_reports_missing_binary(monkeypatch, tmp_path) -> None:
+    monkeypatch.setattr("rolling_a2sb.runtime_check.paths.ffmpeg_path", lambda: tmp_path / "bin" / "ffmpeg.exe")
+    monkeypatch.setattr("rolling_a2sb.runtime_check.shutil.which", lambda name: None)
+
+    result = check_ffmpeg()
+
+    assert result["ok"] is False
+    assert result["path"].endswith("ffmpeg.exe")
 
 
 def test_diagnostic_text_includes_missing_checkpoints() -> None:

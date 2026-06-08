@@ -76,10 +76,11 @@ This file is local coordination material unless the user explicitly decides to p
 - Added a product safety test that blocks `shell=True` usage in `rolling_a2sb` and the launcher while leaving upstream research files explicitly out of the product path.
 - Added direct validator coverage that generated restore configs reject upstream `PATH/TO` placeholders before release.
 - Added Unicode-path job manifest/output planning coverage for non-ASCII input folders and filenames.
+- Added explicit runtime doctor tests for CUDA-unavailable and missing-FFmpeg failure reporting.
 
 ### Verified
 
-- `.\.venv\Scripts\python.exe -m pytest` passes with 83 tests.
+- `.\.venv\Scripts\python.exe -m pytest` passes with 85 tests.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --report` prints actionable next steps for missing Torch/checkpoints and sandboxed write permissions.
 - `powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist\installer -ValidateOnly` runs and correctly blocks release because artifacts are missing and license notices are placeholders.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.
