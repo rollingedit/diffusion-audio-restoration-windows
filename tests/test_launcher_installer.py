@@ -41,6 +41,8 @@ def test_inno_installer_does_not_include_checkpoint_patterns() -> None:
 def test_inno_uninstall_does_not_delete_user_model_data() -> None:
     text = (ROOT / "installer" / "a2sb-restorer.iss").read_text(encoding="utf-8")
 
+    assert "UninstallDisplayName={#MyAppName}" in text
+    assert r"UninstallDisplayIcon={app}\{#MyAppExeName}" in text
     uninstall_section = text.split("[UninstallDelete]", 1)[1]
     assert "{app}\\runtime" in uninstall_section
     assert "models" not in uninstall_section.lower()

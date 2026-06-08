@@ -102,6 +102,7 @@ This file is local coordination material unless the user explicitly decides to p
 - Added a GUI Model Setup dialog for the official NVIDIA checkpoint download plan, recommended download action, trusted existing checkpoint folder selection, and model-folder access.
 - Added live restore subprocess line streaming into the GUI Restore panel and surfaced the loading-model state before long restores.
 - Added non-blocking dry-run engine import validation so restore dry-runs report whether `ensembled_inference_api.py` imports from the current app root.
+- Added explicit Inno uninstall display metadata while preserving the guard against deleting user-downloaded model data.
 
 ### Verified
 
