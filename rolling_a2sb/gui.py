@@ -17,6 +17,7 @@ from .gui_actions import (
     model_download_confirmation_text,
     prepare_restore_dry_run,
     restore_plan_text,
+    select_checkpoint_folder_text,
 )
 from .runtime_check import doctor
 
@@ -31,6 +32,7 @@ def run_gui() -> int:
             QApplication,
             QCheckBox,
             QComboBox,
+            QDialog,
             QFileDialog,
             QHBoxLayout,
             QLabel,
@@ -98,12 +100,14 @@ def run_gui() -> int:
 
             button_row = QHBoxLayout()
             self.recheck_button = QPushButton("Run Doctor")
+            self.model_setup_button = QPushButton("Model Setup")
             self.download_plan_button = QPushButton("Model Download Plan")
             self.download_model_button = QPushButton("Download Recommended Model")
             self.copy_button = QPushButton("Copy Diagnostic")
             self.models_button = QPushButton("Open Models Folder")
             self.logs_button = QPushButton("Open Logs Folder")
             button_row.addWidget(self.recheck_button)
+            button_row.addWidget(self.model_setup_button)
             button_row.addWidget(self.download_plan_button)
             button_row.addWidget(self.download_model_button)
             button_row.addWidget(self.copy_button)
@@ -117,6 +121,7 @@ def run_gui() -> int:
             layout.addWidget(self.report, 1)
 
             self.recheck_button.clicked.connect(self.refresh_report)
+            self.model_setup_button.clicked.connect(self.open_model_setup_dialog)
             self.download_plan_button.clicked.connect(self.show_download_plan)
             self.download_model_button.clicked.connect(self.confirm_and_download_model)
             self.copy_button.clicked.connect(self.copy_report)
@@ -239,6 +244,79 @@ def run_gui() -> int:
 
         def show_download_plan(self) -> None:
             self.report.setPlainText(download_plan_text())
+
+        def open_model_setup_dialog(self) -> None:
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Model Setup")
+            layout = QVBoxLayout(dialog)
+
+            summary = QLabel("Official NVIDIA two-split checkpoints")
+            summary.setStyleSheet("font-weight: 600;")
+            layout.addWidget(summary)
+
+            output = QTextEdit()
+            output.setReadOnly(True)
+            output.setPlainText(model_download_confirmation_text())
+            layout.addWidget(output, 1)
+
+            button_row = QHBoxLayout()
+            download_button = QPushButton("Download Recommended Model")
+            existing_button = QPushButton("Use Existing Checkpoint Folder")
+            open_models_button = QPushButton("Open Models Folder")
+            close_button = QPushButton("Close")
+            button_row.addWidget(download_button)
+            button_row.addWidget(existing_button)
+            button_row.addWidget(open_models_button)
+            button_row.addStretch(1)
+            button_row.addWidget(close_button)
+            layout.addLayout(button_row)
+
+            def download_from_dialog() -> None:
+                answer = QMessageBox.question(
+                    dialog,
+                    "Download recommended model",
+                    "Download the official NVIDIA two-split checkpoints from Hugging Face into the app model folder?",
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.No,
+                )
+                if answer != QMessageBox.Yes:
+                    return
+                try:
+                    output.setPlainText(download_recommended_model_text())
+                    self.report.setPlainText(output.toPlainText())
+                    self.refresh_report()
+                except Exception as exc:
+                    output.setPlainText(format_user_error(exc))
+
+            def use_existing_folder() -> None:
+                folder = QFileDialog.getExistingDirectory(dialog, "Select checkpoint folder", str(paths.models_dir()))
+                if not folder:
+                    return
+                answer = QMessageBox.question(
+                    dialog,
+                    "Trust checkpoint folder",
+                    "Use this checkpoint folder only if you trust its source. PyTorch checkpoint files can execute code when loaded.",
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.No,
+                )
+                if answer != QMessageBox.Yes:
+                    return
+                try:
+                    text = select_checkpoint_folder_text(Path(folder), trusted=True)
+                    output.setPlainText(text)
+                    self.report.setPlainText(text)
+                    self.checkpoint_edit.setText(folder)
+                    self.trust_check.setChecked(True)
+                    self.refresh_report()
+                except Exception as exc:
+                    output.setPlainText(format_user_error(exc))
+
+            download_button.clicked.connect(download_from_dialog)
+            existing_button.clicked.connect(use_existing_folder)
+            open_models_button.clicked.connect(lambda: self.open_folder(paths.models_dir()))
+            close_button.clicked.connect(dialog.accept)
+            dialog.resize(720, 520)
+            dialog.exec()
 
         def confirm_and_download_model(self) -> None:
             confirmation = model_download_confirmation_text()

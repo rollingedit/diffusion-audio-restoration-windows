@@ -99,6 +99,7 @@ This file is local coordination material unless the user explicitly decides to p
 - Added GUI restore completion polish with visible indeterminate progress, explicit complete/failed states, and a Restore Another File reset action.
 - Documented the planned LGPL Windows x64 FFmpeg build source and added optional installer payload entries for `ffmpeg.exe` and `ffprobe.exe`.
 - Added an explicit doctor readiness summary for overall, Python, Torch, CUDA, GPU, FFmpeg, checkpoints, and write-permission status.
+- Added a GUI Model Setup dialog for the official NVIDIA checkpoint download plan, recommended download action, trusted existing checkpoint folder selection, and model-folder access.
 
 ### Verified
 
