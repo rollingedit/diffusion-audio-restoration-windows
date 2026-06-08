@@ -124,6 +124,8 @@ def test_prefill_release_evidence_only_copies_factual_fields() -> None:
     assert '"Installer SHA256"' in text
     assert '"FFmpeg manifest path"' in text
     assert '"Installer artifact folder"' in text
+    assert "[System.IO.File]::WriteAllText" in text
+    assert "[System.Text.UTF8Encoding]::new($false)" in text
     assert "Smoke-test commands, pass/fail results" in text
     assert '"Restore produced a WAV"' not in text
     assert '"Clean install completed without admin"' not in text

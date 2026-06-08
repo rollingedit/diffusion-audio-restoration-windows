@@ -71,6 +71,6 @@ foreach ($entry in $fieldMap.GetEnumerator()) {
     $text = Set-EvidenceField -Text $text -Field $entry.Key -Value $entry.Value
 }
 
-Set-Content -Encoding UTF8 -Path $evidenceFile -Value $text
+[System.IO.File]::WriteAllText($evidenceFile, $text, [System.Text.UTF8Encoding]::new($false))
 Write-Host "Prefilled factual release evidence in $evidenceFile"
 Write-Host "Smoke-test commands, pass/fail results, hashes for test audio, screenshots, and blockers still require real release-candidate evidence."
