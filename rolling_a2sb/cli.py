@@ -14,7 +14,7 @@ from .job import create_restore_job, with_config_path
 from .log import append_block, append_log
 from .runtime_check import doctor
 from .settings import load_settings, remember_input, reset_model_settings, update_settings
-from .worker import inference_command, run_restore_config
+from .worker import inference_command, run_restore_config_streaming
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -162,10 +162,15 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 0
 
-        result = run_restore_config(config_path)
+        def log_stream(stream_name: str, line: str) -> None:
+            append_log(Path(job.log_path), f"{stream_name}: {line}")
+
+        result = run_restore_config_streaming(config_path, on_line=log_stream)
         append_block(Path(job.log_path), "stdout", result.stdout)
         append_block(Path(job.log_path), "stderr", result.stderr)
         append_log(Path(job.log_path), f"returncode={result.returncode}")
+        if result.cancelled:
+            append_log(Path(job.log_path), "cancelled=true")
         print(result.stdout, end="")
         print(result.stderr, end="")
         return result.returncode
