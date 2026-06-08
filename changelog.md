@@ -58,10 +58,12 @@ This file is local coordination material unless the user explicitly decides to p
 - Added `a2sb select-checkpoints` with required `--trust`, validation, manifest writing, and settings persistence.
 - Added GUI action text for trusted checkpoint folder selection.
 - Added tests for manual checkpoint trust enforcement and successful selection.
+- Added shared restore workflow preparation so CLI restore and GUI restore dry-run use the same checkpoint validation, job creation, audio preparation, config generation, and logging path.
+- Added workflow tests for shared restore planning and manual checkpoint trust enforcement.
 
 ### Verified
 
-- `.\.venv\Scripts\python.exe -m pytest` passes with 67 tests.
+- `.\.venv\Scripts\python.exe -m pytest` passes with 69 tests.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --report` prints actionable next steps for missing Torch/checkpoints and sandboxed write permissions.
 - `powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist\installer -ValidateOnly` runs and correctly blocks release because artifacts are missing and license notices are placeholders.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.

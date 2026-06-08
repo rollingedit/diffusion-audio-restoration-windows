@@ -48,7 +48,7 @@ def test_audio_probe_text_reports_wav(tmp_path: Path) -> None:
 def test_prepare_restore_dry_run_returns_plan_and_log(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(tmp_path / "data"))
     monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(tmp_path / "logs"))
-    monkeypatch.setattr("rolling_a2sb.gui_actions.validate_checkpoint_folder", lambda folder, mode: __import__(
+    monkeypatch.setattr("rolling_a2sb.workflow.validate_checkpoint_folder", lambda folder, mode: __import__(
         "rolling_a2sb.checkpoint_manager", fromlist=["validate_checkpoint_folder"]
     ).validate_checkpoint_folder(folder, mode=mode, min_size_bytes=1))
 
