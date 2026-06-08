@@ -12,7 +12,7 @@ The installer should install:
 - Windows-safe configs.
 - Runtime setup and repair scripts.
 - Documentation and license notices.
-- FFmpeg and ffprobe binaries, if bundled.
+- FFmpeg and ffprobe binaries from the approved redistributable Windows x64 LGPL build.
 
 Downloaded checkpoints are stored in the user app-data model folder. They are not removed by uninstall unless the user runs an explicit model cleanup action.
 

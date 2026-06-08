@@ -74,6 +74,17 @@ def test_installer_build_requires_launcher_output_before_packaging() -> None:
     assert text.index("Launcher EXE missing") < text.index("Get-Command ISCC.exe")
 
 
+def test_installer_build_requires_ffmpeg_binaries_before_packaging() -> None:
+    text = (ROOT / "scripts" / "build_installer.ps1").read_text(encoding="utf-8")
+
+    assert 'bin\\ffmpeg.exe' in text
+    assert 'bin\\ffprobe.exe' in text
+    assert "approved redistributable ffmpeg.exe" in text
+    assert "approved redistributable ffprobe.exe" in text
+    assert text.index("FFmpeg binary missing") < text.index("Get-Command ISCC.exe")
+    assert text.index("ffprobe binary missing") < text.index("Get-Command ISCC.exe")
+
+
 def test_inno_runs_real_runtime_setup_not_dry_run() -> None:
     text = (ROOT / "installer" / "a2sb-restorer.iss").read_text(encoding="utf-8")
     run_section = text.split("[Run]", 1)[1].split("[UninstallDelete]", 1)[0]

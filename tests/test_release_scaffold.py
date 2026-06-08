@@ -86,7 +86,9 @@ def test_ffmpeg_release_source_and_installer_payload_are_documented() -> None:
     assert "not nonfree, not GPL" in notices
     assert 'Source: "..\\bin\\ffmpeg.exe"; DestDir: "{app}\\bin"' in installer
     assert 'Source: "..\\bin\\ffprobe.exe"; DestDir: "{app}\\bin"' in installer
-    assert "skipifsourcedoesntexist" in installer
+    ffmpeg_lines = [line for line in installer.splitlines() if "..\\bin\\ff" in line]
+    assert ffmpeg_lines
+    assert all("skipifsourcedoesntexist" not in line.lower() for line in ffmpeg_lines)
 
 
 def test_upstream_audit_documents_bypassed_research_assumptions() -> None:
