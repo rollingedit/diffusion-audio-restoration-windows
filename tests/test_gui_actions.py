@@ -6,6 +6,7 @@ from rolling_a2sb.gui_actions import (
     doctor_report_text,
     download_plan_text,
     download_recommended_model_text,
+    execute_restore_text,
     latest_restore_log_text,
     model_download_confirmation_text,
     prepare_restore_dry_run,
@@ -128,6 +129,32 @@ def test_prepare_restore_dry_run_returns_plan_and_log(tmp_path: Path, monkeypatc
     assert plan.partial_output_audio.endswith(".partial")
     assert "ensembled_inference_api.py" in " ".join(plan.command)
     assert '"partial_output_audio":' in restore_plan_text(plan)
+
+
+def test_execute_restore_text_reports_output_and_log(tmp_path: Path, monkeypatch) -> None:
+    from rolling_a2sb.workflow import RestoreExecution, RestorePreparation
+
+    plan = RestorePreparation(
+        job_id="job",
+        job_dir=str(tmp_path / "job"),
+        log_path=str(tmp_path / "restore.log"),
+        input_audio=str(tmp_path / "in.wav"),
+        prepared_input_audio=str(tmp_path / "in.wav"),
+        audio_converted=False,
+        output_audio=str(tmp_path / "A2SB Restored" / "out.wav"),
+        partial_output_audio=str(tmp_path / "out.partial"),
+        config_path=str(tmp_path / "restore.yaml"),
+        command=["python", "engine.py"],
+    )
+    execution = RestoreExecution(plan=plan, returncode=0, stdout="done", stderr="", cancelled=False)
+    monkeypatch.setattr("rolling_a2sb.gui_actions.execute_restore", lambda **kwargs: execution)
+
+    text = execute_restore_text(tmp_path / "in.wav")
+
+    assert '"ok": true' in text
+    assert '"output":' in text
+    assert "A2SB Restored" in text
+    assert '"log":' in text
 
 
 def test_select_checkpoint_folder_text_requires_trust(tmp_path: Path) -> None:

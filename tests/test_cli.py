@@ -143,8 +143,7 @@ def test_restore_nonzero_process_prints_user_error(tmp_path: Path, monkeypatch, 
     audio = tmp_path / "short.wav"
     write_wav(audio)
 
-    from rolling_a2sb.subprocess_runner import CommandResult
-    from rolling_a2sb.workflow import RestorePreparation
+    from rolling_a2sb.workflow import RestoreExecution, RestorePreparation
 
     plan = RestorePreparation(
         job_id="job",
@@ -158,16 +157,14 @@ def test_restore_nonzero_process_prints_user_error(tmp_path: Path, monkeypatch, 
         config_path=str(tmp_path / "restore.yaml"),
         command=["python", "engine.py"],
     )
-    Path(plan.job_dir).mkdir(parents=True)
-    monkeypatch.setattr("rolling_a2sb.cli.prepare_restore", lambda **kwargs: plan)
-    monkeypatch.setattr(
-        "rolling_a2sb.cli.run_restore_config_streaming",
-        lambda config_path, on_line: CommandResult(
-            1,
-            "",
-            "Traceback (most recent call last):\n  File \"engine.py\", line 10\nRuntimeError: CUDA out of memory",
-        ),
+    execution = RestoreExecution(
+        plan=plan,
+        returncode=1,
+        stdout="",
+        stderr="Traceback (most recent call last):\n  File \"engine.py\", line 10\nRuntimeError: CUDA out of memory",
+        cancelled=False,
     )
+    monkeypatch.setattr("rolling_a2sb.cli.execute_restore", lambda **kwargs: execution)
 
     exit_code = main(["restore", "--input", str(audio)])
 

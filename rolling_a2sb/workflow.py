@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 
 from . import paths
 from .audio_prepare import prepare_audio
@@ -12,10 +13,16 @@ from .checkpoint_manager import (
 )
 from .config_builder import RestoreConfigRequest, write_restore_config
 from .job import create_restore_job, with_config_path
-from .log import append_log
+from .log import append_block, append_log
 from .runtime_check import diagnostic_text, doctor
 from .settings import load_settings, remember_input, update_settings
-from .worker import inference_command
+from .subprocess_runner import CommandResult
+from .worker import inference_command, run_restore_config_streaming
+
+
+LineCallback = Callable[[str, str], None]
+CancelCallback = Callable[[], bool]
+RestoreRunner = Callable[..., CommandResult]
 
 
 @dataclass(frozen=True)
@@ -30,6 +37,15 @@ class RestorePreparation:
     partial_output_audio: str
     config_path: str
     command: list[str]
+
+
+@dataclass(frozen=True)
+class RestoreExecution:
+    plan: RestorePreparation
+    returncode: int
+    stdout: str
+    stderr: str
+    cancelled: bool = False
 
 
 def prepare_restore(
@@ -112,3 +128,45 @@ def require_runtime_ready(model_mode: str = "twosplit") -> None:
     if failed:
         summary = ", ".join(failed)
         raise RuntimeError(f"Restore cannot start because setup is not ready: {summary}\n\n{diagnostic_text(report)}")
+
+
+def execute_restore(
+    input_audio: Path,
+    output_audio: Path | None = None,
+    steps: int = 50,
+    model_mode: str = "twosplit",
+    checkpoint_folder: Path | None = None,
+    trust_manual_checkpoints: bool = False,
+    on_line: LineCallback | None = None,
+    should_cancel: CancelCallback | None = None,
+    runner: RestoreRunner = run_restore_config_streaming,
+) -> RestoreExecution:
+    plan = prepare_restore(
+        input_audio=input_audio,
+        output_audio=output_audio,
+        steps=steps,
+        model_mode=model_mode,
+        checkpoint_folder=checkpoint_folder,
+        trust_manual_checkpoints=trust_manual_checkpoints,
+        dry_run=False,
+    )
+
+    def log_stream(stream_name: str, line: str) -> None:
+        append_log(Path(plan.log_path), f"{stream_name}: {line}")
+        if on_line:
+            on_line(stream_name, line)
+
+    result = runner(Path(plan.config_path), on_line=log_stream, should_cancel=should_cancel)
+    append_block(Path(plan.log_path), "stdout", result.stdout)
+    append_block(Path(plan.log_path), "stderr", result.stderr)
+    append_log(Path(plan.log_path), f"returncode={result.returncode}")
+    if result.cancelled:
+        append_log(Path(plan.log_path), "cancelled=true")
+
+    return RestoreExecution(
+        plan=plan,
+        returncode=result.returncode,
+        stdout=result.stdout,
+        stderr=result.stderr,
+        cancelled=result.cancelled,
+    )

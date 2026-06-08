@@ -9,6 +9,11 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
 
     assert "QTabWidget" in text
     assert "Plan Restore" in text
+    assert "QThread" in text
+    assert "RestoreThread" in text
+    assert "execute_restore_text" in text
+    assert "Open Output Folder" in text
+    assert "start_restore" in text
     assert "Download Recommended Model" in text
     assert "confirm_and_download_model" in text
     assert "build_logs_tab" in text

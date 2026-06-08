@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -10,6 +11,7 @@ from .gui_actions import (
     doctor_report_text,
     download_plan_text,
     download_recommended_model_text,
+    execute_restore_text,
     latest_restore_log_text,
     model_download_confirmation_text,
     prepare_restore_dry_run,
@@ -23,7 +25,7 @@ SUPPORTED_AUDIO_EXTENSIONS = {".wav", ".mp3", ".flac"}
 
 def run_gui() -> int:
     try:
-        from PySide6.QtCore import Qt
+        from PySide6.QtCore import QThread, Qt, Signal
         from PySide6.QtWidgets import (
             QApplication,
             QCheckBox,
@@ -44,9 +46,25 @@ def run_gui() -> int:
     except Exception as exc:
         raise RuntimeError("PySide6 is required for the graphical app. Run Repair Runtime.") from exc
 
+    class RestoreThread(QThread):
+        restore_finished = Signal(str)
+        restore_failed = Signal(str)
+
+        def __init__(self, restore_kwargs: dict) -> None:
+            super().__init__()
+            self.restore_kwargs = restore_kwargs
+
+        def run(self) -> None:
+            try:
+                self.restore_finished.emit(execute_restore_text(**self.restore_kwargs))
+            except Exception as exc:
+                self.restore_failed.emit(format_user_error(exc))
+
     class MainWindow(QMainWindow):
         def __init__(self) -> None:
             super().__init__()
+            self.restore_thread = None
+            self.last_output_folder: Path | None = None
             self.setWindowTitle("A2SB Restorer")
             self.resize(900, 620)
             self.setAcceptDrops(True)
@@ -142,6 +160,9 @@ def run_gui() -> int:
             self.steps_spin.setValue(50)
             self.inspect_button = QPushButton("Inspect")
             self.plan_button = QPushButton("Plan Restore")
+            self.restore_button = QPushButton("Restore")
+            self.open_output_button = QPushButton("Open Output Folder")
+            self.open_output_button.setEnabled(False)
             option_row.addWidget(QLabel("Model"))
             option_row.addWidget(self.model_combo)
             option_row.addWidget(QLabel("Steps"))
@@ -149,6 +170,8 @@ def run_gui() -> int:
             option_row.addStretch(1)
             option_row.addWidget(self.inspect_button)
             option_row.addWidget(self.plan_button)
+            option_row.addWidget(self.restore_button)
+            option_row.addWidget(self.open_output_button)
             layout.addLayout(option_row)
 
             self.restore_output = QTextEdit()
@@ -160,6 +183,8 @@ def run_gui() -> int:
             self.checkpoint_button.clicked.connect(self.select_checkpoint_folder)
             self.inspect_button.clicked.connect(self.inspect_audio)
             self.plan_button.clicked.connect(self.plan_restore)
+            self.restore_button.clicked.connect(self.start_restore)
+            self.open_output_button.clicked.connect(self.open_output_folder)
             return tab
 
         def build_logs_tab(self) -> QWidget:
@@ -309,6 +334,53 @@ def run_gui() -> int:
                 self.restore_output.setPlainText(format_user_error(exc))
                 return
             self.restore_output.setPlainText(restore_plan_text(plan))
+
+        def start_restore(self) -> None:
+            audio_path = self.current_input_audio()
+            if not audio_path:
+                QMessageBox.warning(self, "Missing input", "Select an audio file first.")
+                return
+            self.restore_button.setEnabled(False)
+            self.plan_button.setEnabled(False)
+            self.open_output_button.setEnabled(False)
+            self.restore_output.setPlainText("Preparing restore...\nRestoring...")
+            self.restore_thread = RestoreThread(
+                {
+                    "input_audio": audio_path,
+                    "output_audio": self.current_output_audio(),
+                    "steps": self.steps_spin.value(),
+                    "model_mode": self.model_combo.currentText(),
+                    "checkpoint_folder": self.current_checkpoint_folder(),
+                    "trust_manual_checkpoints": self.trust_check.isChecked(),
+                }
+            )
+            self.restore_thread.restore_finished.connect(self.restore_finished)
+            self.restore_thread.restore_failed.connect(self.restore_failed)
+            self.restore_thread.finished.connect(self.restore_thread_finished)
+            self.restore_thread.start()
+
+        def restore_finished(self, text: str) -> None:
+            self.restore_output.setPlainText(text)
+            try:
+                data = json.loads(text)
+                if data.get("ok") and data.get("output"):
+                    self.last_output_folder = Path(data["output"]).parent
+                    self.open_output_button.setEnabled(True)
+            except Exception:
+                pass
+            self.refresh_latest_log()
+
+        def restore_failed(self, text: str) -> None:
+            self.restore_output.setPlainText(text)
+            self.refresh_latest_log()
+
+        def restore_thread_finished(self) -> None:
+            self.restore_button.setEnabled(True)
+            self.plan_button.setEnabled(True)
+
+        def open_output_folder(self) -> None:
+            if self.last_output_folder:
+                self.open_folder(self.last_output_folder)
 
         def current_input_audio(self) -> Path | None:
             text = self.input_edit.text().strip()

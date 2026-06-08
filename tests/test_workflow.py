@@ -1,7 +1,8 @@
 from pathlib import Path
 import wave
 
-from rolling_a2sb.workflow import prepare_restore, require_runtime_ready
+from rolling_a2sb.subprocess_runner import CommandResult
+from rolling_a2sb.workflow import RestorePreparation, execute_restore, prepare_restore, require_runtime_ready
 
 
 def write_wav(path: Path) -> None:
@@ -86,3 +87,33 @@ def test_require_runtime_ready_blocks_failed_checks(monkeypatch) -> None:
         assert "next: Update driver." in message
     else:
         raise AssertionError("restore should be blocked when runtime checks fail")
+
+
+def test_execute_restore_runs_shared_plan_and_writes_result_log(tmp_path: Path, monkeypatch) -> None:
+    log_path = tmp_path / "restore.log"
+    plan = RestorePreparation(
+        job_id="job",
+        job_dir=str(tmp_path / "job"),
+        log_path=str(log_path),
+        input_audio=str(tmp_path / "input.wav"),
+        prepared_input_audio=str(tmp_path / "input.wav"),
+        audio_converted=False,
+        output_audio=str(tmp_path / "out.wav"),
+        partial_output_audio=str(tmp_path / "out.wav.partial"),
+        config_path=str(tmp_path / "restore.yaml"),
+        command=["python", "engine.py"],
+    )
+    monkeypatch.setattr("rolling_a2sb.workflow.prepare_restore", lambda **kwargs: plan)
+
+    def fake_runner(config_path, on_line, should_cancel):
+        on_line("stdout", "loading model")
+        on_line("stderr", "step 1")
+        return CommandResult(returncode=0, stdout="done\n", stderr="", cancelled=False)
+
+    execution = execute_restore(tmp_path / "input.wav", runner=fake_runner)
+
+    assert execution.returncode == 0
+    text = log_path.read_text(encoding="utf-8")
+    assert "stdout: loading model" in text
+    assert "stderr: step 1" in text
+    assert "returncode=0" in text

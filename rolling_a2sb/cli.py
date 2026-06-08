@@ -10,11 +10,9 @@ from .audio_probe import audio_info_dict, probe_audio
 from .checkpoint_manager import select_manual_checkpoint_folder
 from .downloader import build_download_plan, download_model
 from .errors import RestoreProcessError, format_user_error
-from .log import append_block, append_log
 from .runtime_check import diagnostic_text, doctor
 from .settings import reset_model_settings
-from .worker import run_restore_config_streaming
-from .workflow import prepare_restore
+from .workflow import execute_restore, prepare_restore
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -146,15 +144,27 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "restore":
         try:
-            plan = prepare_restore(
-                input_audio=args.input,
-                output_audio=args.output,
-                steps=args.steps,
-                model_mode=args.model,
-                checkpoint_folder=args.checkpoint_folder,
-                trust_manual_checkpoints=args.trust_manual_checkpoints,
-                dry_run=args.dry_run,
-            )
+            plan = None
+            execution = None
+            if args.dry_run:
+                plan = prepare_restore(
+                    input_audio=args.input,
+                    output_audio=args.output,
+                    steps=args.steps,
+                    model_mode=args.model,
+                    checkpoint_folder=args.checkpoint_folder,
+                    trust_manual_checkpoints=args.trust_manual_checkpoints,
+                    dry_run=True,
+                )
+            else:
+                execution = execute_restore(
+                    input_audio=args.input,
+                    output_audio=args.output,
+                    steps=args.steps,
+                    model_mode=args.model,
+                    checkpoint_folder=args.checkpoint_folder,
+                    trust_manual_checkpoints=args.trust_manual_checkpoints,
+                )
         except PermissionError as exc:
             print(str(exc))
             print("Rerun with --trust-manual-checkpoints after confirming the source is trusted.")
@@ -164,6 +174,7 @@ def main(argv: list[str] | None = None) -> int:
             return 1
 
         if args.dry_run:
+            assert plan is not None
             print(
                 json.dumps(
                     {
@@ -183,21 +194,13 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 0
 
-        def log_stream(stream_name: str, line: str) -> None:
-            append_log(Path(plan.log_path), f"{stream_name}: {line}")
-
-        result = run_restore_config_streaming(Path(plan.config_path), on_line=log_stream)
-        append_block(Path(plan.log_path), "stdout", result.stdout)
-        append_block(Path(plan.log_path), "stderr", result.stderr)
-        append_log(Path(plan.log_path), f"returncode={result.returncode}")
-        if result.cancelled:
-            append_log(Path(plan.log_path), "cancelled=true")
-        if result.returncode == 0:
-            print(result.stdout, end="")
-            print(result.stderr, end="")
+        assert execution is not None
+        if execution.returncode == 0:
+            print(execution.stdout, end="")
+            print(execution.stderr, end="")
         else:
-            print(format_user_error(RestoreProcessError(result.stderr or result.stdout or "Restore process failed.")))
-        return result.returncode
+            print(format_user_error(RestoreProcessError(execution.stderr or execution.stdout or "Restore process failed.")))
+        return execution.returncode
 
     if args.command == "reset-models":
         settings = reset_model_settings()

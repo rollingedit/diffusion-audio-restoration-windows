@@ -9,7 +9,7 @@ from .downloader import build_download_plan, download_model
 from . import paths
 from .runtime_check import diagnostic_text, doctor
 from .workflow import RestorePreparation as DryRunRestorePlan
-from .workflow import prepare_restore
+from .workflow import execute_restore, prepare_restore
 
 
 def doctor_report_text() -> str:
@@ -116,6 +116,37 @@ def prepare_restore_dry_run(
         checkpoint_folder=checkpoint_folder,
         trust_manual_checkpoints=trust_manual_checkpoints,
         dry_run=True,
+    )
+
+
+def execute_restore_text(
+    input_audio: Path,
+    output_audio: Path | None = None,
+    steps: int = 50,
+    model_mode: str = "twosplit",
+    checkpoint_folder: Path | None = None,
+    trust_manual_checkpoints: bool = False,
+) -> str:
+    execution = execute_restore(
+        input_audio=input_audio,
+        output_audio=output_audio,
+        steps=steps,
+        model_mode=model_mode,
+        checkpoint_folder=checkpoint_folder,
+        trust_manual_checkpoints=trust_manual_checkpoints,
+    )
+    return json.dumps(
+        {
+            "ok": execution.returncode == 0,
+            "returncode": execution.returncode,
+            "cancelled": execution.cancelled,
+            "job": execution.plan.job_id,
+            "output": execution.plan.output_audio,
+            "log": execution.plan.log_path,
+            "stdout": execution.stdout,
+            "stderr": execution.stderr,
+        },
+        indent=2,
     )
 
 
