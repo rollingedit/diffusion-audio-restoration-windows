@@ -41,7 +41,23 @@ def write_setup_exe(path: Path) -> None:
     path.write_bytes(b"MZ" + b"\0" * (MIN_SETUP_EXE_BYTES - 2))
 
 
-def write_release_sources(root: Path, readme_text: str = "readme", notices_text: str = "notices") -> None:
+PUBLIC_README_TEXT = (
+    "# A2SB Restorer for Windows\n\n"
+    "Uses nvidia/audio_to_audio_schrodinger_bridge checkpoints from Hugging Face.\n"
+    "Checkpoints must not be bundled in the release.\n"
+    "Audio files stay local and the app does not upload user audio.\n"
+    "There is no telemetry by default.\n"
+    "Outputs default to the A2SB Restored folder.\n"
+)
+PUBLIC_NOTICES_TEXT = (
+    "RollingEdit A2SB Restorer is not affiliated with or endorsed by NVIDIA.\n"
+    "FFmpeg redistribution notices are included.\n"
+    "Python runtime notices are included.\n"
+    "User audio files stay local and there is no telemetry by default.\n"
+)
+
+
+def write_release_sources(root: Path, readme_text: str = PUBLIC_README_TEXT, notices_text: str = PUBLIC_NOTICES_TEXT) -> None:
     (root / "README-WINDOWS.md").write_text(readme_text, encoding="utf-8")
     (root / "LICENSE-NOTICES.txt").write_text(notices_text, encoding="utf-8")
 
@@ -795,6 +811,28 @@ def test_release_validation_requires_source_docs_for_staged_docs(tmp_path: Path)
     assert "Release source file is missing: LICENSE-NOTICES.txt" in result.errors
 
 
+def test_release_validation_rejects_vague_public_release_docs(tmp_path: Path) -> None:
+    artifacts = tmp_path / "artifacts"
+    licenses = tmp_path / "LICENSES"
+    artifacts.mkdir()
+    setup = artifacts / "A2SB-Restorer-Setup.exe"
+    readme = artifacts / "README-WINDOWS.md"
+    notices = artifacts / "LICENSE-NOTICES.txt"
+    write_setup_exe(setup)
+    readme.write_text("This app is not public-release-ready yet.\n", encoding="utf-8")
+    notices.write_text("Final notices.\n", encoding="utf-8")
+    write_release_sources(tmp_path, readme_text=readme.read_text(encoding="utf-8"), notices_text=notices.read_text(encoding="utf-8"))
+    write_sha256sums([setup, readme, notices], artifacts / "SHA256SUMS.txt")
+    write_notices(licenses)
+
+    result = validate_release_artifacts(artifacts, licenses)
+
+    assert not result.ok
+    assert "README-WINDOWS.md still says the app is not public-release-ready" in result.errors
+    assert "Release artifact is missing required public text: README-WINDOWS.md (nvidia/audio_to_audio_schrodinger_bridge)" in result.errors
+    assert "Release artifact is missing required public text: LICENSE-NOTICES.txt (not affiliated with or endorsed by NVIDIA)" in result.errors
+
+
 def test_release_validation_rejects_version_source_mismatch(tmp_path: Path) -> None:
     artifacts = tmp_path / "artifacts"
     licenses = tmp_path / "LICENSES"
@@ -849,8 +887,8 @@ def test_release_validation_accepts_basic_artifacts(tmp_path: Path) -> None:
     readme = artifacts / "README-WINDOWS.md"
     notices = artifacts / "LICENSE-NOTICES.txt"
     write_setup_exe(setup)
-    readme.write_text("readme", encoding="utf-8")
-    notices.write_text("notices", encoding="utf-8")
+    readme.write_text(PUBLIC_README_TEXT, encoding="utf-8")
+    notices.write_text(PUBLIC_NOTICES_TEXT, encoding="utf-8")
     write_release_sources(tmp_path)
     write_release_evidence(tmp_path, installer_sha256=sha256_file(setup))
     write_version_sources(tmp_path)

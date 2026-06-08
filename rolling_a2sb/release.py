@@ -22,6 +22,25 @@ REQUIRED_LICENSE_NOTICE_TOKENS = {
     "FFMPEG_NOTICE.txt": ["FFmpeg", "BtbN", "LGPL", "https://github.com/BtbN/FFmpeg-Builds"],
     "PYTHON_NOTICE.txt": ["Python", "license", "https://www.python.org"],
 }
+REQUIRED_RELEASE_DOC_TOKENS = {
+    "README-WINDOWS.md": [
+        "nvidia/audio_to_audio_schrodinger_bridge",
+        "Audio files stay",
+        "does not upload user audio",
+        "telemetry",
+        "Hugging Face",
+        "A2SB Restored",
+        "Checkpoints",
+        "must not be bundled",
+    ],
+    "LICENSE-NOTICES.txt": [
+        "not affiliated with or endorsed by NVIDIA",
+        "FFmpeg",
+        "Python",
+        "audio files stay local",
+        "no telemetry",
+    ],
+}
 REQUIRED_EVIDENCE_FIELDS = [
     "Version",
     "Git commit",
@@ -200,6 +219,12 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
             text = artifact.read_text(encoding="utf-8", errors="replace")
             if "release-source placeholder" in text or RELEASE_BLOCKED_TEXT in text:
                 errors.append(f"Release artifact still contains blocking placeholder text: {artifact.name}")
+            if artifact.name == "README-WINDOWS.md" and "not public-release-ready" in text.lower():
+                errors.append("README-WINDOWS.md still says the app is not public-release-ready")
+            lowered = text.lower()
+            for token in REQUIRED_RELEASE_DOC_TOKENS[artifact.name]:
+                if token.lower() not in lowered:
+                    errors.append(f"Release artifact is missing required public text: {artifact.name} ({token})")
             source_path = source_root / artifact.name
             if not source_path.exists():
                 errors.append(f"Release source file is missing: {artifact.name}")
