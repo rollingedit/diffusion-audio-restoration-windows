@@ -1,6 +1,6 @@
 # Release Checklist
 
-Do not publish a release until every required item is checked with evidence.
+Do not publish a release until every required item is checked with evidence. Record the evidence in `docs/RELEASE_EVIDENCE.md` for the release candidate.
 
 ## Runtime
 

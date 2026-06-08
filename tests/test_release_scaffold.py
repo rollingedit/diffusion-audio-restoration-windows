@@ -27,6 +27,7 @@ def test_release_docs_exist() -> None:
         "docs/USER_GUIDE.md",
         "docs/TROUBLESHOOTING.md",
         "docs/RELEASE_CHECKLIST.md",
+        "docs/RELEASE_EVIDENCE.md",
         "docs/LICENSE_NOTICES.md",
         "docs/WHAT_SETUP_INSTALLS.md",
         "docs/UPSTREAM_AUDIT.md",
@@ -71,6 +72,31 @@ def test_release_checklist_requires_no_checkpoint_release_assets() -> None:
 
     assert "GitHub release does not include checkpoint files" in text
     assert "No terminal is required for normal use" in text
+    assert "docs/RELEASE_EVIDENCE.md" in text
+
+
+def test_release_evidence_template_requires_real_smoke_proof() -> None:
+    text = (ROOT / "docs" / "RELEASE_EVIDENCE.md").read_text(encoding="utf-8")
+
+    for required in [
+        "Git commit:",
+        "Windows version:",
+        "GPU model:",
+        "NVIDIA driver version:",
+        "CUDA reported by PyTorch:",
+        "Installer SHA256:",
+        "Doctor JSON path:",
+        "Checkpoint manifest path:",
+        "Restore log path:",
+        "Output WAV path:",
+        "Input file hash before restore:",
+        "Input file hash after restore:",
+        "Release artifacts validated:",
+        "Public release is blocked while any item is listed here.",
+    ]:
+        assert required in text
+
+    assert "Do not replace checklist items with \"assumed\"" in text
 
 
 def test_windows_readme_documents_release_blockers() -> None:
