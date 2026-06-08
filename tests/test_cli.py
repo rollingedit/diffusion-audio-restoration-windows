@@ -77,6 +77,7 @@ def test_restore_dry_run_uses_saved_checkpoint_folder_and_writes_log(tmp_path: P
     log_dir = tmp_path / "logs"
     monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(data_dir))
     monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(log_dir))
+    monkeypatch.setattr("rolling_a2sb.cli.check_engine_imports", lambda: {"ok": True, "command": ["python", "-c", "import ensembled_inference_api"]})
     monkeypatch.setattr("rolling_a2sb.workflow.validate_checkpoint_folder", lambda folder, mode: __import__(
         "rolling_a2sb.checkpoint_manager", fromlist=["validate_checkpoint_folder"]
     ).validate_checkpoint_folder(folder, mode=mode, min_size_bytes=1))
@@ -105,6 +106,8 @@ def test_restore_dry_run_uses_saved_checkpoint_folder_and_writes_log(tmp_path: P
     assert '"prepared_input":' in output
     assert '"partial_output":' in output
     assert '"command":' in output
+    assert '"engine_imports":' in output
+    assert '"ok": true' in output
     logs = list((data_dir / "jobs").glob("*/restore.log"))
     assert len(logs) == 1
     assert "dry-run" in logs[0].read_text(encoding="utf-8")

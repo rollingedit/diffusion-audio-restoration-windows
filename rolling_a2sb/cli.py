@@ -12,6 +12,7 @@ from .downloader import build_download_plan, download_model
 from .errors import RestoreProcessError, format_user_error
 from .runtime_check import diagnostic_text, doctor
 from .settings import reset_model_settings
+from .worker import check_engine_imports
 from .workflow import execute_restore, prepare_restore
 
 
@@ -175,6 +176,7 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.dry_run:
             assert plan is not None
+            engine_imports = check_engine_imports()
             print(
                 json.dumps(
                     {
@@ -188,6 +190,7 @@ def main(argv: list[str] | None = None) -> int:
                         "partial_output": plan.partial_output_audio,
                         "config": plan.config_path,
                         "command": plan.command,
+                        "engine_imports": engine_imports,
                     },
                     indent=2,
                 )

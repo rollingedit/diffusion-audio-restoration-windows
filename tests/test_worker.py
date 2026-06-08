@@ -1,7 +1,7 @@
 from pathlib import Path
 import sys
 
-from rolling_a2sb.worker import inference_command, worker_env
+from rolling_a2sb.worker import check_engine_imports, engine_import_check_command, inference_command, worker_env
 from rolling_a2sb.subprocess_runner import run_command_streaming
 
 
@@ -14,6 +14,33 @@ def test_inference_command_uses_argument_array(tmp_path: Path) -> None:
     assert command[1].name == "ensembled_inference_api.py"
     assert command[2:] == ["predict", "-c", config]
     assert all(";" not in str(part) for part in command)
+
+
+def test_engine_import_check_uses_argument_array() -> None:
+    command = engine_import_check_command(python_exe=Path("runtime/Scripts/python.exe"))
+
+    assert command[0] == Path("runtime/Scripts/python.exe")
+    assert command[1] == "-c"
+    assert command[2] == "import ensembled_inference_api"
+    assert all(";" not in str(part) for part in command)
+
+
+def test_check_engine_imports_reports_subprocess_result(monkeypatch) -> None:
+    class Result:
+        returncode = 1
+        stdout = ""
+        stderr = "No module named 'lightning'"
+
+    monkeypatch.setattr("rolling_a2sb.worker.worker_env", lambda: {"PYTHONUTF8": "1"})
+    monkeypatch.setattr("rolling_a2sb.worker.paths.engine_root", lambda: Path("engine"))
+    monkeypatch.setattr("rolling_a2sb.worker.run_command", lambda command, cwd, env: Result())
+
+    result = check_engine_imports()
+
+    assert result["ok"] is False
+    assert result["returncode"] == 1
+    assert "lightning" in str(result["stderr"])
+    assert "ensembled_inference_api" in " ".join(result["command"])
 
 
 def test_worker_env_uses_app_owned_cache_dirs(tmp_path: Path, monkeypatch) -> None:

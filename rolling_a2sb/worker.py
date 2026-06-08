@@ -18,6 +18,26 @@ def inference_command(config_path: Path, python_exe: Path | None = None) -> list
     ]
 
 
+def engine_import_check_command(python_exe: Path | None = None) -> list[str | Path]:
+    return [
+        python_exe or Path(sys.executable),
+        "-c",
+        "import ensembled_inference_api",
+    ]
+
+
+def check_engine_imports(python_exe: Path | None = None) -> dict[str, object]:
+    command = engine_import_check_command(python_exe=python_exe)
+    result = run_command(command, cwd=paths.engine_root(), env=worker_env())
+    return {
+        "ok": result.returncode == 0,
+        "command": [str(part) for part in command],
+        "returncode": result.returncode,
+        "stdout": result.stdout,
+        "stderr": result.stderr,
+    }
+
+
 def worker_env() -> Mapping[str, str]:
     cache_root = paths.cache_dir()
     hf_home = cache_root / "huggingface"
