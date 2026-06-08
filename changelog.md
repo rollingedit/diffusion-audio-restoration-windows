@@ -77,10 +77,13 @@ This file is local coordination material unless the user explicitly decides to p
 - Added direct validator coverage that generated restore configs reject upstream `PATH/TO` placeholders before release.
 - Added Unicode-path job manifest/output planning coverage for non-ASCII input folders and filenames.
 - Added explicit runtime doctor tests for CUDA-unavailable and missing-FFmpeg failure reporting.
+- Added GUI recommended-model download confirmation/action service with official source, required bytes, local model folder, internet requirement, and progress result text.
+- Wired the setup tab with a `Download Recommended Model` button that asks for confirmation before calling the shared download service.
+- Added GUI action/source tests for model download confirmation and progress formatting.
 
 ### Verified
 
-- `.\.venv\Scripts\python.exe -m pytest` passes with 85 tests.
+- `.\.venv\Scripts\python.exe -m pytest` passes with 87 tests.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --report` prints actionable next steps for missing Torch/checkpoints and sandboxed write permissions.
 - `powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist\installer -ValidateOnly` runs and correctly blocks release because artifacts are missing and license notices are placeholders.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.

@@ -5,7 +5,15 @@ from pathlib import Path
 
 from . import paths
 from .errors import format_user_error
-from .gui_actions import audio_probe_text, doctor_report_text, download_plan_text, prepare_restore_dry_run, restore_plan_text
+from .gui_actions import (
+    audio_probe_text,
+    doctor_report_text,
+    download_plan_text,
+    download_recommended_model_text,
+    model_download_confirmation_text,
+    prepare_restore_dry_run,
+    restore_plan_text,
+)
 from .runtime_check import doctor
 
 
@@ -68,11 +76,13 @@ def run_gui() -> int:
             button_row = QHBoxLayout()
             self.recheck_button = QPushButton("Run Doctor")
             self.download_plan_button = QPushButton("Model Download Plan")
+            self.download_model_button = QPushButton("Download Recommended Model")
             self.copy_button = QPushButton("Copy Diagnostic")
             self.models_button = QPushButton("Open Models Folder")
             self.logs_button = QPushButton("Open Logs Folder")
             button_row.addWidget(self.recheck_button)
             button_row.addWidget(self.download_plan_button)
+            button_row.addWidget(self.download_model_button)
             button_row.addWidget(self.copy_button)
             button_row.addWidget(self.models_button)
             button_row.addWidget(self.logs_button)
@@ -85,6 +95,7 @@ def run_gui() -> int:
 
             self.recheck_button.clicked.connect(self.refresh_report)
             self.download_plan_button.clicked.connect(self.show_download_plan)
+            self.download_model_button.clicked.connect(self.confirm_and_download_model)
             self.copy_button.clicked.connect(self.copy_report)
             self.models_button.clicked.connect(lambda: self.open_folder(paths.models_dir()))
             self.logs_button.clicked.connect(lambda: self.open_folder(paths.logs_dir()))
@@ -156,6 +167,24 @@ def run_gui() -> int:
 
         def show_download_plan(self) -> None:
             self.report.setPlainText(download_plan_text())
+
+        def confirm_and_download_model(self) -> None:
+            confirmation = model_download_confirmation_text()
+            self.report.setPlainText(confirmation)
+            answer = QMessageBox.question(
+                self,
+                "Download recommended model",
+                "Download the official NVIDIA two-split checkpoints from Hugging Face into the app model folder?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No,
+            )
+            if answer != QMessageBox.Yes:
+                return
+            try:
+                self.report.setPlainText(download_recommended_model_text())
+                self.refresh_report()
+            except Exception as exc:
+                self.report.setPlainText(format_user_error(exc))
 
         def copy_report(self) -> None:
             QApplication.clipboard().setText(self.report.toPlainText())

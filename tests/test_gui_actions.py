@@ -5,6 +5,8 @@ from rolling_a2sb.gui_actions import (
     audio_probe_text,
     doctor_report_text,
     download_plan_text,
+    download_recommended_model_text,
+    model_download_confirmation_text,
     prepare_restore_dry_run,
     restore_plan_text,
     select_checkpoint_folder_text,
@@ -33,6 +35,43 @@ def test_download_plan_text_contains_official_repo(tmp_path: Path) -> None:
 
     assert "nvidia/audio_to_audio_schrodinger_bridge" in text
     assert "A2SB_twosplit_0.0_0.5_release.ckpt" in text
+
+
+def test_model_download_confirmation_text_explains_source_size_and_location(tmp_path: Path) -> None:
+    text = model_download_confirmation_text(target_dir=tmp_path / "models")
+
+    assert '"confirmation_required": true' in text
+    assert "nvidia/audio_to_audio_schrodinger_bridge" in text
+    assert '"required_bytes":' in text
+    assert '"local_storage_location":' in text
+    assert '"internet_required": true' in text
+
+
+def test_download_recommended_model_text_reports_progress(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(tmp_path / "logs"))
+
+    class Validation:
+        ok = True
+
+    class Result:
+        mode = "twosplit"
+        validation = Validation()
+        manifest_path = tmp_path / "models" / "checkpoint_manifest.json"
+        files = [tmp_path / "models" / "a.ckpt"]
+
+    def fake_download_model(mode, target_dir, progress):
+        progress("Downloading checkpoint 1 of 2")
+        progress("Model download complete")
+        return Result()
+
+    monkeypatch.setattr("rolling_a2sb.gui_actions.download_model", fake_download_model)
+
+    text = download_recommended_model_text(target_dir=tmp_path / "models")
+
+    assert '"ok": true' in text
+    assert "checkpoint_manifest.json" in text
+    assert "Model download complete" in text
 
 
 def test_audio_probe_text_reports_wav(tmp_path: Path) -> None:

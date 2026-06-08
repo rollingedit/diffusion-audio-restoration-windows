@@ -5,7 +5,7 @@ from pathlib import Path
 
 from .audio_probe import audio_info_dict, probe_audio
 from .checkpoint_manager import select_manual_checkpoint_folder
-from .downloader import build_download_plan
+from .downloader import build_download_plan, download_model
 from .runtime_check import diagnostic_text, doctor
 from .workflow import RestorePreparation as DryRunRestorePlan
 from .workflow import prepare_restore
@@ -26,6 +26,43 @@ def download_plan_text(mode: str = "twosplit", target_dir: Path | None = None) -
             "required_bytes": plan.required_bytes,
             "free_bytes": plan.free_bytes,
             "enough_space": plan.enough_space,
+        },
+        indent=2,
+    )
+
+
+def model_download_confirmation_text(mode: str = "twosplit", target_dir: Path | None = None) -> str:
+    plan = build_download_plan(mode=mode, target_dir=target_dir)
+    return json.dumps(
+        {
+            "confirmation_required": True,
+            "official_source": plan.repo_id,
+            "model": plan.mode,
+            "files": plan.filenames,
+            "local_storage_location": str(plan.target_dir),
+            "required_bytes": plan.required_bytes,
+            "free_bytes": plan.free_bytes,
+            "enough_space": plan.enough_space,
+            "internet_required": True,
+        },
+        indent=2,
+    )
+
+
+def download_recommended_model_text(mode: str = "twosplit", target_dir: Path | None = None) -> str:
+    progress: list[str] = []
+    result = download_model(
+        mode=mode,
+        target_dir=target_dir,
+        progress=progress.append,
+    )
+    return json.dumps(
+        {
+            "ok": result.validation.ok,
+            "mode": result.mode,
+            "manifest": str(result.manifest_path),
+            "files": [str(path) for path in result.files],
+            "progress": progress,
         },
         indent=2,
     )
