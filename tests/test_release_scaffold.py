@@ -54,3 +54,14 @@ def test_windows_readme_documents_release_blockers() -> None:
     assert "not public-release-ready yet" in text
     assert "nvidia/audio_to_audio_schrodinger_bridge" in text
     assert "must not be bundled" in text
+
+
+def test_privacy_and_network_statements_are_documented() -> None:
+    readme = (ROOT / "README-WINDOWS.md").read_text(encoding="utf-8")
+    notices = (ROOT / "docs" / "LICENSE_NOTICES.md").read_text(encoding="utf-8")
+    combined = f"{readme}\n{notices}"
+
+    assert "Audio files stay" in combined
+    assert "does not upload user audio" in readme
+    assert "internet access" in readme.lower()
+    assert "telemetry by default" in combined

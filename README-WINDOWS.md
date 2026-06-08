@@ -44,6 +44,14 @@ The installer should use per-user locations. Models, logs, jobs, and settings be
 
 Original audio inputs must never be modified.
 
+## Privacy and Network Use
+
+Audio files stay on the user's PC. The app does not upload user audio, model outputs, logs, or diagnostic reports.
+
+Internet access is used only when the user chooses an action that needs it, such as installing runtime dependencies during setup or downloading official model checkpoints from Hugging Face. Manual checkpoint selection does not require internet access.
+
+The app should not include telemetry by default. Any future telemetry or update-check behavior must be opt-in and documented before public release.
+
 ## Release Blockers
 
 - Replace placeholder license notice files in `LICENSES/`.

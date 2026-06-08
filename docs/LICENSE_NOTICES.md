@@ -54,3 +54,4 @@ LICENSES/PYTHON_NOTICE.txt
 
 Audio files stay local. The app should only connect to the internet for dependency installation and model checkpoint download when the user chooses that option.
 
+The app should not include telemetry by default. Any future telemetry, update check, or usage reporting must be opt-in and documented before public release.
