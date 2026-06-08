@@ -1,0 +1,23 @@
+--extra-index-url https://download.pytorch.org/whl/cu121
+
+torch==2.2.2+cu121
+torchaudio==2.2.2+cu121
+
+numpy==1.26.4
+scipy==1.11.4
+matplotlib==3.8.4
+librosa==0.10.2.post1
+soundfile==0.12.1
+
+lightning==2.3.3
+jsonargparse[signatures]==4.28.0
+PyYAML==6.0.2
+
+einops==0.8.0
+rotary-embedding-torch==0.8.9
+ssr-eval==0.0.7
+
+huggingface-hub==0.23.4
+tqdm==4.66.5
+requests==2.32.3
+platformdirs==4.2.2

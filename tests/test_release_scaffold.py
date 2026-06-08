@@ -21,6 +21,14 @@ def test_runtime_scripts_exist() -> None:
         assert (ROOT / rel_path).exists(), rel_path
 
 
+def test_cuda_runtime_lockfile_is_pinned() -> None:
+    text = (ROOT / "requirements" / "lock-win-cu121.txt").read_text(encoding="utf-8")
+
+    for requirement in ["torch==2.2.2+cu121", "torchaudio==2.2.2+cu121", "numpy==1.26.4"]:
+        assert requirement in text
+    assert "https://download.pytorch.org/whl/cu121" in text
+
+
 def test_github_workflows_are_safe_and_non_publishing() -> None:
     ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     release_validate = (ROOT / ".github" / "workflows" / "release-validate.yml").read_text(encoding="utf-8")
