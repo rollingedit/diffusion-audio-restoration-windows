@@ -66,6 +66,14 @@ def test_model_download_confirmation_text_explains_source_size_and_location(tmp_
     assert '"internet_required": true' in text
 
 
+def test_model_download_confirmation_text_supports_onesplit_advanced_mode(tmp_path: Path) -> None:
+    text = model_download_confirmation_text(mode="onesplit", target_dir=tmp_path / "models")
+
+    assert '"model": "onesplit"' in text
+    assert "A2SB_onesplit_0.0_1.0_release.ckpt" in text
+    assert "A2SB_twosplit" not in text
+
+
 def test_download_recommended_model_text_reports_progress(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(tmp_path / "data"))
     monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(tmp_path / "logs"))
@@ -237,3 +245,19 @@ def test_select_checkpoint_folder_text_accepts_trusted_folder(tmp_path: Path, mo
 
     assert '"ok": true' in text
     assert "checkpoint_manifest.json" in text
+
+
+def test_select_checkpoint_folder_text_accepts_onesplit_folder(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(tmp_path / "logs"))
+    monkeypatch.setattr("rolling_a2sb.gui_actions.select_manual_checkpoint_folder", lambda folder, mode, trusted: __import__(
+        "rolling_a2sb.checkpoint_manager", fromlist=["select_manual_checkpoint_folder"]
+    ).select_manual_checkpoint_folder(folder, mode=mode, trusted=trusted, min_size_bytes=1, compute_hashes=False))
+    folder = tmp_path / "models"
+    write_checkpoint(folder / "A2SB_onesplit_0.0_1.0_release.ckpt")
+
+    text = select_checkpoint_folder_text(folder, mode="onesplit", trusted=True)
+
+    assert '"ok": true' in text
+    assert '"mode": "onesplit"' in text
+    assert "A2SB_onesplit_0.0_1.0_release.ckpt" in text

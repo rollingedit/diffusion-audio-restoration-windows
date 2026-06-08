@@ -35,6 +35,12 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
     assert "Download Recommended Model" in text
     assert "Use Existing Checkpoint Folder" in text
     assert "select_checkpoint_folder_text" in text
+    assert "current_model_mode" in text
+    assert "download_plan_text(mode=self.current_model_mode())" in text
+    assert "model_download_confirmation_text(mode=mode_combo.currentText())" in text
+    assert "download_recommended_model_text(mode=mode)" in text
+    assert "select_checkpoint_folder_text(Path(folder), mode=mode, trusted=True)" in text
+    assert "mode_combo.currentTextChanged.connect" in text
     assert "PyTorch checkpoint files can execute code" in text
     assert "confirm_and_download_model" in text
     assert "build_logs_tab" in text

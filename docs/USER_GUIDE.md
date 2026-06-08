@@ -31,6 +31,8 @@ The recommended model is the official NVIDIA two-split A2SB checkpoint set from 
 - `ckpt/A2SB_twosplit_0.0_0.5_release.ckpt`
 - `ckpt/A2SB_twosplit_0.5_1.0_release.ckpt`
 
+The Restore tab also exposes `onesplit` as an advanced model mode. Keep `twosplit` as the default until a real two-split smoke restore has passed; use `onesplit` only with the matching official one-split checkpoint.
+
 ## Restore Audio
 
 1. Drag a WAV, MP3, or FLAC file into the app, or choose one with the file picker.
@@ -50,4 +52,3 @@ The original input file must never be modified.
 ## Logs and Diagnostics
 
 Use Open Logs or Copy Diagnostic Report when reporting failures. Logs should include tracebacks and subprocess output; the main UI should show readable summaries.
-

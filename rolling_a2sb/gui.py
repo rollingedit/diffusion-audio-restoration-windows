@@ -250,20 +250,29 @@ def run_gui() -> int:
             self.report.setPlainText(doctor_report_text())
 
         def show_download_plan(self) -> None:
-            self.report.setPlainText(download_plan_text())
+            self.report.setPlainText(download_plan_text(mode=self.current_model_mode()))
 
         def open_model_setup_dialog(self) -> None:
             dialog = QDialog(self)
             dialog.setWindowTitle("Model Setup")
             layout = QVBoxLayout(dialog)
 
-            summary = QLabel("Official NVIDIA two-split checkpoints")
+            summary = QLabel("Official NVIDIA checkpoints")
             summary.setStyleSheet("font-weight: 600;")
             layout.addWidget(summary)
 
+            mode_row = QHBoxLayout()
+            mode_combo = QComboBox()
+            mode_combo.addItems(["twosplit", "onesplit"])
+            mode_combo.setCurrentText(self.current_model_mode())
+            mode_row.addWidget(QLabel("Model"))
+            mode_row.addWidget(mode_combo)
+            mode_row.addStretch(1)
+            layout.addLayout(mode_row)
+
             output = QTextEdit()
             output.setReadOnly(True)
-            output.setPlainText(model_download_confirmation_text())
+            output.setPlainText(model_download_confirmation_text(mode=mode_combo.currentText()))
             layout.addWidget(output, 1)
 
             button_row = QHBoxLayout()
@@ -279,18 +288,20 @@ def run_gui() -> int:
             layout.addLayout(button_row)
 
             def download_from_dialog() -> None:
+                mode = mode_combo.currentText()
                 answer = QMessageBox.question(
                     dialog,
                     "Download recommended model",
-                    "Download the official NVIDIA two-split checkpoints from Hugging Face into the app model folder?",
+                    f"Download the official NVIDIA {mode} checkpoints from Hugging Face into the app model folder?",
                     QMessageBox.Yes | QMessageBox.No,
                     QMessageBox.No,
                 )
                 if answer != QMessageBox.Yes:
                     return
                 try:
-                    output.setPlainText(download_recommended_model_text())
+                    output.setPlainText(download_recommended_model_text(mode=mode))
                     self.report.setPlainText(output.toPlainText())
+                    self.model_combo.setCurrentText(mode)
                     self.refresh_report()
                 except Exception as exc:
                     output.setPlainText(format_user_error(exc))
@@ -309,14 +320,20 @@ def run_gui() -> int:
                 if answer != QMessageBox.Yes:
                     return
                 try:
-                    text = select_checkpoint_folder_text(Path(folder), trusted=True)
+                    mode = mode_combo.currentText()
+                    text = select_checkpoint_folder_text(Path(folder), mode=mode, trusted=True)
                     output.setPlainText(text)
                     self.report.setPlainText(text)
+                    self.model_combo.setCurrentText(mode)
                     self.checkpoint_edit.setText(folder)
                     self.trust_check.setChecked(True)
                     self.refresh_report()
                 except Exception as exc:
                     output.setPlainText(format_user_error(exc))
+
+            mode_combo.currentTextChanged.connect(
+                lambda mode: output.setPlainText(model_download_confirmation_text(mode=mode))
+            )
 
             download_button.clicked.connect(download_from_dialog)
             existing_button.clicked.connect(use_existing_folder)
@@ -326,19 +343,20 @@ def run_gui() -> int:
             dialog.exec()
 
         def confirm_and_download_model(self) -> None:
-            confirmation = model_download_confirmation_text()
+            mode = self.current_model_mode()
+            confirmation = model_download_confirmation_text(mode=mode)
             self.report.setPlainText(confirmation)
             answer = QMessageBox.question(
                 self,
                 "Download recommended model",
-                "Download the official NVIDIA two-split checkpoints from Hugging Face into the app model folder?",
+                f"Download the official NVIDIA {mode} checkpoints from Hugging Face into the app model folder?",
                 QMessageBox.Yes | QMessageBox.No,
                 QMessageBox.No,
             )
             if answer != QMessageBox.Yes:
                 return
             try:
-                self.report.setPlainText(download_recommended_model_text())
+                self.report.setPlainText(download_recommended_model_text(mode=mode))
                 self.refresh_report()
             except Exception as exc:
                 self.report.setPlainText(format_user_error(exc))
@@ -529,6 +547,9 @@ def run_gui() -> int:
         def current_checkpoint_folder(self) -> Path | None:
             text = self.checkpoint_edit.text().strip()
             return Path(text) if text else None
+
+        def current_model_mode(self) -> str:
+            return self.model_combo.currentText()
 
     app = QApplication(sys.argv)
     window = MainWindow()
