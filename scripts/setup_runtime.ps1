@@ -38,6 +38,7 @@ $AppRoot = Resolve-Path (Join-Path $ScriptDir "..")
 $Runtime = Join-Path $AppRoot "runtime"
 $Python = Join-Path $Runtime "Scripts\python.exe"
 $Requirements = Join-Path $AppRoot "requirements\win-cu121.txt"
+$LockRequirements = Join-Path $AppRoot "requirements\lock-win-cu121.txt"
 $GuiRequirements = Join-Path $AppRoot "requirements\gui.txt"
 $SetupStatus = Join-Path $Runtime "setup-status.json"
 
@@ -81,11 +82,12 @@ try {
     }
     $steps.Add((New-Status $true "pip" "Upgraded pip, setuptools, and wheel." @{}))
 
-    & $Python -m pip install -r $Requirements
+    $RuntimeRequirements = if (Test-Path $LockRequirements) { $LockRequirements } else { $Requirements }
+    & $Python -m pip install -r $RuntimeRequirements
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to install CUDA runtime requirements."
     }
-    $steps.Add((New-Status $true "requirements" "Installed CUDA runtime requirements." @{ requirements = $Requirements }))
+    $steps.Add((New-Status $true "requirements" "Installed CUDA runtime requirements." @{ requirements = $RuntimeRequirements; lockfile_used = (Test-Path $LockRequirements) }))
 
     & $Python -m pip install -r $GuiRequirements
     if ($LASTEXITCODE -ne 0) {

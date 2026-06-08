@@ -26,6 +26,15 @@ def test_setup_runtime_checks_private_runtime_with_doctor_json() -> None:
     assert "exit 0" in text
 
 
+def test_setup_runtime_prefers_lockfile_when_available() -> None:
+    text = (ROOT / "scripts" / "setup_runtime.ps1").read_text(encoding="utf-8")
+
+    assert '$LockRequirements = Join-Path $AppRoot "requirements\\lock-win-cu121.txt"' in text
+    assert "$RuntimeRequirements = if (Test-Path $LockRequirements) { $LockRequirements } else { $Requirements }" in text
+    assert "& $Python -m pip install -r $RuntimeRequirements" in text
+    assert "lockfile_used" in text
+
+
 def test_repair_runtime_delegates_to_setup_runtime_repair_mode() -> None:
     text = (ROOT / "scripts" / "repair_runtime.ps1").read_text(encoding="utf-8")
 

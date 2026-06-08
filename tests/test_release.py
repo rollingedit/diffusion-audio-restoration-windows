@@ -14,6 +14,7 @@ from rolling_a2sb.release import (
     sha256_file,
     validate_release_artifacts,
     validate_release_evidence,
+    validate_runtime_lockfile,
     write_sha256sums,
 )
 
@@ -46,6 +47,18 @@ def write_version_sources(root: Path, project_version: str = "0.1.0a0", package_
     installer = root / "installer"
     installer.mkdir(parents=True, exist_ok=True)
     (installer / "a2sb-restorer.iss").write_text(f'#define MyAppVersion "{installer_version}"\n', encoding="utf-8")
+
+
+def write_runtime_lockfile(root: Path, placeholder: bool = False) -> Path:
+    lockfile = root / "requirements" / "lock-win-cu121.txt"
+    lockfile.parent.mkdir(parents=True, exist_ok=True)
+    text = (
+        "Placeholder\nDo not publish release artifacts\n"
+        if placeholder
+        else "\n".join(["torch==2.2.2+cu121", "torchaudio==2.2.2+cu121", "numpy==1.26.4", "lightning==2.3.3", ""])
+    )
+    lockfile.write_text(text, encoding="utf-8")
+    return lockfile
 
 
 def write_release_evidence(
@@ -327,6 +340,17 @@ def test_project_and_package_version_helpers_read_sources(tmp_path: Path) -> Non
 
     assert project_release_version(tmp_path / "pyproject.toml") == "0.2.0"
     assert package_init_version(tmp_path / "rolling_a2sb" / "__init__.py") == "0.2.0"
+
+
+def test_validate_runtime_lockfile_requires_pinned_cuda_stack(tmp_path: Path) -> None:
+    missing = validate_runtime_lockfile(tmp_path / "requirements" / "lock-win-cu121.txt")
+    assert "Runtime lockfile is missing: requirements/lock-win-cu121.txt" in missing
+
+    lockfile = write_runtime_lockfile(tmp_path, placeholder=True)
+    errors = validate_runtime_lockfile(lockfile)
+
+    assert "Runtime lockfile is still a release-blocking placeholder" in errors
+    assert "Runtime lockfile is missing pinned requirement: torch==2.2.2+cu121" in errors
 
 
 def test_git_head_commit_reads_loose_ref(tmp_path: Path) -> None:
@@ -673,6 +697,7 @@ def test_release_validation_rejects_version_source_mismatch(tmp_path: Path) -> N
     write_release_sources(tmp_path)
     write_release_evidence(tmp_path, installer_sha256=sha256_file(setup))
     write_version_sources(tmp_path, project_version="0.1.0a0", package_version="0.2.0", installer_version="9.9.9")
+    write_runtime_lockfile(tmp_path)
     write_sha256sums([setup, readme, notices], artifacts / "SHA256SUMS.txt")
     write_notices(licenses)
 
@@ -681,6 +706,28 @@ def test_release_validation_rejects_version_source_mismatch(tmp_path: Path) -> N
     assert not result.ok
     assert "Python package version does not match rolling_a2sb.__version__" in result.errors
     assert "Installer version does not match Python package release label" in result.errors
+
+
+def test_release_validation_requires_runtime_lockfile(tmp_path: Path) -> None:
+    artifacts = tmp_path / "artifacts"
+    licenses = tmp_path / "LICENSES"
+    artifacts.mkdir()
+    setup = artifacts / "A2SB-Restorer-Setup.exe"
+    readme = artifacts / "README-WINDOWS.md"
+    notices = artifacts / "LICENSE-NOTICES.txt"
+    write_setup_exe(setup)
+    readme.write_text("readme", encoding="utf-8")
+    notices.write_text("notices", encoding="utf-8")
+    write_release_sources(tmp_path)
+    write_release_evidence(tmp_path, installer_sha256=sha256_file(setup))
+    write_version_sources(tmp_path)
+    write_sha256sums([setup, readme, notices], artifacts / "SHA256SUMS.txt")
+    write_notices(licenses)
+
+    result = validate_release_artifacts(artifacts, licenses)
+
+    assert not result.ok
+    assert "Runtime lockfile is missing: requirements/lock-win-cu121.txt" in result.errors
 
 
 def test_release_validation_accepts_basic_artifacts(tmp_path: Path) -> None:
@@ -695,6 +742,8 @@ def test_release_validation_accepts_basic_artifacts(tmp_path: Path) -> None:
     notices.write_text("notices", encoding="utf-8")
     write_release_sources(tmp_path)
     write_release_evidence(tmp_path, installer_sha256=sha256_file(setup))
+    write_version_sources(tmp_path)
+    write_runtime_lockfile(tmp_path)
     write_sha256sums([setup, readme, notices], artifacts / "SHA256SUMS.txt")
     write_notices(licenses)
 

@@ -138,6 +138,7 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
         errors.append("Python package version does not match rolling_a2sb.__version__")
     if installer_version and project_version and installer_version != project_version.replace("a0", "-alpha"):
         errors.append("Installer version does not match Python package release label")
+    errors.extend(validate_runtime_lockfile(source_root / "requirements" / "lock-win-cu121.txt"))
 
     artifact_names = {artifact.name for artifact in artifacts}
     for required in REQUIRED_RELEASE_ARTIFACTS:
@@ -303,6 +304,21 @@ def package_init_version(init_path: Path) -> str | None:
         return None
     match = re.search(r'^__version__ = "([^"]+)"$', path.read_text(encoding="utf-8"), flags=re.MULTILINE)
     return match.group(1) if match else None
+
+
+def validate_runtime_lockfile(lockfile_path: Path) -> list[str]:
+    path = Path(lockfile_path)
+    if not path.exists():
+        return ["Runtime lockfile is missing: requirements/lock-win-cu121.txt"]
+    text = path.read_text(encoding="utf-8")
+    errors: list[str] = []
+    if "Placeholder" in text or RELEASE_BLOCKED_TEXT in text:
+        errors.append("Runtime lockfile is still a release-blocking placeholder")
+    lower_lines = {line.strip().lower() for line in text.splitlines()}
+    for requirement in ["torch==2.2.2+cu121", "torchaudio==2.2.2+cu121", "numpy==1.26.4"]:
+        if requirement not in lower_lines:
+            errors.append(f"Runtime lockfile is missing pinned requirement: {requirement}")
+    return errors
 
 
 def git_head_commit(source_root: Path) -> str | None:
