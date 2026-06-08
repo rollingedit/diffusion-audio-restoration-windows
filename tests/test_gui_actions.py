@@ -167,6 +167,34 @@ def test_execute_restore_text_reports_output_and_log(tmp_path: Path, monkeypatch
     assert '"log":' in text
 
 
+def test_execute_restore_text_forwards_stream_lines(tmp_path: Path, monkeypatch) -> None:
+    from rolling_a2sb.workflow import RestoreExecution, RestorePreparation
+
+    plan = RestorePreparation(
+        job_id="job",
+        job_dir=str(tmp_path / "job"),
+        log_path=str(tmp_path / "restore.log"),
+        input_audio=str(tmp_path / "in.wav"),
+        prepared_input_audio=str(tmp_path / "in.wav"),
+        audio_converted=False,
+        output_audio=str(tmp_path / "out.wav"),
+        partial_output_audio=str(tmp_path / "out.partial"),
+        config_path=str(tmp_path / "restore.yaml"),
+        command=["python", "engine.py"],
+    )
+    seen: list[tuple[str, str]] = []
+
+    def fake_execute_restore(**kwargs):
+        kwargs["on_line"]("stdout", "loading model")
+        return RestoreExecution(plan=plan, returncode=0, stdout="loading model\n", stderr="", cancelled=False)
+
+    monkeypatch.setattr("rolling_a2sb.gui_actions.execute_restore", fake_execute_restore)
+
+    execute_restore_text(tmp_path / "in.wav", on_line=lambda stream, line: seen.append((stream, line)))
+
+    assert seen == [("stdout", "loading model")]
+
+
 def test_select_checkpoint_folder_text_requires_trust(tmp_path: Path) -> None:
     try:
         select_checkpoint_folder_text(tmp_path / "models", trusted=False)

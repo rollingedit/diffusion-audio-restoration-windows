@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Callable
 
 from .audio_probe import audio_info_dict, probe_audio
 from .checkpoint_manager import select_manual_checkpoint_folder
@@ -10,6 +11,9 @@ from . import paths
 from .runtime_check import diagnostic_text, doctor
 from .workflow import RestorePreparation as DryRunRestorePlan
 from .workflow import execute_restore, prepare_restore
+
+
+LineCallback = Callable[[str, str], None]
 
 
 def about_text() -> str:
@@ -141,6 +145,7 @@ def execute_restore_text(
     model_mode: str = "twosplit",
     checkpoint_folder: Path | None = None,
     trust_manual_checkpoints: bool = False,
+    on_line: LineCallback | None = None,
 ) -> str:
     execution = execute_restore(
         input_audio=input_audio,
@@ -149,6 +154,7 @@ def execute_restore_text(
         model_mode=model_mode,
         checkpoint_folder=checkpoint_folder,
         trust_manual_checkpoints=trust_manual_checkpoints,
+        on_line=on_line,
     )
     return json.dumps(
         {

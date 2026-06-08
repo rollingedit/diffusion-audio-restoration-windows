@@ -51,6 +51,7 @@ def run_gui() -> int:
         raise RuntimeError("PySide6 is required for the graphical app. Run Repair Runtime.") from exc
 
     class RestoreThread(QThread):
+        restore_line = Signal(str, str)
         restore_finished = Signal(str)
         restore_failed = Signal(str)
 
@@ -60,7 +61,12 @@ def run_gui() -> int:
 
         def run(self) -> None:
             try:
-                self.restore_finished.emit(execute_restore_text(**self.restore_kwargs))
+                self.restore_finished.emit(
+                    execute_restore_text(
+                        **self.restore_kwargs,
+                        on_line=lambda stream_name, line: self.restore_line.emit(stream_name, line),
+                    )
+                )
             except Exception as exc:
                 self.restore_failed.emit(format_user_error(exc))
 
@@ -444,7 +450,7 @@ def run_gui() -> int:
             self.plan_button.setEnabled(False)
             self.open_output_button.setEnabled(False)
             self.restore_progress.show()
-            self.restore_output.setPlainText("Preparing restore...\nRestoring...")
+            self.restore_output.setPlainText("Preparing restore...\nLoading model...\nRestoring...")
             self.restore_thread = RestoreThread(
                 {
                     "input_audio": audio_path,
@@ -455,10 +461,14 @@ def run_gui() -> int:
                     "trust_manual_checkpoints": self.trust_check.isChecked(),
                 }
             )
+            self.restore_thread.restore_line.connect(self.restore_line_received)
             self.restore_thread.restore_finished.connect(self.restore_finished)
             self.restore_thread.restore_failed.connect(self.restore_failed)
             self.restore_thread.finished.connect(self.restore_thread_finished)
             self.restore_thread.start()
+
+        def restore_line_received(self, stream_name: str, line: str) -> None:
+            self.restore_output.append(f"{stream_name}: {line}")
 
         def restore_finished(self, text: str) -> None:
             self.restore_output.setPlainText(f"Restore complete.\n\n{text}")
