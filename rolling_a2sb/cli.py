@@ -128,6 +128,7 @@ def main(argv: list[str] | None = None) -> int:
         append_log(Path(job.log_path), f"created restore job {job.job_id}")
         append_log(Path(job.log_path), f"input={Path(args.input).resolve()}")
         append_log(Path(job.log_path), f"output={job.output_audio}")
+        append_log(Path(job.log_path), f"partial_output={job.partial_output_audio}")
         append_log(Path(job.log_path), f"checkpoint_folder={Path(checkpoint_folder).resolve()}")
         config_path = write_restore_config(
             RestoreConfigRequest(
@@ -151,6 +152,8 @@ def main(argv: list[str] | None = None) -> int:
                         "job": job.job_id,
                         "job_dir": job.job_dir,
                         "log": job.log_path,
+                        "output": job.output_audio,
+                        "partial_output": job.partial_output_audio,
                         "config": str(config_path),
                         "command": [str(part) for part in command],
                     },

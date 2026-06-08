@@ -37,6 +37,7 @@ def write_yaml(data: dict[str, Any], path: Path) -> Path:
 
 
 def build_restore_config(request: RestoreConfigRequest) -> dict[str, Any]:
+    validate_restore_request(request)
     base_path = request.base_config or paths.upstream_ensemble_config_path()
     config = copy.deepcopy(load_yaml(base_path))
 
@@ -81,6 +82,23 @@ def build_restore_config(request: RestoreConfigRequest) -> dict[str, Any]:
     return config
 
 
+def validate_restore_request(request: RestoreConfigRequest) -> None:
+    input_audio = Path(request.input_audio)
+    output_audio = Path(request.output_audio)
+    if not input_audio.exists():
+        raise ValueError(f"input audio does not exist: {input_audio}")
+    if not input_audio.is_file():
+        raise ValueError(f"input audio is not a file: {input_audio}")
+    if input_audio.resolve() == output_audio.resolve():
+        raise ValueError("output audio path cannot equal input audio path")
+    if len(request.checkpoint_paths) == 0:
+        raise ValueError("at least one checkpoint path is required")
+    for checkpoint in request.checkpoint_paths:
+        if not Path(checkpoint).exists():
+            raise ValueError(f"checkpoint does not exist: {checkpoint}")
+    request.job_dir.mkdir(parents=True, exist_ok=True)
+
+
 def write_restore_config(request: RestoreConfigRequest) -> Path:
     config = build_restore_config(request)
     return write_yaml(config, request.job_dir / "restore_config.yaml")
@@ -114,4 +132,3 @@ def validate_generated_config(config: dict[str, Any]) -> None:
     checkpoints = config.get("model", {}).get("pretrained_checkpoints")
     if not checkpoints:
         raise ValueError("generated config must include model.pretrained_checkpoints")
-

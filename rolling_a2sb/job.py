@@ -16,6 +16,7 @@ class RestoreJob:
     created_at: str
     input_audio: str
     output_audio: str
+    partial_output_audio: str
     job_dir: str
     log_path: str
     config_path: str | None
@@ -43,6 +44,13 @@ def default_output_path(input_audio: Path, output_dir: Path | None = None) -> Pa
     return candidate
 
 
+def partial_output_path(output_audio: Path, job_dir: Path | None = None) -> Path:
+    output_audio = Path(output_audio)
+    if job_dir:
+        return Path(job_dir) / f"{output_audio.name}.partial"
+    return output_audio.with_name(f"{output_audio.name}.partial")
+
+
 def create_restore_job(
     input_audio: Path,
     output_audio: Path | None = None,
@@ -57,12 +65,14 @@ def create_restore_job(
     output = output_audio or default_output_path(Path(input_audio))
     output.parent.mkdir(parents=True, exist_ok=True)
     log_path = job_dir / "restore.log"
+    partial_output = partial_output_path(output, job_dir)
 
     job = RestoreJob(
         job_id=job_id,
         created_at=datetime.now(timezone.utc).isoformat(),
         input_audio=str(Path(input_audio).resolve()),
         output_audio=str(output.resolve()),
+        partial_output_audio=str(partial_output.resolve()),
         job_dir=str(job_dir.resolve()),
         log_path=str(log_path.resolve()),
         config_path=None,
@@ -84,4 +94,3 @@ def with_config_path(job: RestoreJob, config_path: Path) -> RestoreJob:
     updated = RestoreJob(**{**asdict(job), "config_path": str(Path(config_path).resolve())})
     write_job_manifest(updated)
     return updated
-

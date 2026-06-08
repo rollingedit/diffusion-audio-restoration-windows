@@ -13,7 +13,11 @@ def test_twosplit_config_sanitizes_upstream_hpc_defaults(tmp_path: Path) -> None
         tmp_path / "models" / "A2SB_twosplit_0.5_1.0_release.ckpt",
     ]
     input_audio.parent.mkdir()
+    input_audio.write_bytes(b"audio")
     output_audio.parent.mkdir()
+    for checkpoint in checkpoints:
+        checkpoint.parent.mkdir(parents=True, exist_ok=True)
+        checkpoint.write_bytes(b"checkpoint")
 
     config = build_restore_config(
         RestoreConfigRequest(
@@ -43,10 +47,14 @@ def test_twosplit_config_sanitizes_upstream_hpc_defaults(tmp_path: Path) -> None
 
 def test_onesplit_config_removes_t_cutoffs(tmp_path: Path) -> None:
     checkpoint = tmp_path / "models" / "A2SB_onesplit_0.0_1.0_release.ckpt"
+    input_audio = tmp_path / "song.wav"
+    input_audio.write_bytes(b"audio")
+    checkpoint.parent.mkdir(parents=True, exist_ok=True)
+    checkpoint.write_bytes(b"checkpoint")
 
     config = build_restore_config(
         RestoreConfigRequest(
-            input_audio=tmp_path / "song.wav",
+            input_audio=input_audio,
             output_audio=tmp_path / "song__a2sb.wav",
             checkpoint_paths=[checkpoint],
             job_dir=tmp_path / "job",
@@ -59,14 +67,18 @@ def test_onesplit_config_removes_t_cutoffs(tmp_path: Path) -> None:
 
 
 def test_write_restore_config_creates_job_config(tmp_path: Path) -> None:
+    input_audio = tmp_path / "song.wav"
+    first = tmp_path / "a.ckpt"
+    second = tmp_path / "b.ckpt"
+    input_audio.write_bytes(b"audio")
+    first.write_bytes(b"checkpoint")
+    second.write_bytes(b"checkpoint")
+
     config_path = write_restore_config(
         RestoreConfigRequest(
-            input_audio=tmp_path / "song.wav",
+            input_audio=input_audio,
             output_audio=tmp_path / "song__a2sb.wav",
-            checkpoint_paths=[
-                tmp_path / "a.ckpt",
-                tmp_path / "b.ckpt",
-            ],
+            checkpoint_paths=[first, second],
             job_dir=tmp_path / "job",
         )
     )
@@ -74,3 +86,21 @@ def test_write_restore_config_creates_job_config(tmp_path: Path) -> None:
     assert config_path == tmp_path / "job" / "restore_config.yaml"
     assert config_path.exists()
 
+
+def test_config_builder_rejects_missing_input(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "a.ckpt"
+    checkpoint.write_bytes(b"checkpoint")
+
+    try:
+        build_restore_config(
+            RestoreConfigRequest(
+                input_audio=tmp_path / "missing.wav",
+                output_audio=tmp_path / "out.wav",
+                checkpoint_paths=[checkpoint, checkpoint],
+                job_dir=tmp_path / "job",
+            )
+        )
+    except ValueError as exc:
+        assert "input audio does not exist" in str(exc)
+    else:
+        raise AssertionError("missing input should fail")

@@ -32,10 +32,14 @@ This file is local coordination material unless the user explicitly decides to p
 - Updated restore to use saved checkpoint settings by default and require explicit trust for manual checkpoint folders.
 - Added `a2sb reset-models`.
 - Added settings and stateful CLI dry-run tests.
+- Added partial output path planning in job manifests using a `.partial` suffix inside the job folder.
+- Added restore request validation for existing input/checkpoint paths and input/output path separation before config generation.
+- Extended restore dry-run JSON and logs with final and partial output paths.
+- Added tests for partial output path planning and restore request validation.
 
 ### Verified
 
-- `.\.venv\Scripts\python.exe -m pytest` passes with 42 tests.
+- `.\.venv\Scripts\python.exe -m pytest` passes with 44 tests.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.
 - `powershell -ExecutionPolicy Bypass -File scripts/setup_runtime.ps1 -DryRun -Json` succeeds without modifying the runtime.
 

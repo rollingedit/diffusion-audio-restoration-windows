@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from rolling_a2sb.job import create_restore_job, default_output_path, safe_stem
+from rolling_a2sb.job import create_restore_job, default_output_path, partial_output_path, safe_stem
 
 
 def test_safe_stem_removes_windows_invalid_filename_chars() -> None:
@@ -42,3 +42,13 @@ def test_create_restore_job_writes_manifest(tmp_path: Path, monkeypatch) -> None
     assert data["steps"] == 2
     assert data["model_mode"] == "twosplit"
     assert Path(data["output_audio"]).name == "input__a2sb.wav"
+    assert Path(data["partial_output_audio"]).name == "input__a2sb.wav.partial"
+
+
+def test_partial_output_path_can_live_in_job_dir(tmp_path: Path) -> None:
+    output = tmp_path / "A2SB Restored" / "song__a2sb.wav"
+    job_dir = tmp_path / "jobs" / "123"
+
+    partial = partial_output_path(output, job_dir)
+
+    assert partial == job_dir / "song__a2sb.wav.partial"
