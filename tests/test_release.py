@@ -64,12 +64,33 @@ def write_release_evidence(
                 "- FFmpeg build filename: ffmpeg-master-latest-win64-lgpl.zip",
                 "- FFmpeg source URL: https://github.com/BtbN/FFmpeg-Builds",
                 "",
+                "## Commands",
+                "",
+                "- Runtime setup: powershell -ExecutionPolicy Bypass -File scripts/setup_runtime.ps1 -Json; exit 0; evidence/setup_status.json",
+                "- Repair runtime: powershell -ExecutionPolicy Bypass -File scripts/repair_runtime.ps1 -Json; exit 0; evidence/repair_status.json",
+                "- Doctor JSON: .venv/Scripts/python.exe -m rolling_a2sb.cli doctor --json; exit 0; evidence/doctor.json",
+                "- Hugging Face checkpoint download: a2sb download-model --model twosplit --yes; exit 0; evidence/checkpoint_manifest.json",
+                "- Manual checkpoint selection: a2sb select-checkpoints evidence/models --trust; exit 0; evidence/manual_manifest.json",
+                "- CLI smoke restore: a2sb restore --input evidence/input.wav --steps 2; exit 0; evidence/restore.log",
+                "- Launcher build: powershell -ExecutionPolicy Bypass -File scripts/build_launcher.ps1; exit 0; dist/A2SB Restorer/A2SB Restorer.exe",
+                "- Installer build: powershell -ExecutionPolicy Bypass -File scripts/build_installer.ps1; exit 0; dist/installer/A2SB-Restorer-Setup.exe",
+                "- SHA256 generation: powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist/installer; exit 0; dist/installer/SHA256SUMS.txt",
+                "- Release validation: powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist/installer -ValidateOnly; exit 0; evidence/release_validation.txt",
+                "",
                 "## Evidence Files",
                 "",
                 "- Doctor JSON path: evidence/doctor.json",
+                "- Doctor report path: evidence/doctor.txt",
+                "- Setup status JSON path: evidence/setup_status.json",
                 "- Checkpoint manifest path: evidence/checkpoint_manifest.json",
+                "- Restore job folder: evidence/jobs/20260608-120000",
                 "- Restore log path: evidence/restore.log",
+                "- Input test audio path: evidence/input.wav",
                 "- Output WAV path: evidence/out.wav",
+                "- Screenshot of ready Setup tab: evidence/setup-ready.png",
+                "- Screenshot of completed Restore tab: evidence/restore-complete.png",
+                "- Screenshot of Start Menu shortcuts: evidence/start-menu.png",
+                "- Installer artifact folder: dist/installer",
                 "- Input file hash before restore: " + "b" * 64,
                 "- Input file hash after restore: " + "b" * 64,
                 "- Release artifacts validated: yes",
@@ -229,6 +250,25 @@ def test_validate_release_evidence_rejects_version_and_commit_mismatch(tmp_path:
 
     assert "Release evidence version does not match installer version" in errors
     assert "Release evidence Git commit must be a 7-40 character hex SHA" in errors
+
+
+def test_validate_release_evidence_rejects_bad_ffmpeg_provenance(tmp_path: Path) -> None:
+    evidence = write_release_evidence(tmp_path)
+    text = evidence.read_text(encoding="utf-8")
+    text = text.replace(
+        "- FFmpeg build filename: ffmpeg-master-latest-win64-lgpl.zip",
+        "- FFmpeg build filename: ffmpeg-gpl.exe",
+    )
+    text = text.replace(
+        "- FFmpeg source URL: https://github.com/BtbN/FFmpeg-Builds",
+        "- FFmpeg source URL: https://example.com/ffmpeg",
+    )
+    evidence.write_text(text, encoding="utf-8")
+
+    errors = validate_release_evidence(evidence)
+
+    assert "Release evidence FFmpeg build filename must be a Windows x64 LGPL ZIP" in errors
+    assert "Release evidence FFmpeg source URL must use the approved BtbN FFmpeg Builds source" in errors
 
 
 def test_installer_release_version_reads_inno_define(tmp_path: Path) -> None:

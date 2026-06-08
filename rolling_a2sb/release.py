@@ -19,16 +19,42 @@ ALLOWED_RELEASE_ARTIFACTS = set(REQUIRED_RELEASE_ARTIFACTS)
 REQUIRED_EVIDENCE_FIELDS = [
     "Version",
     "Git commit",
+    "Build machine",
+    "Test machine",
     "Windows version",
     "GPU model",
     "NVIDIA driver version",
     "CUDA reported by PyTorch",
     "Installer filename",
     "Installer SHA256",
+    "FFmpeg build filename",
+    "FFmpeg source URL",
+]
+REQUIRED_EVIDENCE_COMMAND_FIELDS = [
+    "Runtime setup",
+    "Repair runtime",
+    "Doctor JSON",
+    "Hugging Face checkpoint download",
+    "Manual checkpoint selection",
+    "CLI smoke restore",
+    "Launcher build",
+    "Installer build",
+    "SHA256 generation",
+    "Release validation",
+]
+REQUIRED_EVIDENCE_FILE_FIELDS = [
     "Doctor JSON path",
+    "Doctor report path",
+    "Setup status JSON path",
     "Checkpoint manifest path",
+    "Restore job folder",
     "Restore log path",
+    "Input test audio path",
     "Output WAV path",
+    "Screenshot of ready Setup tab",
+    "Screenshot of completed Restore tab",
+    "Screenshot of Start Menu shortcuts",
+    "Installer artifact folder",
     "Input file hash before restore",
     "Input file hash after restore",
     "Release artifacts validated",
@@ -187,7 +213,13 @@ def validate_release_evidence(
     text = path.read_text(encoding="utf-8")
     errors: list[str] = []
     values: dict[str, str] = {}
-    for field in REQUIRED_EVIDENCE_FIELDS + REQUIRED_EVIDENCE_PASS_FIELDS:
+    required_fields = (
+        REQUIRED_EVIDENCE_FIELDS
+        + REQUIRED_EVIDENCE_COMMAND_FIELDS
+        + REQUIRED_EVIDENCE_FILE_FIELDS
+        + REQUIRED_EVIDENCE_PASS_FIELDS
+    )
+    for field in required_fields:
         pattern = re.compile(rf"^- {re.escape(field)}:[ \t]*(.*)$", re.MULTILINE)
         match = pattern.search(text)
         if not match or not match.group(1).strip():
@@ -203,6 +235,12 @@ def validate_release_evidence(
         errors.append("Release evidence version does not match installer version")
     if values.get("Git commit") and not GIT_SHA_RE.match(values["Git commit"]):
         errors.append("Release evidence Git commit must be a 7-40 character hex SHA")
+    ffmpeg_filename = values.get("FFmpeg build filename", "").lower()
+    if ffmpeg_filename and not ("win64" in ffmpeg_filename and "lgpl" in ffmpeg_filename and ffmpeg_filename.endswith(".zip")):
+        errors.append("Release evidence FFmpeg build filename must be a Windows x64 LGPL ZIP")
+    ffmpeg_source_url = values.get("FFmpeg source URL", "")
+    if ffmpeg_source_url and not ffmpeg_source_url.startswith("https://github.com/BtbN/FFmpeg-Builds"):
+        errors.append("Release evidence FFmpeg source URL must use the approved BtbN FFmpeg Builds source")
     before_hash = values.get("Input file hash before restore")
     after_hash = values.get("Input file hash after restore")
     if before_hash and after_hash and before_hash.lower() != after_hash.lower():
