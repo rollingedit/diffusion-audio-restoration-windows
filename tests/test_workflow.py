@@ -46,6 +46,38 @@ def test_prepare_restore_shared_workflow_writes_config_and_log(tmp_path: Path, m
     assert "dry-run" in Path(plan.log_path).read_text(encoding="utf-8")
 
 
+def test_prepare_restore_handles_paths_with_spaces_and_preserves_original(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(tmp_path / "App Data With Spaces"))
+    monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(tmp_path / "Log Root With Spaces"))
+    monkeypatch.setattr("rolling_a2sb.workflow.validate_checkpoint_folder", lambda folder, mode: __import__(
+        "rolling_a2sb.checkpoint_manager", fromlist=["validate_checkpoint_folder"]
+    ).validate_checkpoint_folder(folder, mode=mode, min_size_bytes=1))
+
+    audio_dir = tmp_path / "Input Folder With Spaces"
+    audio = audio_dir / "short take.wav"
+    checkpoints = tmp_path / "Model Folder With Spaces"
+    audio_dir.mkdir()
+    write_wav(audio)
+    before = audio.read_bytes()
+    write_checkpoint(checkpoints / "A2SB_twosplit_0.0_0.5_release.ckpt")
+    write_checkpoint(checkpoints / "A2SB_twosplit_0.5_1.0_release.ckpt")
+
+    plan = prepare_restore(
+        input_audio=audio,
+        checkpoint_folder=checkpoints,
+        trust_manual_checkpoints=True,
+        steps=2,
+        dry_run=True,
+    )
+
+    assert audio.read_bytes() == before
+    assert "Input Folder With Spaces" in plan.input_audio
+    assert "A2SB Restored" in plan.output_audio
+    assert "App Data With Spaces" in plan.job_dir
+    assert Path(plan.partial_output_audio).parent == Path(plan.job_dir)
+    assert Path(plan.config_path).exists()
+
+
 def test_prepare_restore_requires_trust_for_manual_checkpoints(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(tmp_path / "data"))
     monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(tmp_path / "logs"))
