@@ -211,6 +211,29 @@ def test_validate_release_evidence_rejects_blank_fields_and_open_blockers(tmp_pa
     assert 'Release evidence blockers must be exactly "- None" before public release' in errors
 
 
+def test_validate_release_evidence_rejects_placeholder_field_values(tmp_path: Path) -> None:
+    evidence = write_release_evidence(tmp_path)
+    text = evidence.read_text(encoding="utf-8").replace("- Test machine: tester", "- Test machine: assumed")
+    evidence.write_text(text, encoding="utf-8")
+
+    errors = validate_release_evidence(evidence)
+
+    assert "Release evidence field uses a placeholder value: Test machine" in errors
+
+
+def test_validate_release_evidence_rejects_incomplete_command_records(tmp_path: Path) -> None:
+    evidence = write_release_evidence(tmp_path)
+    text = evidence.read_text(encoding="utf-8").replace(
+        "- Doctor JSON: .venv/Scripts/python.exe -m rolling_a2sb.cli doctor --json; exit 0; evidence/doctor.json",
+        "- Doctor JSON: .venv/Scripts/python.exe -m rolling_a2sb.cli doctor --json",
+    )
+    evidence.write_text(text, encoding="utf-8")
+
+    errors = validate_release_evidence(evidence)
+
+    assert "Release evidence command must include command, exit 0, and output path: Doctor JSON" in errors
+
+
 def test_validate_release_evidence_rejects_weak_hash_and_validation_values(tmp_path: Path) -> None:
     evidence = write_release_evidence(tmp_path)
     text = evidence.read_text(encoding="utf-8")

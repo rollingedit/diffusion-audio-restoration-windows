@@ -10,6 +10,7 @@ RELEASE_BLOCKED_TEXT = "Do not publish release artifacts"
 MIN_SETUP_EXE_BYTES = 1024 * 1024
 SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
 GIT_SHA_RE = re.compile(r"^[0-9a-fA-F]{7,40}$")
+BANNED_EVIDENCE_VALUES = {"assumed", "not applicable", "n/a", "na", "todo", "tbd"}
 REQUIRED_RELEASE_ARTIFACTS = [
     "A2SB-Restorer-Setup.exe",
     "README-WINDOWS.md",
@@ -226,11 +227,17 @@ def validate_release_evidence(
             errors.append(f"Release evidence field is incomplete: {field}")
         elif match:
             values[field] = match.group(1).strip()
+            if values[field].strip().lower() in BANNED_EVIDENCE_VALUES:
+                errors.append(f"Release evidence field uses a placeholder value: {field}")
 
     for field in EVIDENCE_SHA256_FIELDS:
         value = values.get(field)
         if value and not SHA256_RE.match(value):
             errors.append(f"Release evidence field must be a SHA256 digest: {field}")
+    for field in REQUIRED_EVIDENCE_COMMAND_FIELDS:
+        command_evidence = values.get(field, "")
+        if command_evidence and ("exit 0" not in command_evidence.lower() or command_evidence.count(";") < 2):
+            errors.append(f"Release evidence command must include command, exit 0, and output path: {field}")
     if expected_version and values.get("Version") != expected_version:
         errors.append("Release evidence version does not match installer version")
     if values.get("Git commit") and not GIT_SHA_RE.match(values["Git commit"]):
