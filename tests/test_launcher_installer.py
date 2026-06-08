@@ -85,6 +85,17 @@ def test_installer_build_requires_ffmpeg_binaries_before_packaging() -> None:
     assert text.index("ffprobe binary missing") < text.index("Get-Command ISCC.exe")
 
 
+def test_installer_build_stages_release_docs_before_checksums() -> None:
+    text = (ROOT / "scripts" / "build_installer.ps1").read_text(encoding="utf-8")
+
+    assert '$Readme = Join-Path $AppRoot "README-WINDOWS.md"' in text
+    assert '$Notices = Join-Path $AppRoot "LICENSE-NOTICES.txt"' in text
+    assert 'Copy-Item -Force -Path $Readme -Destination (Join-Path $ArtifactsDir "README-WINDOWS.md")' in text
+    assert 'Copy-Item -Force -Path $Notices -Destination (Join-Path $ArtifactsDir "LICENSE-NOTICES.txt")' in text
+    assert text.index("Copy-Item -Force -Path $Readme") < text.index("write_sha256sums.ps1")
+    assert text.index("Copy-Item -Force -Path $Notices") < text.index("write_sha256sums.ps1")
+
+
 def test_inno_runs_real_runtime_setup_not_dry_run() -> None:
     text = (ROOT / "installer" / "a2sb-restorer.iss").read_text(encoding="utf-8")
     run_section = text.split("[Run]", 1)[1].split("[UninstallDelete]", 1)[0]
