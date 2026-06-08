@@ -19,6 +19,7 @@ This file is local coordination material unless the user explicitly decides to p
 - Added user-facing error classification for missing dependencies, CUDA, checkpoints, checkpoint trust, audio probing, and restore process failures.
 - Added `nvidia-smi` GPU detection and diagnostic text generation to the runtime doctor.
 - Added CLI `open-model-folder` and `open-logs` helpers.
+- Added CLI `release-check` for release artifact validation and optional `SHA256SUMS.txt` regeneration.
 - Added tests for downloader behavior, audio probing, error mapping, and runtime-check diagnostics.
 - Added runtime setup, repair, doctor, smoke restore, launcher build, and installer build PowerShell scripts with dry-run support where appropriate.
 - Added GitHub Actions CI and manual release-validation workflows that run tests/validation without publishing artifacts.
@@ -175,7 +176,7 @@ This file is local coordination material unless the user explicitly decides to p
 
 ### Verified
 
-- `.\.venv\Scripts\python.exe -m pytest` passes with 194 tests.
+- `.\.venv\Scripts\python.exe -m pytest` passes with 196 tests.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --report` prints actionable next steps for missing Torch/checkpoints and sandboxed write permissions.
 - `powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist\installer -ValidateOnly` runs and correctly blocks release because artifacts are missing and license notices are placeholders.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.

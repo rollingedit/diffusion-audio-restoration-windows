@@ -3,6 +3,7 @@ import json
 import wave
 
 from rolling_a2sb.cli import main
+from rolling_a2sb.release import ReleaseCheckResult
 
 
 def write_wav(path: Path) -> None:
@@ -307,3 +308,45 @@ def test_cleanup_models_force_deletes_app_owned_files(tmp_path: Path, monkeypatc
     output = capsys.readouterr().out
     assert '"deleted": true' in output
     assert not checkpoint.exists()
+
+
+def test_release_check_cli_prints_validation_errors(tmp_path: Path, monkeypatch, capsys) -> None:
+    artifacts = tmp_path / "dist" / "installer"
+    licenses = tmp_path / "LICENSES"
+    calls: list[tuple[Path, Path]] = []
+
+    def fake_validate(artifacts_dir: Path, licenses_dir: Path) -> ReleaseCheckResult:
+        calls.append((artifacts_dir, licenses_dir))
+        return ReleaseCheckResult(ok=False, errors=["missing installer"])
+
+    monkeypatch.setattr("rolling_a2sb.cli.validate_release_artifacts", fake_validate)
+
+    exit_code = main(["release-check", "--artifacts-dir", str(artifacts), "--licenses-dir", str(licenses)])
+
+    assert exit_code == 1
+    assert calls == [(artifacts, licenses)]
+    output = json.loads(capsys.readouterr().out)
+    assert output == {"ok": False, "errors": ["missing installer"]}
+
+
+def test_release_check_cli_can_regenerate_sha256_before_validation(tmp_path: Path, monkeypatch, capsys) -> None:
+    artifacts = tmp_path / "dist" / "installer"
+    licenses = tmp_path / "LICENSES"
+    artifact = artifacts / "A2SB-Restorer-Setup.exe"
+    artifact.parent.mkdir(parents=True)
+    artifact.write_bytes(b"installer")
+    calls: list[list[Path]] = []
+
+    def fake_write(files: list[Path], output_path: Path) -> Path:
+        calls.append(files)
+        output_path.write_text("checksum\n", encoding="utf-8")
+        return output_path
+
+    monkeypatch.setattr("rolling_a2sb.cli.write_sha256sums", fake_write)
+    monkeypatch.setattr("rolling_a2sb.cli.validate_release_artifacts", lambda artifacts_dir, licenses_dir: ReleaseCheckResult(ok=True, errors=[]))
+
+    exit_code = main(["release-check", "--artifacts-dir", str(artifacts), "--licenses-dir", str(licenses), "--write-sha256"])
+
+    assert exit_code == 0
+    assert calls == [[artifact]]
+    assert json.loads(capsys.readouterr().out) == {"ok": True, "errors": []}
