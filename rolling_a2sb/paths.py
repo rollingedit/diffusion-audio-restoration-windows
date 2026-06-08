@@ -42,6 +42,10 @@ def temp_dir() -> Path:
     return app_data_dir() / "temp"
 
 
+def cache_dir() -> Path:
+    return app_data_dir() / "cache"
+
+
 def settings_path() -> Path:
     return app_data_dir() / "settings.json"
 
@@ -67,8 +71,7 @@ def windows_config_dir() -> Path:
 
 
 def ensure_app_dirs() -> list[Path]:
-    dirs = [app_data_dir(), models_dir(), logs_dir(), jobs_dir(), temp_dir()]
+    dirs = [app_data_dir(), models_dir(), logs_dir(), jobs_dir(), temp_dir(), cache_dir()]
     for path in dirs:
         path.mkdir(parents=True, exist_ok=True)
     return dirs
-

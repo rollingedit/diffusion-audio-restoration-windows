@@ -51,6 +51,16 @@ Recommended two-split checkpoints total roughly 4.5 GB.
 
 Logs and job manifests should be written under user app data/log folders, not Program Files.
 
+## Caches
+
+Restore subprocesses should use app-owned cache folders under user app data:
+
+```text
+%LOCALAPPDATA%\RollingEdit\A2SB Restorer\cache\
+```
+
+The app sets Hugging Face, Torch, matplotlib, and XDG cache environment variables for restore workers so model/runtime cache files stay in the app-owned location.
+
 ## What Setup Does Not Install
 
 Setup must not silently install:
@@ -61,4 +71,3 @@ Setup must not silently install:
 - WSL.
 - Docker.
 - Checkpoint files without user confirmation.
-

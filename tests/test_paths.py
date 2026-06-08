@@ -14,9 +14,9 @@ def test_path_overrides_and_directory_creation(tmp_path: Path, monkeypatch) -> N
     assert paths.models_dir().exists()
     assert paths.jobs_dir().exists()
     assert paths.temp_dir().exists()
+    assert paths.cache_dir().exists()
     assert all(path.exists() for path in created)
 
 
 def test_engine_root_defaults_to_repo_root() -> None:
     assert (paths.engine_root() / "ensembled_inference_api.py").exists()
-

@@ -82,10 +82,13 @@ This file is local coordination material unless the user explicitly decides to p
 - Added GUI action/source tests for model download confirmation and progress formatting.
 - Added a GUI Logs tab with latest restore log display, copy log, and open logs folder actions.
 - Added GUI action/source tests for latest-log empty and newest-log behavior.
+- Added app-owned worker cache environment variables for Hugging Face, Torch, matplotlib, and XDG cache paths.
+- Documented app-owned cache location in setup disclosure.
+- Added path and worker tests for cache directory creation and worker environment values.
 
 ### Verified
 
-- `.\.venv\Scripts\python.exe -m pytest` passes with 89 tests.
+- `.\.venv\Scripts\python.exe -m pytest` passes with 90 tests.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --report` prints actionable next steps for missing Torch/checkpoints and sandboxed write permissions.
 - `powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist\installer -ValidateOnly` runs and correctly blocks release because artifacts are missing and license notices are placeholders.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.
