@@ -21,6 +21,7 @@ This file is local coordination material unless the user explicitly decides to p
 - Added CLI `open-model-folder` and `open-logs` helpers.
 - Added CLI `release-check` for release artifact validation and optional `SHA256SUMS.txt` regeneration.
 - Added CLI `release-status` and `scripts/release_status.ps1` so agents can inspect public-release blockers without treating the status report itself as a failed command.
+- Added grouped release blocker summaries to `release-status` so agents can choose the next public-release work package from the JSON report.
 - Added tests for downloader behavior, audio probing, error mapping, and runtime-check diagnostics.
 - Added runtime setup, repair, doctor, smoke restore, launcher build, and installer build PowerShell scripts with dry-run support where appropriate.
 - Added GitHub Actions CI and manual release-validation workflows that run tests/validation without publishing artifacts.

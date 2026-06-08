@@ -13,6 +13,7 @@ from rolling_a2sb.release import (
     project_release_version,
     release_status_summary,
     sha256_file,
+    summarize_blockers,
     validate_installer_metadata,
     validate_release_checklist,
     validate_release_payload_inputs,
@@ -1162,7 +1163,30 @@ def test_release_status_summary_reports_artifacts_and_blockers(tmp_path: Path) -
     assert summary["artifact_count"] == 1
     assert summary["artifacts"] == ["A2SB-Restorer-Setup.exe"]
     assert summary["blocker_count"] == len(summary["blockers"])
+    assert summary["blocker_summary"]["artifacts"] >= 1
     assert "a2sb release-check" in str(summary["next_command"])
+
+
+def test_summarize_blockers_groups_agent_work_packages() -> None:
+    summary = summarize_blockers(
+        [
+            "Missing release artifact: A2SB-Restorer-Setup.exe",
+            "Release payload input is missing: bin/ffmpeg.exe",
+            "Release checklist has unchecked item on line 7",
+            "License notice is still a release-blocking placeholder: FFMPEG_NOTICE.txt",
+            "Release evidence field is incomplete: Version",
+            "Unexpected custom failure",
+        ]
+    )
+
+    assert summary == {
+        "artifacts": 1,
+        "payload_inputs": 1,
+        "checklist": 1,
+        "licenses": 1,
+        "evidence": 1,
+        "other": 1,
+    }
 
 
 def test_release_validation_accepts_basic_artifacts(tmp_path: Path) -> None:

@@ -149,6 +149,18 @@ REQUIRED_EVIDENCE_PASS_FIELDS = [
     "Uninstall preserved user-downloaded models",
     "Release artifacts validated",
 ]
+CATEGORY_RULES = [
+    ("artifacts", ("artifact", "setup.exe", "sha256sums")),
+    ("licenses", ("license notice",)),
+    ("payload_inputs", ("payload input", "ffmpeg", "ffprobe", "app.ico")),
+    ("checklist", ("checklist",)),
+    ("runtime", ("runtime lockfile",)),
+    ("evidence", ("release evidence",)),
+    ("workflows", ("workflow", "ci workflow")),
+    ("installer", ("installer script", "inno")),
+    ("source_tree", ("release source path", "source file is missing")),
+    ("versions", ("version", "__version__")),
+]
 EVIDENCE_PATH_SUFFIXES = {
     "Doctor JSON path": (".json",),
     "Doctor report path": (".txt", ".md"),
@@ -195,6 +207,7 @@ def release_status_summary(folder: Path, licenses_dir: Path) -> dict[str, object
     artifacts_dir = Path(folder)
     artifacts = collect_release_artifacts(artifacts_dir)
     result = validate_release_artifacts(artifacts_dir, licenses_dir)
+    blocker_summary = summarize_blockers(result.errors)
     return {
         "ok": result.ok,
         "artifacts_dir": str(artifacts_dir),
@@ -202,11 +215,26 @@ def release_status_summary(folder: Path, licenses_dir: Path) -> dict[str, object
         "artifact_count": len(artifacts),
         "artifacts": [artifact.name for artifact in artifacts],
         "blocker_count": len(result.errors),
+        "blocker_summary": blocker_summary,
         "blockers": result.errors,
         "next_command": None
         if result.ok
         else "a2sb release-check --artifacts-dir dist/installer --licenses-dir LICENSES",
     }
+
+
+def summarize_blockers(errors: list[str]) -> dict[str, int]:
+    summary = {category: 0 for category, _ in CATEGORY_RULES}
+    summary["other"] = 0
+    for error in errors:
+        lower_error = error.lower()
+        for category, tokens in CATEGORY_RULES:
+            if any(token in lower_error for token in tokens):
+                summary[category] += 1
+                break
+        else:
+            summary["other"] += 1
+    return {category: count for category, count in summary.items() if count}
 
 
 def sha256_file(path: Path, chunk_size: int = 1024 * 1024) -> str:
