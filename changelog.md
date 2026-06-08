@@ -110,10 +110,11 @@ This file is local coordination material unless the user explicitly decides to p
 - Strengthened CLI and GUI action coverage for the official Hugging Face checkpoint download offer and copyable diagnostic report availability.
 - Added product safety tests guarding V1 non-goals: no WSL/Docker/SaaS/web path, no multi-GPU/AMD/Intel path, and no one-file Torch packaging.
 - Added a product safety test enforcing that the Windows product path bypasses the upstream `A2SB_upsample_api.py` shell wrapper and calls `ensembled_inference_api.py`.
+- Added explicit trusted-manual-checkpoint support to `scripts/smoke_restore.ps1` and tests for smoke-script restore defaults/runtime fallback.
 
 ### Verified
 
-- `.\.venv\Scripts\python.exe -m pytest` passes with 119 tests.
+- `.\.venv\Scripts\python.exe -m pytest` passes with 121 tests.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --report` prints actionable next steps for missing Torch/checkpoints and sandboxed write permissions.
 - `powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist\installer -ValidateOnly` runs and correctly blocks release because artifacts are missing and license notices are placeholders.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.

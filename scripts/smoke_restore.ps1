@@ -5,6 +5,7 @@ param(
     [string]$Output,
     [int]$Steps = 2,
     [string]$CheckpointFolder,
+    [switch]$TrustManualCheckpoints,
     [switch]$DryRun
 )
 
@@ -25,8 +26,8 @@ if (Test-Path $RuntimePython) {
 $args = @("-m", "rolling_a2sb.cli", "restore", "--input", $Input, "--steps", "$Steps")
 if ($Output) { $args += @("--output", $Output) }
 if ($CheckpointFolder) { $args += @("--checkpoint-folder", $CheckpointFolder) }
+if ($TrustManualCheckpoints) { $args += @("--trust-manual-checkpoints") }
 if ($DryRun) { $args += @("--dry-run") }
 
 & $Python @args
 exit $LASTEXITCODE
-
