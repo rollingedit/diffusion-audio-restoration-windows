@@ -6,6 +6,7 @@ from rolling_a2sb.gui_actions import (
     doctor_report_text,
     download_plan_text,
     download_recommended_model_text,
+    latest_restore_log_text,
     model_download_confirmation_text,
     prepare_restore_dry_run,
     restore_plan_text,
@@ -82,6 +83,24 @@ def test_audio_probe_text_reports_wav(tmp_path: Path) -> None:
 
     assert '"sample_rate": 8000' in text
     assert '"channels": 1' in text
+
+
+def test_latest_restore_log_text_reports_empty_folder(tmp_path: Path) -> None:
+    assert latest_restore_log_text(tmp_path / "jobs") == "No restore logs found."
+
+
+def test_latest_restore_log_text_reads_newest_log(tmp_path: Path) -> None:
+    old_log = tmp_path / "jobs" / "old" / "restore.log"
+    new_log = tmp_path / "jobs" / "new" / "restore.log"
+    old_log.parent.mkdir(parents=True)
+    new_log.parent.mkdir(parents=True)
+    old_log.write_text("old", encoding="utf-8")
+    new_log.write_text("new", encoding="utf-8")
+
+    text = latest_restore_log_text(tmp_path / "jobs")
+
+    assert "Latest restore log:" in text
+    assert "new" in text
 
 
 def test_prepare_restore_dry_run_returns_plan_and_log(tmp_path: Path, monkeypatch) -> None:

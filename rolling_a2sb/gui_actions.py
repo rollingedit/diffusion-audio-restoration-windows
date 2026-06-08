@@ -6,6 +6,7 @@ from pathlib import Path
 from .audio_probe import audio_info_dict, probe_audio
 from .checkpoint_manager import select_manual_checkpoint_folder
 from .downloader import build_download_plan, download_model
+from . import paths
 from .runtime_check import diagnostic_text, doctor
 from .workflow import RestorePreparation as DryRunRestorePlan
 from .workflow import prepare_restore
@@ -70,6 +71,15 @@ def download_recommended_model_text(mode: str = "twosplit", target_dir: Path | N
 
 def audio_probe_text(audio_path: Path) -> str:
     return json.dumps(audio_info_dict(probe_audio(audio_path)), indent=2)
+
+
+def latest_restore_log_text(log_root: Path | None = None) -> str:
+    root = log_root or paths.jobs_dir()
+    logs = sorted(Path(root).glob("*/restore.log"), key=lambda path: path.stat().st_mtime, reverse=True)
+    if not logs:
+        return "No restore logs found."
+    latest = logs[0]
+    return f"Latest restore log: {latest}\n\n{latest.read_text(encoding='utf-8', errors='replace')}"
 
 
 def select_checkpoint_folder_text(

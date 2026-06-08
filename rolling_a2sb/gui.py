@@ -10,6 +10,7 @@ from .gui_actions import (
     doctor_report_text,
     download_plan_text,
     download_recommended_model_text,
+    latest_restore_log_text,
     model_download_confirmation_text,
     prepare_restore_dry_run,
     restore_plan_text,
@@ -64,6 +65,7 @@ def run_gui() -> int:
             self.tabs = QTabWidget()
             self.tabs.addTab(self.build_restore_tab(), "Restore")
             self.tabs.addTab(self.build_setup_tab(), "Setup")
+            self.tabs.addTab(self.build_logs_tab(), "Logs")
             layout.addWidget(self.tabs, 1)
 
             self.setCentralWidget(root)
@@ -160,6 +162,29 @@ def run_gui() -> int:
             self.plan_button.clicked.connect(self.plan_restore)
             return tab
 
+        def build_logs_tab(self) -> QWidget:
+            tab = QWidget()
+            layout = QVBoxLayout(tab)
+
+            button_row = QHBoxLayout()
+            self.refresh_log_button = QPushButton("Show Latest Log")
+            self.copy_log_button = QPushButton("Copy Log")
+            self.open_logs_tab_button = QPushButton("Open Logs Folder")
+            button_row.addWidget(self.refresh_log_button)
+            button_row.addWidget(self.copy_log_button)
+            button_row.addWidget(self.open_logs_tab_button)
+            button_row.addStretch(1)
+            layout.addLayout(button_row)
+
+            self.log_view = QTextEdit()
+            self.log_view.setReadOnly(True)
+            layout.addWidget(self.log_view, 1)
+
+            self.refresh_log_button.clicked.connect(self.refresh_latest_log)
+            self.copy_log_button.clicked.connect(self.copy_log)
+            self.open_logs_tab_button.clicked.connect(lambda: self.open_folder(paths.logs_dir()))
+            return tab
+
         def refresh_report(self) -> None:
             report = doctor()
             self.status.setText("Ready" if report.get("ok") else "Setup needs attention")
@@ -188,6 +213,15 @@ def run_gui() -> int:
 
         def copy_report(self) -> None:
             QApplication.clipboard().setText(self.report.toPlainText())
+
+        def refresh_latest_log(self) -> None:
+            try:
+                self.log_view.setPlainText(latest_restore_log_text())
+            except Exception as exc:
+                self.log_view.setPlainText(format_user_error(exc))
+
+        def copy_log(self) -> None:
+            QApplication.clipboard().setText(self.log_view.toPlainText())
 
         def open_folder(self, folder: Path) -> None:
             folder.mkdir(parents=True, exist_ok=True)
