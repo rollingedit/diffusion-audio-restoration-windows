@@ -8,7 +8,12 @@ from pathlib import Path
 from . import paths
 from .audio_probe import audio_info_dict, probe_audio
 from .audio_prepare import prepare_audio
-from .checkpoint_manager import checkpoint_paths_from_validation, trusted_manual_checkpoint_warning, validate_checkpoint_folder
+from .checkpoint_manager import (
+    checkpoint_paths_from_validation,
+    select_manual_checkpoint_folder,
+    trusted_manual_checkpoint_warning,
+    validate_checkpoint_folder,
+)
 from .config_builder import RestoreConfigRequest, write_restore_config
 from .downloader import build_download_plan, download_model
 from .job import create_restore_job, with_config_path
@@ -32,6 +37,12 @@ def main(argv: list[str] | None = None) -> int:
     download_parser.add_argument("--yes", action="store_true", help="Confirm the multi-GB download.")
     download_parser.add_argument("--no-hash", action="store_true", help="Skip SHA256 calculation after download.")
     download_parser.add_argument("--force", action="store_true", help="Skip the free-space guard.")
+
+    select_parser = subparsers.add_parser("select-checkpoints")
+    select_parser.add_argument("folder", type=Path)
+    select_parser.add_argument("--model", choices=["twosplit", "onesplit"], default="twosplit")
+    select_parser.add_argument("--trust", action="store_true", help="Confirm the checkpoint folder is from a trusted source.")
+    select_parser.add_argument("--no-hash", action="store_true", help="Skip SHA256 calculation.")
 
     probe_parser = subparsers.add_parser("probe")
     probe_parser.add_argument("audio", type=Path)
@@ -97,6 +108,32 @@ def main(argv: list[str] | None = None) -> int:
             progress=lambda message: print(message, flush=True),
         )
         print(json.dumps({"ok": result.validation.ok, "manifest": str(result.manifest_path)}, indent=2))
+        return 0
+
+    if args.command == "select-checkpoints":
+        try:
+            validation, manifest_path = select_manual_checkpoint_folder(
+                args.folder,
+                mode=args.model,
+                trusted=args.trust,
+                compute_hashes=not args.no_hash,
+            )
+        except PermissionError as exc:
+            print(str(exc))
+            print("Rerun with --trust after confirming the source is trusted.")
+            return 2
+        print(
+            json.dumps(
+                {
+                    "ok": validation.ok,
+                    "mode": validation.mode,
+                    "folder": str(Path(args.folder).resolve()),
+                    "manifest": str(manifest_path),
+                    "files": [str(file.path) for file in validation.files],
+                },
+                indent=2,
+            )
+        )
         return 0
 
     if args.command == "probe":

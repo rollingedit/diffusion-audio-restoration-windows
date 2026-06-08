@@ -7,6 +7,7 @@ from rolling_a2sb.gui_actions import (
     download_plan_text,
     prepare_restore_dry_run,
     restore_plan_text,
+    select_checkpoint_folder_text,
 )
 
 
@@ -69,3 +70,28 @@ def test_prepare_restore_dry_run_returns_plan_and_log(tmp_path: Path, monkeypatc
     assert plan.partial_output_audio.endswith(".partial")
     assert "ensembled_inference_api.py" in " ".join(plan.command)
     assert '"partial_output_audio":' in restore_plan_text(plan)
+
+
+def test_select_checkpoint_folder_text_requires_trust(tmp_path: Path) -> None:
+    try:
+        select_checkpoint_folder_text(tmp_path / "models", trusted=False)
+    except PermissionError as exc:
+        assert "execute code" in str(exc)
+    else:
+        raise AssertionError("manual checkpoint selection should require trust")
+
+
+def test_select_checkpoint_folder_text_accepts_trusted_folder(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(tmp_path / "logs"))
+    monkeypatch.setattr("rolling_a2sb.gui_actions.select_manual_checkpoint_folder", lambda folder, mode, trusted: __import__(
+        "rolling_a2sb.checkpoint_manager", fromlist=["select_manual_checkpoint_folder"]
+    ).select_manual_checkpoint_folder(folder, mode=mode, trusted=trusted, min_size_bytes=1, compute_hashes=False))
+    folder = tmp_path / "models"
+    write_checkpoint(folder / "A2SB_twosplit_0.0_0.5_release.ckpt")
+    write_checkpoint(folder / "A2SB_twosplit_0.5_1.0_release.ckpt")
+
+    text = select_checkpoint_folder_text(folder, trusted=True)
+
+    assert '"ok": true' in text
+    assert "checkpoint_manifest.json" in text

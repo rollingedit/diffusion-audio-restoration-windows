@@ -33,6 +33,31 @@ def test_download_model_requires_confirmation(tmp_path: Path, capsys) -> None:
     assert "nvidia/audio_to_audio_schrodinger_bridge" in output
 
 
+def test_select_checkpoints_requires_trust(tmp_path: Path, capsys) -> None:
+    exit_code = main(["select-checkpoints", str(tmp_path / "models")])
+
+    assert exit_code == 2
+    assert "PyTorch checkpoint files can execute code" in capsys.readouterr().out
+
+
+def test_select_checkpoints_accepts_trusted_folder(tmp_path: Path, monkeypatch, capsys) -> None:
+    monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(tmp_path / "logs"))
+    monkeypatch.setattr("rolling_a2sb.cli.select_manual_checkpoint_folder", lambda folder, mode, trusted, compute_hashes: __import__(
+        "rolling_a2sb.checkpoint_manager", fromlist=["select_manual_checkpoint_folder"]
+    ).select_manual_checkpoint_folder(folder, mode=mode, trusted=trusted, min_size_bytes=1, compute_hashes=compute_hashes))
+    folder = tmp_path / "models"
+    write_checkpoint(folder / "A2SB_twosplit_0.0_0.5_release.ckpt")
+    write_checkpoint(folder / "A2SB_twosplit_0.5_1.0_release.ckpt")
+
+    exit_code = main(["select-checkpoints", str(folder), "--trust"])
+
+    assert exit_code == 0
+    output = capsys.readouterr().out
+    assert '"ok": true' in output
+    assert "checkpoint_manifest.json" in output
+
+
 def test_doctor_report_cli_prints_copyable_report(capsys) -> None:
     exit_code = main(["doctor", "--report"])
 

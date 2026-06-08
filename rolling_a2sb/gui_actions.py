@@ -6,7 +6,12 @@ from pathlib import Path
 
 from .audio_probe import audio_info_dict, probe_audio
 from .audio_prepare import prepare_audio
-from .checkpoint_manager import checkpoint_paths_from_validation, trusted_manual_checkpoint_warning, validate_checkpoint_folder
+from .checkpoint_manager import (
+    checkpoint_paths_from_validation,
+    select_manual_checkpoint_folder,
+    trusted_manual_checkpoint_warning,
+    validate_checkpoint_folder,
+)
 from .config_builder import RestoreConfigRequest, write_restore_config
 from .downloader import build_download_plan
 from .job import create_restore_job, with_config_path
@@ -52,6 +57,24 @@ def download_plan_text(mode: str = "twosplit", target_dir: Path | None = None) -
 
 def audio_probe_text(audio_path: Path) -> str:
     return json.dumps(audio_info_dict(probe_audio(audio_path)), indent=2)
+
+
+def select_checkpoint_folder_text(
+    folder: Path,
+    mode: str = "twosplit",
+    trusted: bool = False,
+) -> str:
+    validation, manifest_path = select_manual_checkpoint_folder(folder, mode=mode, trusted=trusted)
+    return json.dumps(
+        {
+            "ok": validation.ok,
+            "mode": validation.mode,
+            "folder": str(Path(folder).resolve()),
+            "manifest": str(manifest_path),
+            "files": [str(file.path) for file in validation.files],
+        },
+        indent=2,
+    )
 
 
 def prepare_restore_dry_run(

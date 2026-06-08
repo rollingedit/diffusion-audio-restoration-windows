@@ -165,3 +165,37 @@ def trusted_manual_checkpoint_warning() -> str:
         "PyTorch checkpoint files can execute code when loaded. Only use checkpoint "
         "files from NVIDIA's official Hugging Face repository or another source you trust."
     )
+
+
+def select_manual_checkpoint_folder(
+    folder: Path,
+    mode: str = "twosplit",
+    trusted: bool = False,
+    min_size_bytes: int = MIN_CKPT_SIZE_BYTES,
+    compute_hashes: bool = True,
+) -> tuple[CheckpointValidation, Path]:
+    if not trusted:
+        raise PermissionError(trusted_manual_checkpoint_warning())
+
+    validation = validate_checkpoint_folder(
+        folder,
+        mode=mode,
+        min_size_bytes=min_size_bytes,
+        compute_hashes=compute_hashes,
+    )
+    if not validation.ok:
+        details = "; ".join(validation.errors + [f"missing {name}" for name in validation.missing])
+        raise ValueError(f"Checkpoint validation failed: {details}")
+
+    manifest = manifest_from_validation(validation, source="manual-trusted")
+    manifest_path = save_manifest(manifest, Path(folder) / "checkpoint_manifest.json")
+
+    from .settings import update_settings
+
+    update_settings(
+        model_mode=mode,
+        checkpoint_folder=str(Path(folder).resolve()),
+        checkpoint_manifest=str(manifest_path.resolve()),
+        trusted_manual_checkpoint_folder=True,
+    )
+    return validation, manifest_path
