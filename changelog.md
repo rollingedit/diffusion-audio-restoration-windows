@@ -89,10 +89,12 @@ This file is local coordination material unless the user explicitly decides to p
 - Added shared restore execution workflow for prepare/run/log/result handling and moved CLI non-dry-run restore onto that shared executor.
 - Wired the GUI Restore button to execute through a background `QThread`, show preparing/restoring state text, surface failures, refresh logs, and enable Open Output Folder after a successful result.
 - Added GUI action/source and workflow tests for restore execution output, nonblocking GUI wiring, and job-log writes.
+- Added launcher message-box errors for windowed setup/app launch failures so repair guidance is visible to normal users.
+- Added installer/launcher tests proving uninstall does not delete user model data and launcher packaging remains one-folder without bundled Torch.
 
 ### Verified
 
-- `.\.venv\Scripts\python.exe -m pytest` passes with 93 tests.
+- `.\.venv\Scripts\python.exe -m pytest` passes with 96 tests.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --report` prints actionable next steps for missing Torch/checkpoints and sandboxed write permissions.
 - `powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist\installer -ValidateOnly` runs and correctly blocks release because artifacts are missing and license notices are placeholders.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.

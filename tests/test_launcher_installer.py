@@ -12,6 +12,14 @@ def test_launcher_uses_runtime_python_and_app_module() -> None:
     assert "shell=False" in text
 
 
+def test_launcher_surfaces_setup_failures_for_windowed_exe() -> None:
+    text = (ROOT / "launcher" / "launcher.py").read_text(encoding="utf-8")
+
+    assert "MessageBoxW" in text
+    assert "A2SB Restorer setup failed" in text
+    assert "Repair Runtime" in text
+
+
 def test_inno_installer_is_per_user_and_has_shortcuts() -> None:
     text = (ROOT / "installer" / "a2sb-restorer.iss").read_text(encoding="utf-8")
 
@@ -29,3 +37,19 @@ def test_inno_installer_does_not_include_checkpoint_patterns() -> None:
     assert "*.ckpt" not in text
     assert "models\\*" not in text
 
+
+def test_inno_uninstall_does_not_delete_user_model_data() -> None:
+    text = (ROOT / "installer" / "a2sb-restorer.iss").read_text(encoding="utf-8")
+
+    uninstall_section = text.split("[UninstallDelete]", 1)[1]
+    assert "{app}\\runtime" in uninstall_section
+    assert "models" not in uninstall_section.lower()
+    assert "RollingEdit\\A2SB` Restorer\\models" not in uninstall_section
+
+
+def test_launcher_spec_uses_one_folder_not_one_file_torch_bundle() -> None:
+    text = (ROOT / "launcher" / "launcher.spec").read_text(encoding="utf-8")
+
+    assert "COLLECT(" in text
+    assert "exclude_binaries=True" in text
+    assert "torch" not in text.lower()

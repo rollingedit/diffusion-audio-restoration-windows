@@ -35,6 +35,8 @@ Core runtime packages include:
 - Hugging Face Hub.
 - PySide6.
 
+The launcher starts runtime setup on first launch if the private runtime is missing. If setup fails, the launcher should show a visible error and the Start Menu Repair Runtime shortcut should rerun setup in repair mode.
+
 ## Model Files
 
 The installer should not include model checkpoints by default.
@@ -71,3 +73,5 @@ Setup must not silently install:
 - WSL.
 - Docker.
 - Checkpoint files without user confirmation.
+
+Uninstall should remove installed app files and the private runtime under the install folder. It must not silently delete user-downloaded model checkpoints under user app data.

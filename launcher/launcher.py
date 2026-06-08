@@ -63,14 +63,32 @@ def launch_app(root: Path) -> int:
     return completed.returncode
 
 
+def show_error(title: str, message: str) -> None:
+    try:
+        import ctypes
+
+        ctypes.windll.user32.MessageBoxW(None, message, title, 0x10)
+    except Exception:
+        print(f"{title}: {message}", file=sys.stderr)
+
+
 def main() -> int:
     root = app_root()
     setup_code = ensure_runtime(root)
     if setup_code != 0:
+        show_error(
+            "A2SB Restorer setup failed",
+            "Runtime setup failed. Use the Start Menu Repair Runtime shortcut, then run A2SB Doctor.",
+        )
         return setup_code
-    return launch_app(root)
+    app_code = launch_app(root)
+    if app_code != 0:
+        show_error(
+            "A2SB Restorer failed",
+            "The app exited with an error. Use Copy Diagnostic Report or the Open Logs shortcut for details.",
+        )
+    return app_code
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
