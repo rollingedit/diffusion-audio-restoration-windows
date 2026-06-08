@@ -72,6 +72,7 @@ def test_installer_build_requires_launcher_output_before_packaging() -> None:
     assert 'dist\\A2SB Restorer\\A2SB Restorer.exe' in text
     assert "Run scripts\\build_launcher.ps1 first" in text
     assert text.index("Launcher EXE missing") < text.index("Get-Command ISCC.exe")
+    assert 'Programs\\Inno Setup 6\\ISCC.exe' in text
 
 
 def test_inno_launcher_payload_is_mandatory() -> None:
@@ -80,6 +81,17 @@ def test_inno_launcher_payload_is_mandatory() -> None:
 
     assert launcher_lines
     assert all("skipifsourcedoesntexist" not in line.lower() for line in launcher_lines)
+
+
+def test_inno_source_payload_excludes_cache_and_finder_metadata() -> None:
+    text = (ROOT / "installer" / "a2sb-restorer.iss").read_text(encoding="utf-8")
+    recursive_lines = [line for line in text.splitlines() if "Flags: recursesubdirs" in line and "..\\dist\\A2SB Restorer\\*" not in line]
+
+    assert recursive_lines
+    for line in recursive_lines:
+        assert "*\\__pycache__\\*" in line
+        assert "*.pyc" in line
+        assert ".DS_Store" in line
 
 
 def test_installer_build_requires_ffmpeg_binaries_before_packaging() -> None:
@@ -126,6 +138,7 @@ def test_installer_build_stages_release_docs_before_checksums() -> None:
     assert '$Notices = Join-Path $AppRoot "LICENSE-NOTICES.txt"' in text
     assert 'Copy-Item -Force -Path $Readme -Destination (Join-Path $ArtifactsDir "README-WINDOWS.md")' in text
     assert 'Copy-Item -Force -Path $Notices -Destination (Join-Path $ArtifactsDir "LICENSE-NOTICES.txt")' in text
+    assert '-GenerateOnly' in text
     assert text.index("Copy-Item -Force -Path $Readme") < text.index("write_sha256sums.ps1")
     assert text.index("Copy-Item -Force -Path $Notices") < text.index("write_sha256sums.ps1")
 

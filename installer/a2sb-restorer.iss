@@ -29,16 +29,16 @@ LicenseFile=..\LICENSES\NVIDIA_A2SB_LICENSE.txt
 SetupIconFile=assets\app.ico
 
 [Files]
-Source: "..\rolling_a2sb\*"; DestDir: "{app}\rolling_a2sb"; Flags: recursesubdirs ignoreversion
-Source: "..\audio_transforms\*"; DestDir: "{app}\audio_transforms"; Flags: recursesubdirs ignoreversion
-Source: "..\configs\*"; DestDir: "{app}\configs"; Flags: recursesubdirs ignoreversion
-Source: "..\corruption\*"; DestDir: "{app}\corruption"; Flags: recursesubdirs ignoreversion
-Source: "..\datasets\*"; DestDir: "{app}\datasets"; Flags: recursesubdirs ignoreversion
-Source: "..\inference\*"; DestDir: "{app}\inference"; Flags: recursesubdirs ignoreversion
-Source: "..\requirements\*"; DestDir: "{app}\requirements"; Flags: recursesubdirs ignoreversion
-Source: "..\scripts\*"; DestDir: "{app}\scripts"; Flags: recursesubdirs ignoreversion
-Source: "..\docs\*"; DestDir: "{app}\docs"; Flags: recursesubdirs ignoreversion
-Source: "..\LICENSES\*"; DestDir: "{app}\LICENSES"; Flags: recursesubdirs ignoreversion
+Source: "..\rolling_a2sb\*"; DestDir: "{app}\rolling_a2sb"; Flags: recursesubdirs ignoreversion; Excludes: "*.pyc,*\__pycache__\*,.DS_Store,*.DS_Store"
+Source: "..\audio_transforms\*"; DestDir: "{app}\audio_transforms"; Flags: recursesubdirs ignoreversion; Excludes: "*.pyc,*\__pycache__\*,.DS_Store,*.DS_Store"
+Source: "..\configs\*"; DestDir: "{app}\configs"; Flags: recursesubdirs ignoreversion; Excludes: "*.pyc,*\__pycache__\*,.DS_Store,*.DS_Store"
+Source: "..\corruption\*"; DestDir: "{app}\corruption"; Flags: recursesubdirs ignoreversion; Excludes: "*.pyc,*\__pycache__\*,.DS_Store,*.DS_Store"
+Source: "..\datasets\*"; DestDir: "{app}\datasets"; Flags: recursesubdirs ignoreversion; Excludes: "*.pyc,*\__pycache__\*,.DS_Store,*.DS_Store"
+Source: "..\inference\*"; DestDir: "{app}\inference"; Flags: recursesubdirs ignoreversion; Excludes: "*.pyc,*\__pycache__\*,.DS_Store,*.DS_Store"
+Source: "..\requirements\*"; DestDir: "{app}\requirements"; Flags: recursesubdirs ignoreversion; Excludes: "*.pyc,*\__pycache__\*,.DS_Store,*.DS_Store"
+Source: "..\scripts\*"; DestDir: "{app}\scripts"; Flags: recursesubdirs ignoreversion; Excludes: "*.pyc,*\__pycache__\*,.DS_Store,*.DS_Store"
+Source: "..\docs\*"; DestDir: "{app}\docs"; Flags: recursesubdirs ignoreversion; Excludes: "*.pyc,*\__pycache__\*,.DS_Store,*.DS_Store"
+Source: "..\LICENSES\*"; DestDir: "{app}\LICENSES"; Flags: recursesubdirs ignoreversion; Excludes: "*.pyc,*\__pycache__\*,.DS_Store,*.DS_Store"
 Source: "..\bin\ffmpeg.exe"; DestDir: "{app}\bin"; Flags: ignoreversion
 Source: "..\bin\ffprobe.exe"; DestDir: "{app}\bin"; Flags: ignoreversion
 Source: "..\A2SB_lightning_module.py"; DestDir: "{app}"; Flags: ignoreversion

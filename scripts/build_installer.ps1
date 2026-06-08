@@ -46,12 +46,21 @@ if (-not (Test-Path $Notices)) {
     throw "License notices missing: $Notices"
 }
 
-$iscc = Get-Command ISCC.exe -ErrorAction SilentlyContinue
+$iscc = (Get-Command ISCC.exe -ErrorAction SilentlyContinue).Source
+if (-not $iscc) {
+    $LocalInno = Join-Path $env:LOCALAPPDATA "Programs\Inno Setup 6\ISCC.exe"
+    $ProgramFilesInno = Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6\ISCC.exe"
+    if (Test-Path $LocalInno) {
+        $iscc = $LocalInno
+    } elseif (Test-Path $ProgramFilesInno) {
+        $iscc = $ProgramFilesInno
+    }
+}
 if (-not $iscc) {
     throw "ISCC.exe was not found. Install Inno Setup before building the installer."
 }
 
-& $iscc.Source $Iss
+& $iscc $Iss
 if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
@@ -60,5 +69,5 @@ New-Item -ItemType Directory -Force -Path $ArtifactsDir | Out-Null
 Copy-Item -Force -Path $Readme -Destination (Join-Path $ArtifactsDir "README-WINDOWS.md")
 Copy-Item -Force -Path $Notices -Destination (Join-Path $ArtifactsDir "LICENSE-NOTICES.txt")
 
-& (Join-Path $ScriptDir "write_sha256sums.ps1") -ArtifactsDir "dist\installer"
+& (Join-Path $ScriptDir "write_sha256sums.ps1") -ArtifactsDir "dist\installer" -GenerateOnly
 exit $LASTEXITCODE

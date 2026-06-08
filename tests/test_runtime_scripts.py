@@ -60,3 +60,11 @@ def test_smoke_restore_can_trust_manual_checkpoint_folder_explicitly() -> None:
     assert "[switch]$TrustManualCheckpoints" in text
     assert 'if ($CheckpointFolder) { $args += @("--checkpoint-folder", $CheckpointFolder) }' in text
     assert 'if ($TrustManualCheckpoints) { $args += @("--trust-manual-checkpoints") }' in text
+
+
+def test_write_sha256sums_can_generate_without_release_validation() -> None:
+    text = (ROOT / "scripts" / "write_sha256sums.ps1").read_text(encoding="utf-8")
+
+    assert "[switch]$GenerateOnly" in text
+    assert "raise SystemExit(0)" in text
+    assert "validate_release_artifacts" in text

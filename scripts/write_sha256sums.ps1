@@ -1,7 +1,8 @@
 param(
     [string]$ArtifactsDir = "dist\installer",
     [string]$Output = "SHA256SUMS.txt",
-    [switch]$ValidateOnly
+    [switch]$ValidateOnly,
+    [switch]$GenerateOnly
 )
 
 $ErrorActionPreference = "Stop"
@@ -30,6 +31,9 @@ output_path = Path(r'''$OutputPath''')
 artifacts = collect_release_artifacts(artifacts_dir)
 if not $($ValidateOnlyPython):
     write_sha256sums(artifacts, output_path)
+if $($GenerateOnly.IsPresent.ToString()):
+    print(output_path)
+    raise SystemExit(0)
 result = validate_release_artifacts(artifacts_dir, licenses_dir)
 for error in result.errors:
     print(error)

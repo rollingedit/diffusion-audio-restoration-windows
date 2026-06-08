@@ -27,6 +27,9 @@ This file is local coordination material unless the user explicitly decides to p
 - Added `scripts/generate_icon.ps1`, generated `installer/assets/app.ico`, and visually checked the icon preview for installer packaging.
 - Added `scripts/fetch_ffmpeg.ps1` to fetch BtbN Windows x64 LGPL FFmpeg builds, stage `bin/ffmpeg.exe` and `bin/ffprobe.exe`, and write `bin/ffmpeg-manifest.json` for release evidence.
 - Fetched `ffmpeg-master-latest-win64-lgpl.zip` from BtbN, staged local `bin\ffmpeg.exe` and `bin\ffprobe.exe`, and recorded SHA256 hashes in `bin\ffmpeg-manifest.json`; the large executables remain intentionally untracked.
+- Built the local PyInstaller one-folder launcher output at `dist\A2SB Restorer\A2SB Restorer.exe`; build outputs remain intentionally untracked.
+- Installed Inno Setup locally, built `dist\installer\A2SB-Restorer-Setup.exe`, staged Windows README/license notices, and generated `SHA256SUMS.txt`; release validation still blocks on unchecked checklist/evidence and public-ready README text.
+- Updated installer build scripting so setup compilation/checksum generation can exit 0 while `a2sb release-check` remains the separate public-release gate.
 - Added tests for downloader behavior, audio probing, error mapping, and runtime-check diagnostics.
 - Added runtime setup, repair, doctor, smoke restore, launcher build, and installer build PowerShell scripts with dry-run support where appropriate.
 - Added GitHub Actions CI and manual release-validation workflows that run tests/validation without publishing artifacts.
@@ -184,7 +187,7 @@ This file is local coordination material unless the user explicitly decides to p
 
 ### Verified
 
-- `.\.venv\Scripts\python.exe -m pytest` passes with 199 tests.
+- `.\.venv\Scripts\python.exe -m pytest` passes with 204 tests.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --report` prints actionable next steps for missing Torch/checkpoints and sandboxed write permissions.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli release-status --artifacts-dir dist\installer --licenses-dir LICENSES` reports the current blocker groups without any remaining license-notice category.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.
