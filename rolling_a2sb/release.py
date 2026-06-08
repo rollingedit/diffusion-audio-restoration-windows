@@ -131,6 +131,14 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
     if not artifacts:
         errors.append(f"No release artifacts found in {folder}")
 
+    installer_version = installer_release_version(source_root / "installer" / "a2sb-restorer.iss")
+    project_version = project_release_version(source_root / "pyproject.toml")
+    module_version = package_init_version(source_root / "rolling_a2sb" / "__init__.py")
+    if project_version and module_version and project_version != module_version:
+        errors.append("Python package version does not match rolling_a2sb.__version__")
+    if installer_version and project_version and installer_version != project_version.replace("a0", "-alpha"):
+        errors.append("Installer version does not match Python package release label")
+
     artifact_names = {artifact.name for artifact in artifacts}
     for required in REQUIRED_RELEASE_ARTIFACTS:
         if required not in artifact_names:
@@ -193,7 +201,7 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
     errors.extend(
         validate_release_evidence(
             source_root / "docs" / "RELEASE_EVIDENCE.md",
-            expected_version=installer_release_version(source_root / "installer" / "a2sb-restorer.iss"),
+            expected_version=installer_version,
             expected_git_commit=git_head_commit(source_root),
             expected_installer_filename="A2SB-Restorer-Setup.exe",
             expected_installer_sha256=expected_installer_sha256,
@@ -278,6 +286,22 @@ def installer_release_version(installer_path: Path) -> str | None:
     if not path.exists():
         return None
     match = re.search(r'^#define MyAppVersion "([^"]+)"$', path.read_text(encoding="utf-8"), flags=re.MULTILINE)
+    return match.group(1) if match else None
+
+
+def project_release_version(pyproject_path: Path) -> str | None:
+    path = Path(pyproject_path)
+    if not path.exists():
+        return None
+    match = re.search(r'^version = "([^"]+)"$', path.read_text(encoding="utf-8"), flags=re.MULTILINE)
+    return match.group(1) if match else None
+
+
+def package_init_version(init_path: Path) -> str | None:
+    path = Path(init_path)
+    if not path.exists():
+        return None
+    match = re.search(r'^__version__ = "([^"]+)"$', path.read_text(encoding="utf-8"), flags=re.MULTILINE)
     return match.group(1) if match else None
 
 

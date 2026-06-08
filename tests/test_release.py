@@ -8,7 +8,9 @@ from rolling_a2sb.release import (
     collect_release_artifacts,
     git_head_commit,
     installer_release_version,
+    package_init_version,
     parse_checksum_file,
+    project_release_version,
     sha256_file,
     validate_release_artifacts,
     validate_release_evidence,
@@ -34,6 +36,16 @@ def write_setup_exe(path: Path) -> None:
 def write_release_sources(root: Path, readme_text: str = "readme", notices_text: str = "notices") -> None:
     (root / "README-WINDOWS.md").write_text(readme_text, encoding="utf-8")
     (root / "LICENSE-NOTICES.txt").write_text(notices_text, encoding="utf-8")
+
+
+def write_version_sources(root: Path, project_version: str = "0.1.0a0", package_version: str = "0.1.0a0", installer_version: str = "0.1.0-alpha") -> None:
+    (root / "pyproject.toml").write_text(f'[project]\nversion = "{project_version}"\n', encoding="utf-8")
+    package = root / "rolling_a2sb"
+    package.mkdir(parents=True, exist_ok=True)
+    (package / "__init__.py").write_text(f'__version__ = "{package_version}"\n', encoding="utf-8")
+    installer = root / "installer"
+    installer.mkdir(parents=True, exist_ok=True)
+    (installer / "a2sb-restorer.iss").write_text(f'#define MyAppVersion "{installer_version}"\n', encoding="utf-8")
 
 
 def write_release_evidence(
@@ -308,6 +320,13 @@ def test_installer_release_version_reads_inno_define(tmp_path: Path) -> None:
     installer.write_text('#define MyAppVersion "0.2.0"\n', encoding="utf-8")
 
     assert installer_release_version(installer) == "0.2.0"
+
+
+def test_project_and_package_version_helpers_read_sources(tmp_path: Path) -> None:
+    write_version_sources(tmp_path, project_version="0.2.0", package_version="0.2.0", installer_version="0.2.0")
+
+    assert project_release_version(tmp_path / "pyproject.toml") == "0.2.0"
+    assert package_init_version(tmp_path / "rolling_a2sb" / "__init__.py") == "0.2.0"
 
 
 def test_git_head_commit_reads_loose_ref(tmp_path: Path) -> None:
@@ -639,6 +658,29 @@ def test_release_validation_requires_source_docs_for_staged_docs(tmp_path: Path)
     assert not result.ok
     assert "Release source file is missing: README-WINDOWS.md" in result.errors
     assert "Release source file is missing: LICENSE-NOTICES.txt" in result.errors
+
+
+def test_release_validation_rejects_version_source_mismatch(tmp_path: Path) -> None:
+    artifacts = tmp_path / "artifacts"
+    licenses = tmp_path / "LICENSES"
+    artifacts.mkdir()
+    setup = artifacts / "A2SB-Restorer-Setup.exe"
+    readme = artifacts / "README-WINDOWS.md"
+    notices = artifacts / "LICENSE-NOTICES.txt"
+    write_setup_exe(setup)
+    readme.write_text("readme", encoding="utf-8")
+    notices.write_text("notices", encoding="utf-8")
+    write_release_sources(tmp_path)
+    write_release_evidence(tmp_path, installer_sha256=sha256_file(setup))
+    write_version_sources(tmp_path, project_version="0.1.0a0", package_version="0.2.0", installer_version="9.9.9")
+    write_sha256sums([setup, readme, notices], artifacts / "SHA256SUMS.txt")
+    write_notices(licenses)
+
+    result = validate_release_artifacts(artifacts, licenses)
+
+    assert not result.ok
+    assert "Python package version does not match rolling_a2sb.__version__" in result.errors
+    assert "Installer version does not match Python package release label" in result.errors
 
 
 def test_release_validation_accepts_basic_artifacts(tmp_path: Path) -> None:
