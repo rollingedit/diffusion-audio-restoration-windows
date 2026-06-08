@@ -75,6 +75,7 @@ REQUIRED_RELEASE_SOURCE_PATHS = [
     "scripts/repair_runtime.ps1",
     "scripts/build_launcher.ps1",
     "scripts/build_installer.ps1",
+    "scripts/collect_release_evidence.ps1",
     "scripts/smoke_restore.ps1",
     "scripts/doctor.ps1",
     "scripts/fetch_ffmpeg.ps1",

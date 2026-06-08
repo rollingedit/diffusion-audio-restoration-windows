@@ -23,6 +23,7 @@ models/
 logs/
 jobs/
 temp/
+evidence/
 checkpoint_manifest.json
 settings.json
 

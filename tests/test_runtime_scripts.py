@@ -68,3 +68,14 @@ def test_write_sha256sums_can_generate_without_release_validation() -> None:
     assert "[switch]$GenerateOnly" in text
     assert "raise SystemExit(0)" in text
     assert "validate_release_artifacts" in text
+
+
+def test_collect_release_evidence_records_build_facts_without_smoke_claims() -> None:
+    text = (ROOT / "scripts" / "collect_release_evidence.ps1").read_text(encoding="utf-8")
+
+    assert "release_build_facts.json" in text
+    assert "A2SB-Restorer-Setup.exe" in text
+    assert "ffmpeg-manifest.json" in text
+    assert "git rev-parse HEAD" in text
+    assert "nvidia-smi --query-gpu=name" in text
+    assert "Restore produced a WAV" not in text
