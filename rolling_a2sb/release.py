@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -99,6 +100,8 @@ REQUIRED_EVIDENCE_FIELDS = [
     "Installer SHA256",
     "FFmpeg build filename",
     "FFmpeg source URL",
+    "FFmpeg SHA256",
+    "ffprobe SHA256",
 ]
 REQUIRED_EVIDENCE_COMMAND_FIELDS = [
     "Runtime setup",
@@ -121,6 +124,7 @@ REQUIRED_EVIDENCE_FILE_FIELDS = [
     "Restore log path",
     "Input test audio path",
     "Output WAV path",
+    "FFmpeg manifest path",
     "Screenshot of ready Setup tab",
     "Screenshot of completed Restore tab",
     "Screenshot of Start Menu shortcuts",
@@ -131,6 +135,8 @@ REQUIRED_EVIDENCE_FILE_FIELDS = [
 ]
 EVIDENCE_SHA256_FIELDS = [
     "Installer SHA256",
+    "FFmpeg SHA256",
+    "ffprobe SHA256",
     "Input file hash before restore",
     "Input file hash after restore",
 ]
@@ -154,7 +160,7 @@ REQUIRED_EVIDENCE_PASS_FIELDS = [
 CATEGORY_RULES = [
     ("artifacts", ("artifact", "setup.exe", "sha256sums")),
     ("licenses", ("license notice",)),
-    ("payload_inputs", ("payload input", "ffmpeg", "ffprobe", "app.ico")),
+    ("payload_inputs", ("payload input", "ffmpeg.exe", "ffprobe.exe", "app.ico", "ffmpeg-manifest.json")),
     ("checklist", ("checklist",)),
     ("runtime", ("runtime lockfile",)),
     ("evidence", ("release evidence",)),
@@ -171,6 +177,7 @@ EVIDENCE_PATH_SUFFIXES = {
     "Restore log path": (".log", ".txt"),
     "Input test audio path": (".wav", ".mp3", ".flac"),
     "Output WAV path": (".wav",),
+    "FFmpeg manifest path": (".json",),
     "Screenshot of ready Setup tab": (".png",),
     "Screenshot of completed Restore tab": (".png",),
     "Screenshot of Start Menu shortcuts": (".png",),
@@ -696,6 +703,7 @@ def validate_release_payload_inputs(source_root: Path) -> list[str]:
         with path.open("rb") as handle:
             if handle.read(2) != b"MZ":
                 errors.append(f"Release payload input is not a Windows executable: {label}")
+    errors.extend(validate_ffmpeg_manifest(root))
 
     icon = root / "installer" / "assets" / "app.ico"
     if not icon.exists() or not icon.is_file():
@@ -704,6 +712,46 @@ def validate_release_payload_inputs(source_root: Path) -> list[str]:
         with icon.open("rb") as handle:
             if handle.read(4) != b"\x00\x00\x01\x00":
                 errors.append("Release payload input is not a Windows icon: installer/assets/app.ico")
+    return errors
+
+
+def validate_ffmpeg_manifest(source_root: Path) -> list[str]:
+    root = Path(source_root)
+    manifest_path = root / "bin" / "ffmpeg-manifest.json"
+    if not manifest_path.exists():
+        return ["Release payload input is missing: bin/ffmpeg-manifest.json"]
+
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+    except json.JSONDecodeError:
+        return ["Release payload manifest is not valid JSON: bin/ffmpeg-manifest.json"]
+
+    errors: list[str] = []
+    expected = {
+        "source": "BtbN FFmpeg Builds",
+        "ffmpeg": "bin/ffmpeg.exe",
+        "ffprobe": "bin/ffprobe.exe",
+    }
+    for key, value in expected.items():
+        if manifest.get(key) != value:
+            errors.append(f"Release payload manifest has unexpected {key}: bin/ffmpeg-manifest.json")
+
+    asset = str(manifest.get("asset", ""))
+    asset_lower = asset.lower()
+    if not (asset_lower.startswith("ffmpeg-") and "win64" in asset_lower and "lgpl" in asset_lower and asset_lower.endswith(".zip")):
+        errors.append("Release payload manifest must record a Windows x64 LGPL FFmpeg ZIP")
+
+    url = str(manifest.get("url", ""))
+    if not url.startswith("https://github.com/BtbN/FFmpeg-Builds"):
+        errors.append("Release payload manifest must use the approved BtbN FFmpeg Builds URL")
+
+    for name, hash_key in [("ffmpeg.exe", "ffmpeg_sha256"), ("ffprobe.exe", "ffprobe_sha256")]:
+        exe_path = root / "bin" / name
+        digest = manifest.get(hash_key)
+        if not isinstance(digest, str) or not SHA256_RE.match(digest):
+            errors.append(f"Release payload manifest is missing SHA256: {hash_key}")
+        elif exe_path.exists() and exe_path.is_file() and digest.lower() != sha256_file(exe_path):
+            errors.append(f"Release payload manifest hash does not match: {name}")
     return errors
 
 

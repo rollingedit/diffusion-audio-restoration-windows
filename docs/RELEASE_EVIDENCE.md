@@ -16,6 +16,9 @@ Complete this file before any public release. Do not replace checklist items wit
 - Installer SHA256:
 - FFmpeg build filename:
 - FFmpeg source URL:
+- FFmpeg manifest path:
+- FFmpeg SHA256:
+- ffprobe SHA256:
 
 ## Commands
 

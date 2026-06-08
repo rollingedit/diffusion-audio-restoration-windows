@@ -26,6 +26,7 @@ This file is local coordination material unless the user explicitly decides to p
 - Added `requirements/lock-win-cu121.txt` with the pinned CUDA runtime stack used by release validation; real Windows/CUDA smoke verification remains required before public release.
 - Added `scripts/generate_icon.ps1`, generated `installer/assets/app.ico`, and visually checked the icon preview for installer packaging.
 - Added `scripts/fetch_ffmpeg.ps1` to fetch BtbN Windows x64 LGPL FFmpeg builds, stage `bin/ffmpeg.exe` and `bin/ffprobe.exe`, and write `bin/ffmpeg-manifest.json` for release evidence.
+- Fetched `ffmpeg-master-latest-win64-lgpl.zip` from BtbN, staged local `bin\ffmpeg.exe` and `bin\ffprobe.exe`, and recorded SHA256 hashes in `bin\ffmpeg-manifest.json`; the large executables remain intentionally untracked.
 - Added tests for downloader behavior, audio probing, error mapping, and runtime-check diagnostics.
 - Added runtime setup, repair, doctor, smoke restore, launcher build, and installer build PowerShell scripts with dry-run support where appropriate.
 - Added GitHub Actions CI and manual release-validation workflows that run tests/validation without publishing artifacts.

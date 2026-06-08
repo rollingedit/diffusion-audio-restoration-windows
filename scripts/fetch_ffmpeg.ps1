@@ -66,6 +66,9 @@ foreach ($exe in @("ffmpeg.exe", "ffprobe.exe")) {
     }
 }
 
+$ffmpegOutput = Join-Path $OutputDir "ffmpeg.exe"
+$ffprobeOutput = Join-Path $OutputDir "ffprobe.exe"
+
 $manifest = [ordered]@{
     source = "BtbN FFmpeg Builds"
     release_api = $ReleaseApi
@@ -73,9 +76,13 @@ $manifest = [ordered]@{
     url = $asset.browser_download_url
     output_dir = $OutDir
     ffmpeg = "bin/ffmpeg.exe"
+    ffmpeg_sha256 = (Get-FileHash $ffmpegOutput -Algorithm SHA256).Hash.ToLowerInvariant()
     ffprobe = "bin/ffprobe.exe"
+    ffprobe_sha256 = (Get-FileHash $ffprobeOutput -Algorithm SHA256).Hash.ToLowerInvariant()
 }
 $manifestPath = Join-Path $OutputDir "ffmpeg-manifest.json"
-$manifest | ConvertTo-Json -Depth 3 | Set-Content -Encoding UTF8 -Path $manifestPath
+$manifestJson = $manifest | ConvertTo-Json -Depth 3
+$utf8NoBom = New-Object System.Text.UTF8Encoding $false
+[System.IO.File]::WriteAllText($manifestPath, $manifestJson + [Environment]::NewLine, $utf8NoBom)
 
 Write-Host "Wrote $manifestPath"

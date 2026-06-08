@@ -13,6 +13,7 @@ Do not publish a release until every required item is checked with evidence. Rec
 - [ ] CUDA is available through PyTorch.
 - [ ] Bundled FFmpeg and ffprobe are detected.
 - [ ] `scripts\fetch_ffmpeg.ps1` was used, or the exact equivalent BtbN Windows x64 LGPL build source is documented.
+- [ ] `bin\ffmpeg-manifest.json` hashes match `bin\ffmpeg.exe` and `bin\ffprobe.exe`.
 
 ## Model Setup
 

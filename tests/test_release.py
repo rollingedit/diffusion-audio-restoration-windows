@@ -22,6 +22,7 @@ from rolling_a2sb.release import (
     validate_release_source_tree,
     validate_release_workflows,
     validate_runtime_lockfile,
+    validate_ffmpeg_manifest,
     write_sha256sums,
 )
 
@@ -53,6 +54,23 @@ def write_release_payload_inputs(root: Path) -> None:
     bin_dir.mkdir(parents=True, exist_ok=True)
     (bin_dir / "ffmpeg.exe").write_bytes(b"MZffmpeg")
     (bin_dir / "ffprobe.exe").write_bytes(b"MZffprobe")
+    (bin_dir / "ffmpeg-manifest.json").write_text(
+        "\n".join(
+            [
+                "{",
+                '  "source": "BtbN FFmpeg Builds",',
+                '  "release_api": "https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/latest",',
+                '  "asset": "ffmpeg-master-latest-win64-lgpl.zip",',
+                '  "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-lgpl.zip",',
+                '  "ffmpeg": "bin/ffmpeg.exe",',
+                f'  "ffmpeg_sha256": "{sha256_file(bin_dir / "ffmpeg.exe")}",',
+                '  "ffprobe": "bin/ffprobe.exe",',
+                f'  "ffprobe_sha256": "{sha256_file(bin_dir / "ffprobe.exe")}"',
+                "}",
+            ]
+        ),
+        encoding="utf-8",
+    )
     assets = root / "installer" / "assets"
     assets.mkdir(parents=True, exist_ok=True)
     (assets / "app.ico").write_bytes(b"\x00\x00\x01\x00ico")
@@ -245,6 +263,8 @@ def write_release_evidence(
                 f"- Installer SHA256: {installer_sha256}",
                 "- FFmpeg build filename: ffmpeg-master-latest-win64-lgpl.zip",
                 "- FFmpeg source URL: https://github.com/BtbN/FFmpeg-Builds",
+                "- FFmpeg SHA256: " + "c" * 64,
+                "- ffprobe SHA256: " + "d" * 64,
                 "",
                 "## Commands",
                 "",
@@ -269,6 +289,7 @@ def write_release_evidence(
                 "- Restore log path: evidence/restore.log",
                 "- Input test audio path: evidence/input.wav",
                 "- Output WAV path: evidence/out.wav",
+                "- FFmpeg manifest path: bin/ffmpeg-manifest.json",
                 "- Screenshot of ready Setup tab: evidence/setup-ready.png",
                 "- Screenshot of completed Restore tab: evidence/restore-complete.png",
                 "- Screenshot of Start Menu shortcuts: evidence/start-menu.png",
@@ -675,6 +696,7 @@ def test_validate_release_payload_inputs_require_bundled_binaries_and_icon(tmp_p
 
     assert "Release payload input is missing: bin/ffmpeg.exe" in missing
     assert "Release payload input is missing: bin/ffprobe.exe" in missing
+    assert "Release payload input is missing: bin/ffmpeg-manifest.json" in missing
     assert "Release payload input is missing: installer/assets/app.ico" in missing
 
     write_release_payload_inputs(tmp_path)
@@ -684,7 +706,40 @@ def test_validate_release_payload_inputs_require_bundled_binaries_and_icon(tmp_p
     errors = validate_release_payload_inputs(tmp_path)
 
     assert "Release payload input is not a Windows executable: FFmpeg binary" in errors
+    assert "Release payload manifest hash does not match: ffmpeg.exe" in errors
     assert "Release payload input is not a Windows icon: installer/assets/app.ico" in errors
+
+
+def test_validate_ffmpeg_manifest_requires_btb_lgpl_source_and_hashes(tmp_path: Path) -> None:
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    (bin_dir / "ffmpeg.exe").write_bytes(b"MZffmpeg")
+    (bin_dir / "ffprobe.exe").write_bytes(b"MZffprobe")
+    manifest = bin_dir / "ffmpeg-manifest.json"
+    manifest.write_text(
+        "\n".join(
+            [
+                "{",
+                '  "source": "other",',
+                '  "asset": "ffmpeg-master-latest-win64-gpl.zip",',
+                '  "url": "https://example.com/ffmpeg.zip",',
+                '  "ffmpeg": "wrong.exe",',
+                '  "ffmpeg_sha256": "' + "0" * 64 + '",',
+                '  "ffprobe": "bin/ffprobe.exe"',
+                "}",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    errors = validate_ffmpeg_manifest(tmp_path)
+
+    assert "Release payload manifest has unexpected source: bin/ffmpeg-manifest.json" in errors
+    assert "Release payload manifest has unexpected ffmpeg: bin/ffmpeg-manifest.json" in errors
+    assert "Release payload manifest must record a Windows x64 LGPL FFmpeg ZIP" in errors
+    assert "Release payload manifest must use the approved BtbN FFmpeg Builds URL" in errors
+    assert "Release payload manifest hash does not match: ffmpeg.exe" in errors
+    assert "Release payload manifest is missing SHA256: ffprobe_sha256" in errors
 
 
 def test_validate_runtime_lockfile_requires_pinned_cuda_stack(tmp_path: Path) -> None:

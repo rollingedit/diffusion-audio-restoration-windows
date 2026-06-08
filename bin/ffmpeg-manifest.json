@@ -1,0 +1,11 @@
+{
+    "source":  "BtbN FFmpeg Builds",
+    "release_api":  "https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/latest",
+    "asset":  "ffmpeg-master-latest-win64-lgpl.zip",
+    "url":  "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-lgpl.zip",
+    "output_dir":  "bin",
+    "ffmpeg":  "bin/ffmpeg.exe",
+    "ffmpeg_sha256":  "ae171b589aea9e4d0e7d05c2e068f68ea3f6a0022c32f04c106c89b148744ee3",
+    "ffprobe":  "bin/ffprobe.exe",
+    "ffprobe_sha256":  "9ea7dda90a1f78c5a183767905ccf76031c7834f40fbe045dc2ba2b701419745"
+}
