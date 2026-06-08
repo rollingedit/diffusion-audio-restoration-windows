@@ -43,10 +43,13 @@ This file is local coordination material unless the user explicitly decides to p
 - Added streaming subprocess runner with stdout/stderr callbacks and cancellation support.
 - Updated restore execution to stream subprocess lines into the job log while preserving captured stdout/stderr.
 - Added tests for streaming output capture and cancellation.
+- Added GUI action service layer for doctor text, download planning, audio probing, and restore dry-run planning without requiring PySide6 in tests.
+- Wired the PySide shell to doctor refresh, model download plan display, copy diagnostics, and model/log folder actions.
+- Added tests for GUI action service behavior.
 
 ### Verified
 
-- `.\.venv\Scripts\python.exe -m pytest` passes with 51 tests.
+- `.\.venv\Scripts\python.exe -m pytest` passes with 55 tests.
 - `powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist\installer -ValidateOnly` runs and correctly blocks release because artifacts are missing and license notices are placeholders.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.
 - `powershell -ExecutionPolicy Bypass -File scripts/setup_runtime.ps1 -DryRun -Json` succeeds without modifying the runtime.

@@ -4,7 +4,8 @@ import sys
 from pathlib import Path
 
 from . import paths
-from .runtime_check import diagnostic_text, doctor
+from .gui_actions import doctor_report_text, download_plan_text
+from .runtime_check import doctor
 
 
 def run_gui() -> int:
@@ -42,9 +43,13 @@ def run_gui() -> int:
 
             button_row = QHBoxLayout()
             self.recheck_button = QPushButton("Run Doctor")
+            self.download_plan_button = QPushButton("Model Download Plan")
+            self.copy_button = QPushButton("Copy Diagnostic")
             self.models_button = QPushButton("Open Models Folder")
             self.logs_button = QPushButton("Open Logs Folder")
             button_row.addWidget(self.recheck_button)
+            button_row.addWidget(self.download_plan_button)
+            button_row.addWidget(self.copy_button)
             button_row.addWidget(self.models_button)
             button_row.addWidget(self.logs_button)
             button_row.addStretch(1)
@@ -57,6 +62,8 @@ def run_gui() -> int:
             self.setCentralWidget(root)
 
             self.recheck_button.clicked.connect(self.refresh_report)
+            self.download_plan_button.clicked.connect(self.show_download_plan)
+            self.copy_button.clicked.connect(self.copy_report)
             self.models_button.clicked.connect(lambda: self.open_folder(paths.models_dir()))
             self.logs_button.clicked.connect(lambda: self.open_folder(paths.logs_dir()))
             self.refresh_report()
@@ -64,7 +71,13 @@ def run_gui() -> int:
         def refresh_report(self) -> None:
             report = doctor()
             self.status.setText("Ready" if report.get("ok") else "Setup needs attention")
-            self.report.setPlainText(diagnostic_text(report))
+            self.report.setPlainText(doctor_report_text())
+
+        def show_download_plan(self) -> None:
+            self.report.setPlainText(download_plan_text())
+
+        def copy_report(self) -> None:
+            QApplication.clipboard().setText(self.report.toPlainText())
 
         def open_folder(self, folder: Path) -> None:
             folder.mkdir(parents=True, exist_ok=True)
@@ -76,4 +89,3 @@ def run_gui() -> int:
     window = MainWindow()
     window.show()
     return app.exec()
-
