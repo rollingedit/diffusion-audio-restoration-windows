@@ -86,7 +86,9 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
             if "release-source placeholder" in text or RELEASE_BLOCKED_TEXT in text:
                 errors.append(f"Release artifact still contains blocking placeholder text: {artifact.name}")
             source_path = licenses_dir.parent / artifact.name
-            if source_path.exists() and artifact.read_bytes() != source_path.read_bytes():
+            if not source_path.exists():
+                errors.append(f"Release source file is missing: {artifact.name}")
+            elif artifact.read_bytes() != source_path.read_bytes():
                 errors.append(f"Release artifact differs from source file: {artifact.name}")
 
     for notice in [

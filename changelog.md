@@ -145,10 +145,11 @@ This file is local coordination material unless the user explicitly decides to p
 - Strengthened release validation so malformed checksum lines, invalid SHA256 digests, and duplicate artifact entries block release validation.
 - Strengthened release validation so unexpected files in the release artifact folder block release validation.
 - Strengthened release validation so staged Windows README and license-notice artifacts must match their reviewed source files.
+- Strengthened release validation so staged Windows README and license-notice artifacts require the corresponding source files to exist.
 
 ### Verified
 
-- `.\.venv\Scripts\python.exe -m pytest` passes with 159 tests.
+- `.\.venv\Scripts\python.exe -m pytest` passes with 160 tests.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --report` prints actionable next steps for missing Torch/checkpoints and sandboxed write permissions.
 - `powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist\installer -ValidateOnly` runs and correctly blocks release because artifacts are missing and license notices are placeholders.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.

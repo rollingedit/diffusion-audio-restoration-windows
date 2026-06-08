@@ -27,6 +27,11 @@ def write_setup_exe(path: Path) -> None:
     path.write_bytes(b"MZ" + b"\0" * (MIN_SETUP_EXE_BYTES - 2))
 
 
+def write_release_sources(root: Path, readme_text: str = "readme", notices_text: str = "notices") -> None:
+    (root / "README-WINDOWS.md").write_text(readme_text, encoding="utf-8")
+    (root / "LICENSE-NOTICES.txt").write_text(notices_text, encoding="utf-8")
+
+
 def test_allowed_release_artifacts_match_public_payload() -> None:
     assert ALLOWED_RELEASE_ARTIFACTS == {
         "A2SB-Restorer-Setup.exe",
@@ -173,6 +178,7 @@ def test_release_validation_blocks_tiny_setup_artifact(tmp_path: Path) -> None:
     setup.write_bytes(b"MZtiny")
     readme.write_text("readme", encoding="utf-8")
     notices.write_text("notices", encoding="utf-8")
+    write_release_sources(tmp_path)
     write_sha256sums([setup, readme, notices], artifacts / "SHA256SUMS.txt")
     write_notices(licenses)
 
@@ -192,6 +198,7 @@ def test_release_validation_blocks_non_windows_setup_artifact(tmp_path: Path) ->
     setup.write_bytes(b"NO" + b"\0" * (MIN_SETUP_EXE_BYTES - 2))
     readme.write_text("readme", encoding="utf-8")
     notices.write_text("notices", encoding="utf-8")
+    write_release_sources(tmp_path)
     write_sha256sums([setup, readme, notices], artifacts / "SHA256SUMS.txt")
     write_notices(licenses)
 
@@ -211,6 +218,7 @@ def test_release_validation_requires_checksum_entries_for_all_artifacts(tmp_path
     setup.write_bytes(b"installer")
     readme.write_text("readme", encoding="utf-8")
     notices.write_text("notices", encoding="utf-8")
+    write_release_sources(tmp_path)
     write_sha256sums([setup, readme], artifacts / "SHA256SUMS.txt")
     write_notices(licenses)
 
@@ -235,6 +243,7 @@ def test_release_validation_blocks_placeholder_release_notice_artifact(tmp_path:
         "Do not publish release artifacts\n",
         encoding="utf-8",
     )
+    write_release_sources(tmp_path, notices_text=notices.read_text(encoding="utf-8"))
     write_sha256sums([setup, readme, notices], artifacts / "SHA256SUMS.txt")
     write_notices(licenses)
 
@@ -254,6 +263,7 @@ def test_release_validation_blocks_placeholder_windows_readme_artifact(tmp_path:
     setup.write_bytes(b"installer")
     readme.write_text("Do not publish release artifacts\n", encoding="utf-8")
     notices.write_text("final notices", encoding="utf-8")
+    write_release_sources(tmp_path, readme_text=readme.read_text(encoding="utf-8"), notices_text="final notices")
     write_sha256sums([setup, readme, notices], artifacts / "SHA256SUMS.txt")
     write_notices(licenses)
 
@@ -273,6 +283,7 @@ def test_release_validation_rejects_stale_checksum_entries(tmp_path: Path) -> No
     setup.write_bytes(b"installer")
     readme.write_text("readme", encoding="utf-8")
     notices.write_text("notices", encoding="utf-8")
+    write_release_sources(tmp_path)
     write_sha256sums([setup, readme, notices], artifacts / "SHA256SUMS.txt")
     with (artifacts / "SHA256SUMS.txt").open("a", encoding="utf-8") as handle:
         handle.write(f"{'0' * 64}  deleted.zip\n")
@@ -294,6 +305,7 @@ def test_release_validation_rejects_checksum_mismatch(tmp_path: Path) -> None:
     write_setup_exe(setup)
     readme.write_text("readme", encoding="utf-8")
     notices.write_text("notices", encoding="utf-8")
+    write_release_sources(tmp_path)
     write_sha256sums([setup, readme, notices], artifacts / "SHA256SUMS.txt")
     readme.write_text("tampered readme", encoding="utf-8")
     write_notices(licenses)
@@ -314,6 +326,7 @@ def test_release_validation_rejects_invalid_checksum_file_format(tmp_path: Path)
     write_setup_exe(setup)
     readme.write_text("readme", encoding="utf-8")
     notices.write_text("notices", encoding="utf-8")
+    write_release_sources(tmp_path)
     write_sha256sums([setup, readme, notices], artifacts / "SHA256SUMS.txt")
     with (artifacts / "SHA256SUMS.txt").open("a", encoding="utf-8") as handle:
         handle.write("not-a-valid-checksum-line\n")
@@ -336,6 +349,7 @@ def test_release_validation_rejects_unexpected_extra_artifacts(tmp_path: Path) -
     write_setup_exe(setup)
     readme.write_text("readme", encoding="utf-8")
     notices.write_text("notices", encoding="utf-8")
+    write_release_sources(tmp_path)
     debug_log.write_text("internal diagnostics", encoding="utf-8")
     write_sha256sums([setup, readme, notices, debug_log], artifacts / "SHA256SUMS.txt")
     write_notices(licenses)
@@ -367,6 +381,26 @@ def test_release_validation_rejects_staged_docs_that_differ_from_sources(tmp_pat
     assert "Release artifact differs from source file: README-WINDOWS.md" in result.errors
 
 
+def test_release_validation_requires_source_docs_for_staged_docs(tmp_path: Path) -> None:
+    artifacts = tmp_path / "artifacts"
+    licenses = tmp_path / "LICENSES"
+    artifacts.mkdir()
+    setup = artifacts / "A2SB-Restorer-Setup.exe"
+    readme = artifacts / "README-WINDOWS.md"
+    notices = artifacts / "LICENSE-NOTICES.txt"
+    write_setup_exe(setup)
+    readme.write_text("readme", encoding="utf-8")
+    notices.write_text("notices", encoding="utf-8")
+    write_sha256sums([setup, readme, notices], artifacts / "SHA256SUMS.txt")
+    write_notices(licenses)
+
+    result = validate_release_artifacts(artifacts, licenses)
+
+    assert not result.ok
+    assert "Release source file is missing: README-WINDOWS.md" in result.errors
+    assert "Release source file is missing: LICENSE-NOTICES.txt" in result.errors
+
+
 def test_release_validation_accepts_basic_artifacts(tmp_path: Path) -> None:
     artifacts = tmp_path / "artifacts"
     licenses = tmp_path / "licenses"
@@ -377,8 +411,7 @@ def test_release_validation_accepts_basic_artifacts(tmp_path: Path) -> None:
     write_setup_exe(setup)
     readme.write_text("readme", encoding="utf-8")
     notices.write_text("notices", encoding="utf-8")
-    (tmp_path / "README-WINDOWS.md").write_text("readme", encoding="utf-8")
-    (tmp_path / "LICENSE-NOTICES.txt").write_text("notices", encoding="utf-8")
+    write_release_sources(tmp_path)
     write_sha256sums([setup, readme, notices], artifacts / "SHA256SUMS.txt")
     write_notices(licenses)
 
