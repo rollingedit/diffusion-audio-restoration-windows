@@ -12,6 +12,7 @@ def test_runtime_scripts_exist() -> None:
         "scripts/smoke_restore.ps1",
         "scripts/build_launcher.ps1",
         "scripts/build_installer.ps1",
+        "scripts/write_sha256sums.ps1",
     ]:
         assert (ROOT / rel_path).exists(), rel_path
 
@@ -43,4 +44,3 @@ def test_release_checklist_requires_no_checkpoint_release_assets() -> None:
 
     assert "GitHub release does not include checkpoint files" in text
     assert "No terminal is required for normal use" in text
-

@@ -61,3 +61,19 @@ Try:
 
 The app should show this as a readable CUDA memory error, not a raw traceback.
 
+## Release Validation Fails
+
+Before publishing, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist\installer
+```
+
+This command must fail if:
+
+- No release artifacts exist.
+- `SHA256SUMS.txt` is missing.
+- A checkpoint/model weight file is in the release folder.
+- License notice files still contain placeholders.
+
+Replace all placeholder notice files before public release.

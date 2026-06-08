@@ -36,10 +36,15 @@ This file is local coordination material unless the user explicitly decides to p
 - Added restore request validation for existing input/checkpoint paths and input/output path separation before config generation.
 - Extended restore dry-run JSON and logs with final and partial output paths.
 - Added tests for partial output path planning and restore request validation.
+- Added release artifact tooling for `SHA256SUMS.txt` generation and release validation.
+- Added release gates that block checkpoint/model artifacts and placeholder license notices.
+- Integrated checksum generation into the installer build script after a successful Inno Setup build.
+- Added tests for checksum generation and release validation.
 
 ### Verified
 
-- `.\.venv\Scripts\python.exe -m pytest` passes with 44 tests.
+- `.\.venv\Scripts\python.exe -m pytest` passes with 49 tests.
+- `powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist\installer -ValidateOnly` runs and correctly blocks release because artifacts are missing and license notices are placeholders.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.
 - `powershell -ExecutionPolicy Bypass -File scripts/setup_runtime.ps1 -DryRun -Json` succeeds without modifying the runtime.
 

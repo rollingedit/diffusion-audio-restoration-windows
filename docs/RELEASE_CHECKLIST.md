@@ -56,7 +56,9 @@ Do not publish a release until every required item is checked with evidence.
 - [ ] Start Menu shortcuts are created.
 - [ ] Uninstall removes app files.
 - [ ] Uninstall does not silently delete downloaded models.
+- [ ] `scripts/write_sha256sums.ps1` passes.
 - [ ] `SHA256SUMS.txt` is generated.
+- [ ] Release validation has no placeholder license notices.
 - [ ] GitHub release includes installer, SHA256 sums, Windows README, and license notices.
 - [ ] GitHub release does not include checkpoint files.
 
@@ -68,4 +70,3 @@ Do not publish a release until every required item is checked with evidence.
 - [ ] FFmpeg notice is included.
 - [ ] Python/runtime notices are included where applicable.
 - [ ] Privacy statement says audio stays local.
-

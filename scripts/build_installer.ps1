@@ -22,5 +22,9 @@ if (-not $iscc) {
 }
 
 & $iscc.Source $Iss
-exit $LASTEXITCODE
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
 
+& (Join-Path $ScriptDir "write_sha256sums.ps1") -ArtifactsDir "dist\installer"
+exit $LASTEXITCODE
