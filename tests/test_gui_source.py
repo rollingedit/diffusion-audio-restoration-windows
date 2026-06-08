@@ -10,6 +10,9 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
     assert "QTabWidget" in text
     assert "QDialog" in text
     assert "Model Setup" in text
+    assert "self.setup_tab = self.build_setup_tab()" in text
+    assert "report = self.refresh_report()" in text
+    assert "self.tabs.setCurrentWidget(self.setup_tab)" in text
     assert "open_model_setup_dialog" in text
     assert "Plan Restore" in text
     assert "QThread" in text

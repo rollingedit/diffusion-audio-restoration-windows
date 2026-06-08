@@ -132,6 +132,7 @@ This file is local coordination material unless the user explicitly decides to p
 - Made the built launcher folder a mandatory Inno payload so the setup script cannot silently omit `A2SB Restorer.exe`.
 - Added app identity/version/install-path context to doctor JSON and copyable diagnostic reports for cleaner release smoke evidence.
 - Added Restore-tab checkpoint error handling that enables a local Model Setup action when restore planning or execution fails because checkpoints are missing.
+- Updated GUI startup to route users to the Setup tab automatically when Doctor reports the app is not ready.
 
 ### Verified
 

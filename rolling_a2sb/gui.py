@@ -98,14 +98,20 @@ def run_gui() -> int:
             layout.addWidget(self.status)
 
             self.tabs = QTabWidget()
-            self.tabs.addTab(self.build_restore_tab(), "Restore")
-            self.tabs.addTab(self.build_setup_tab(), "Setup")
-            self.tabs.addTab(self.build_logs_tab(), "Logs")
-            self.tabs.addTab(self.build_about_tab(), "About")
+            self.restore_tab = self.build_restore_tab()
+            self.setup_tab = self.build_setup_tab()
+            self.logs_tab = self.build_logs_tab()
+            self.about_tab = self.build_about_tab()
+            self.tabs.addTab(self.restore_tab, "Restore")
+            self.tabs.addTab(self.setup_tab, "Setup")
+            self.tabs.addTab(self.logs_tab, "Logs")
+            self.tabs.addTab(self.about_tab, "About")
             layout.addWidget(self.tabs, 1)
 
             self.setCentralWidget(root)
-            self.refresh_report()
+            report = self.refresh_report()
+            if not report.get("ok"):
+                self.tabs.setCurrentWidget(self.setup_tab)
 
         def build_setup_tab(self) -> QWidget:
             tab = QWidget()
@@ -258,10 +264,11 @@ def run_gui() -> int:
             layout.addWidget(self.about_view, 1)
             return tab
 
-        def refresh_report(self) -> None:
+        def refresh_report(self) -> dict:
             report = doctor()
             self.status.setText("Ready" if report.get("ok") else "Setup needs attention")
             self.report.setPlainText(doctor_report_text())
+            return report
 
         def show_download_plan(self) -> None:
             self.report.setPlainText(download_plan_text(mode=self.current_model_mode()))
