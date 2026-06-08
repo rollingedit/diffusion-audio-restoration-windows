@@ -6,6 +6,11 @@ from pathlib import Path
 
 
 RELEASE_BLOCKED_TEXT = "Do not publish release artifacts"
+REQUIRED_RELEASE_ARTIFACTS = [
+    "A2SB-Restorer-Setup.exe",
+    "README-WINDOWS.md",
+    "LICENSE-NOTICES.txt",
+]
 
 
 @dataclass(frozen=True)
@@ -54,6 +59,11 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
     if not artifacts:
         errors.append(f"No release artifacts found in {folder}")
 
+    artifact_names = {artifact.name for artifact in artifacts}
+    for required in REQUIRED_RELEASE_ARTIFACTS:
+        if required not in artifact_names:
+            errors.append(f"Missing release artifact: {required}")
+
     for artifact in artifacts:
         if artifact.suffix.lower() == ".ckpt":
             errors.append(f"Checkpoint file must not be a release artifact: {artifact.name}")
@@ -78,4 +88,3 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
         errors.append("SHA256SUMS.txt is missing")
 
     return ReleaseCheckResult(ok=not errors, errors=errors)
-

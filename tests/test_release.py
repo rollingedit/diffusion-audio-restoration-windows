@@ -80,15 +80,33 @@ def test_release_validation_blocks_placeholder_notices(tmp_path: Path) -> None:
     assert any("placeholder" in error for error in result.errors)
 
 
+def test_release_validation_requires_readme_and_license_notices_artifacts(tmp_path: Path) -> None:
+    artifacts = tmp_path / "artifacts"
+    licenses = tmp_path / "licenses"
+    artifacts.mkdir()
+    setup = artifacts / "A2SB-Restorer-Setup.exe"
+    setup.write_bytes(b"installer")
+    write_sha256sums([setup], artifacts / "SHA256SUMS.txt")
+    write_notices(licenses)
+
+    result = validate_release_artifacts(artifacts, licenses)
+
+    assert not result.ok
+    assert "Missing release artifact: README-WINDOWS.md" in result.errors
+    assert "Missing release artifact: LICENSE-NOTICES.txt" in result.errors
+
+
 def test_release_validation_accepts_basic_artifacts(tmp_path: Path) -> None:
     artifacts = tmp_path / "artifacts"
     licenses = tmp_path / "licenses"
     artifacts.mkdir()
     setup = artifacts / "A2SB-Restorer-Setup.exe"
     readme = artifacts / "README-WINDOWS.md"
+    notices = artifacts / "LICENSE-NOTICES.txt"
     setup.write_bytes(b"installer")
     readme.write_text("readme", encoding="utf-8")
-    write_sha256sums([setup, readme], artifacts / "SHA256SUMS.txt")
+    notices.write_text("notices", encoding="utf-8")
+    write_sha256sums([setup, readme, notices], artifacts / "SHA256SUMS.txt")
     write_notices(licenses)
 
     result = validate_release_artifacts(artifacts, licenses)
