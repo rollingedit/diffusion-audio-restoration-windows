@@ -14,6 +14,7 @@ REQUIRED_RELEASE_ARTIFACTS = [
     "README-WINDOWS.md",
     "LICENSE-NOTICES.txt",
 ]
+ALLOWED_RELEASE_ARTIFACTS = set(REQUIRED_RELEASE_ARTIFACTS)
 
 
 @dataclass(frozen=True)
@@ -68,6 +69,8 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
             errors.append(f"Missing release artifact: {required}")
 
     for artifact in artifacts:
+        if artifact.name not in ALLOWED_RELEASE_ARTIFACTS:
+            errors.append(f"Unexpected release artifact: {artifact.name}")
         if artifact.name == "A2SB-Restorer-Setup.exe":
             if artifact.stat().st_size < MIN_SETUP_EXE_BYTES:
                 errors.append("A2SB-Restorer-Setup.exe is too small to be a real installer artifact")

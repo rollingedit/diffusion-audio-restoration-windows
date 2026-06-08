@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from rolling_a2sb.release import (
+    ALLOWED_RELEASE_ARTIFACTS,
     MIN_SETUP_EXE_BYTES,
     checksum_artifact_hashes,
     checksum_artifact_names,
@@ -24,6 +25,14 @@ def write_notices(licenses_dir: Path, placeholder: bool = False) -> None:
 
 def write_setup_exe(path: Path) -> None:
     path.write_bytes(b"MZ" + b"\0" * (MIN_SETUP_EXE_BYTES - 2))
+
+
+def test_allowed_release_artifacts_match_public_payload() -> None:
+    assert ALLOWED_RELEASE_ARTIFACTS == {
+        "A2SB-Restorer-Setup.exe",
+        "README-WINDOWS.md",
+        "LICENSE-NOTICES.txt",
+    }
 
 
 def test_write_sha256sums(tmp_path: Path) -> None:
@@ -314,6 +323,27 @@ def test_release_validation_rejects_invalid_checksum_file_format(tmp_path: Path)
 
     assert not result.ok
     assert "SHA256SUMS.txt line 4 is malformed" in result.errors
+
+
+def test_release_validation_rejects_unexpected_extra_artifacts(tmp_path: Path) -> None:
+    artifacts = tmp_path / "artifacts"
+    licenses = tmp_path / "licenses"
+    artifacts.mkdir()
+    setup = artifacts / "A2SB-Restorer-Setup.exe"
+    readme = artifacts / "README-WINDOWS.md"
+    notices = artifacts / "LICENSE-NOTICES.txt"
+    debug_log = artifacts / "debug.log"
+    write_setup_exe(setup)
+    readme.write_text("readme", encoding="utf-8")
+    notices.write_text("notices", encoding="utf-8")
+    debug_log.write_text("internal diagnostics", encoding="utf-8")
+    write_sha256sums([setup, readme, notices, debug_log], artifacts / "SHA256SUMS.txt")
+    write_notices(licenses)
+
+    result = validate_release_artifacts(artifacts, licenses)
+
+    assert not result.ok
+    assert "Unexpected release artifact: debug.log" in result.errors
 
 
 def test_release_validation_accepts_basic_artifacts(tmp_path: Path) -> None:
