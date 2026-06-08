@@ -85,6 +85,9 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
             text = artifact.read_text(encoding="utf-8", errors="replace")
             if "release-source placeholder" in text or RELEASE_BLOCKED_TEXT in text:
                 errors.append(f"Release artifact still contains blocking placeholder text: {artifact.name}")
+            source_path = licenses_dir.parent / artifact.name
+            if source_path.exists() and artifact.read_bytes() != source_path.read_bytes():
+                errors.append(f"Release artifact differs from source file: {artifact.name}")
 
     for notice in [
         "NVIDIA_A2SB_LICENSE.txt",

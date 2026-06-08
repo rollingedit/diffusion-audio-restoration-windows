@@ -346,6 +346,27 @@ def test_release_validation_rejects_unexpected_extra_artifacts(tmp_path: Path) -
     assert "Unexpected release artifact: debug.log" in result.errors
 
 
+def test_release_validation_rejects_staged_docs_that_differ_from_sources(tmp_path: Path) -> None:
+    artifacts = tmp_path / "artifacts"
+    licenses = tmp_path / "LICENSES"
+    artifacts.mkdir()
+    setup = artifacts / "A2SB-Restorer-Setup.exe"
+    readme = artifacts / "README-WINDOWS.md"
+    notices = artifacts / "LICENSE-NOTICES.txt"
+    write_setup_exe(setup)
+    (tmp_path / "README-WINDOWS.md").write_text("source readme", encoding="utf-8")
+    (tmp_path / "LICENSE-NOTICES.txt").write_text("source notices", encoding="utf-8")
+    readme.write_text("changed readme", encoding="utf-8")
+    notices.write_text("source notices", encoding="utf-8")
+    write_sha256sums([setup, readme, notices], artifacts / "SHA256SUMS.txt")
+    write_notices(licenses)
+
+    result = validate_release_artifacts(artifacts, licenses)
+
+    assert not result.ok
+    assert "Release artifact differs from source file: README-WINDOWS.md" in result.errors
+
+
 def test_release_validation_accepts_basic_artifacts(tmp_path: Path) -> None:
     artifacts = tmp_path / "artifacts"
     licenses = tmp_path / "licenses"
@@ -356,6 +377,8 @@ def test_release_validation_accepts_basic_artifacts(tmp_path: Path) -> None:
     write_setup_exe(setup)
     readme.write_text("readme", encoding="utf-8")
     notices.write_text("notices", encoding="utf-8")
+    (tmp_path / "README-WINDOWS.md").write_text("readme", encoding="utf-8")
+    (tmp_path / "LICENSE-NOTICES.txt").write_text("notices", encoding="utf-8")
     write_sha256sums([setup, readme, notices], artifacts / "SHA256SUMS.txt")
     write_notices(licenses)
 
