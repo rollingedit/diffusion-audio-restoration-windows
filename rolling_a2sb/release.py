@@ -17,6 +17,11 @@ REQUIRED_RELEASE_ARTIFACTS = [
     "LICENSE-NOTICES.txt",
 ]
 ALLOWED_RELEASE_ARTIFACTS = set(REQUIRED_RELEASE_ARTIFACTS)
+REQUIRED_LICENSE_NOTICE_TOKENS = {
+    "NVIDIA_A2SB_LICENSE.txt": ["NVIDIA", "copyright"],
+    "FFMPEG_NOTICE.txt": ["FFmpeg", "BtbN", "LGPL", "https://github.com/BtbN/FFmpeg-Builds"],
+    "PYTHON_NOTICE.txt": ["Python", "license", "https://www.python.org"],
+}
 REQUIRED_EVIDENCE_FIELDS = [
     "Version",
     "Git commit",
@@ -201,11 +206,7 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
             elif artifact.read_bytes() != source_path.read_bytes():
                 errors.append(f"Release artifact differs from source file: {artifact.name}")
 
-    for notice in [
-        "NVIDIA_A2SB_LICENSE.txt",
-        "FFMPEG_NOTICE.txt",
-        "PYTHON_NOTICE.txt",
-    ]:
+    for notice in REQUIRED_LICENSE_NOTICE_TOKENS:
         path = licenses_dir / notice
         if not path.exists():
             errors.append(f"Missing license notice: {notice}")
@@ -213,6 +214,10 @@ def validate_release_artifacts(folder: Path, licenses_dir: Path) -> ReleaseCheck
         text = path.read_text(encoding="utf-8")
         if "Placeholder" in text or RELEASE_BLOCKED_TEXT in text:
             errors.append(f"License notice is still a release-blocking placeholder: {notice}")
+        lowered = text.lower()
+        for token in REQUIRED_LICENSE_NOTICE_TOKENS[notice]:
+            if token.lower() not in lowered:
+                errors.append(f"License notice is missing required release text: {notice} ({token})")
 
     checksums = folder / "SHA256SUMS.txt"
     if artifacts and not checksums.exists():

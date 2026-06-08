@@ -21,12 +21,19 @@ from rolling_a2sb.release import (
 
 def write_notices(licenses_dir: Path, placeholder: bool = False) -> None:
     licenses_dir.mkdir(parents=True, exist_ok=True)
-    text = "Placeholder\nDo not publish release artifacts\n" if placeholder else "Final notice text\n"
-    for name in [
-        "NVIDIA_A2SB_LICENSE.txt",
-        "FFMPEG_NOTICE.txt",
-        "PYTHON_NOTICE.txt",
-    ]:
+    if placeholder:
+        notices = {
+            "NVIDIA_A2SB_LICENSE.txt": "Placeholder\nDo not publish release artifacts\n",
+            "FFMPEG_NOTICE.txt": "Placeholder\nDo not publish release artifacts\n",
+            "PYTHON_NOTICE.txt": "Placeholder\nDo not publish release artifacts\n",
+        }
+    else:
+        notices = {
+            "NVIDIA_A2SB_LICENSE.txt": "NVIDIA A2SB license\nCopyright NVIDIA\n",
+            "FFMPEG_NOTICE.txt": "FFmpeg from BtbN FFmpeg Builds\nLGPL build source: https://github.com/BtbN/FFmpeg-Builds\n",
+            "PYTHON_NOTICE.txt": "Python runtime license notice\nSource: https://www.python.org\n",
+        }
+    for name, text in notices.items():
         (licenses_dir / name).write_text(text, encoding="utf-8")
 
 
@@ -519,6 +526,24 @@ def test_release_validation_blocks_placeholder_notices(tmp_path: Path) -> None:
 
     assert not result.ok
     assert any("placeholder" in error for error in result.errors)
+
+
+def test_release_validation_blocks_incomplete_license_notice_text(tmp_path: Path) -> None:
+    artifacts = tmp_path / "artifacts"
+    licenses = tmp_path / "licenses"
+    artifacts.mkdir()
+    setup = artifacts / "A2SB-Restorer-Setup.exe"
+    setup.write_bytes(b"installer")
+    write_sha256sums([setup], artifacts / "SHA256SUMS.txt")
+    write_notices(licenses)
+    (licenses / "FFMPEG_NOTICE.txt").write_text("FFmpeg final notice without source terms\n", encoding="utf-8")
+
+    result = validate_release_artifacts(artifacts, licenses)
+
+    assert not result.ok
+    assert "License notice is missing required release text: FFMPEG_NOTICE.txt (BtbN)" in result.errors
+    assert "License notice is missing required release text: FFMPEG_NOTICE.txt (LGPL)" in result.errors
+    assert "License notice is missing required release text: FFMPEG_NOTICE.txt (https://github.com/BtbN/FFmpeg-Builds)" in result.errors
 
 
 def test_release_validation_requires_readme_and_license_notices_artifacts(tmp_path: Path) -> None:

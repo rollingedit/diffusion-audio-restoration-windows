@@ -160,10 +160,11 @@ This file is local coordination material unless the user explicitly decides to p
 - Strengthened release validation so release evidence must record the repository HEAD commit being validated.
 - Strengthened release validation so Python package metadata, `rolling_a2sb.__version__`, the Inno installer version, and release evidence must stay aligned.
 - Updated runtime setup to prefer `requirements\lock-win-cu121.txt` when present and added release validation that blocks public release until the CUDA runtime lockfile exists with pinned Torch, torchaudio, and NumPy entries.
+- Strengthened release validation so final NVIDIA, FFmpeg, and Python notice files must include minimum provenance and license text, not only avoid placeholder wording.
 
 ### Verified
 
-- `.\.venv\Scripts\python.exe -m pytest` passes with 182 tests.
+- `.\.venv\Scripts\python.exe -m pytest` passes with 183 tests.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --report` prints actionable next steps for missing Torch/checkpoints and sandboxed write permissions.
 - `powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist\installer -ValidateOnly` runs and correctly blocks release because artifacts are missing and license notices are placeholders.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.
