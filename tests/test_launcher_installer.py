@@ -72,3 +72,11 @@ def test_installer_build_requires_launcher_output_before_packaging() -> None:
     assert 'dist\\A2SB Restorer\\A2SB Restorer.exe' in text
     assert "Run scripts\\build_launcher.ps1 first" in text
     assert text.index("Launcher EXE missing") < text.index("Get-Command ISCC.exe")
+
+
+def test_inno_runs_real_runtime_setup_not_dry_run() -> None:
+    text = (ROOT / "installer" / "a2sb-restorer.iss").read_text(encoding="utf-8")
+    run_section = text.split("[Run]", 1)[1].split("[UninstallDelete]", 1)[0]
+
+    assert "setup_runtime.ps1" in run_section
+    assert "-DryRun" not in run_section

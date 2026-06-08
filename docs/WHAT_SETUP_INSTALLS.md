@@ -37,7 +37,7 @@ Core runtime packages include:
 - Hugging Face Hub.
 - PySide6.
 
-The launcher starts runtime setup on first launch if the private runtime is missing. If setup fails, the launcher should show a visible error and the Start Menu Repair Runtime shortcut should rerun setup in repair mode.
+The installer and launcher start runtime setup if the private runtime is missing. Setup records doctor readiness in `runtime\setup-status.json`, but missing checkpoints or other readiness warnings should not prevent the GUI from opening so the user can finish setup. If dependency installation itself fails, the launcher should show a visible error and the Start Menu Repair Runtime shortcut should rerun setup in repair mode.
 
 ## Model Files
 

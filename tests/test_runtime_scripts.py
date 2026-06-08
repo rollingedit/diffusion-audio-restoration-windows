@@ -22,6 +22,8 @@ def test_setup_runtime_checks_private_runtime_with_doctor_json() -> None:
     assert "torch_ok" in text
     assert "checkpoints_ok" in text
     assert "doctor_ok" in text
+    assert "readiness_ok = ($doctorExit -eq 0)" in text
+    assert "exit 0" in text
 
 
 def test_repair_runtime_delegates_to_setup_runtime_repair_mode() -> None:

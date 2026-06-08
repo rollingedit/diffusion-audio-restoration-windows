@@ -109,11 +109,17 @@ try {
     }))
 
     New-Item -ItemType Directory -Force -Path $Runtime | Out-Null
-    $result = [ordered]@{ ok = ($doctorExit -eq 0); dry_run = $false; repair = [bool]$Repair; steps = $steps }
+    $result = [ordered]@{
+        ok = $true
+        readiness_ok = ($doctorExit -eq 0)
+        dry_run = $false
+        repair = [bool]$Repair
+        steps = $steps
+    }
     $result | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 -Path $SetupStatus
 
     if ($Json) { $result | ConvertTo-Json -Depth 8 } else { foreach ($step in $steps) { Write-Status $step } }
-    exit $doctorExit
+    exit 0
 } catch {
     $steps.Add((New-Status $false "error" $_.Exception.Message @{}))
     $result = [ordered]@{ ok = $false; dry_run = [bool]$DryRun; repair = [bool]$Repair; steps = $steps }
@@ -122,4 +128,3 @@ try {
     if ($Json) { $result | ConvertTo-Json -Depth 8 } else { foreach ($step in $steps) { Write-Status $step } }
     exit 1
 }
-
