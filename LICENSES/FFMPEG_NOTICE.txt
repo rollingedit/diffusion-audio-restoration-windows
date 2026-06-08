@@ -1,0 +1,6 @@
+Placeholder for FFmpeg redistribution notice.
+
+Before public release, document the exact FFmpeg build source, license mode, and redistribution obligations for the bundled binaries.
+
+Do not publish release artifacts until this placeholder has been replaced.
+

@@ -1,0 +1,8 @@
+Placeholder for the NVIDIA A2SB license text from the upstream repository.
+
+Before public release, replace this file with the exact license text from:
+
+https://raw.githubusercontent.com/NVIDIA/diffusion-audio-restoration/main/LICENSE
+
+Do not publish release artifacts until this placeholder has been replaced.
+

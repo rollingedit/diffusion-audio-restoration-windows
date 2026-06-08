@@ -20,11 +20,15 @@ This file is local coordination material unless the user explicitly decides to p
 - Added `nvidia-smi` GPU detection and diagnostic text generation to the runtime doctor.
 - Added CLI `open-model-folder` and `open-logs` helpers.
 - Added tests for downloader behavior, audio probing, error mapping, and runtime-check diagnostics.
+- Added runtime setup, repair, doctor, smoke restore, launcher build, and installer build PowerShell scripts with dry-run support where appropriate.
+- Added user guide, troubleshooting guide, release checklist, license notices, setup disclosure, and license placeholder files that block public release until replaced.
+- Added release scaffolding tests for required docs/scripts and release-blocking license placeholders.
 
 ### Verified
 
-- `.\.venv\Scripts\python.exe -m pytest` passes with 26 tests.
+- `.\.venv\Scripts\python.exe -m pytest` passes with 32 tests.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.
+- `powershell -ExecutionPolicy Bypass -File scripts/setup_runtime.ps1 -DryRun -Json` succeeds without modifying the runtime.
 
 ### Notes
 

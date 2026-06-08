@@ -1,0 +1,6 @@
+Placeholder for Python runtime and dependency notices.
+
+Before public release, document the Python runtime source and any required dependency notices for bundled or installed runtime components.
+
+Do not publish release artifacts until this placeholder has been replaced.
+

@@ -1,0 +1,32 @@
+param(
+    [Parameter(Mandatory=$true)]
+    [string]$Input,
+
+    [string]$Output,
+    [int]$Steps = 2,
+    [string]$CheckpointFolder,
+    [switch]$DryRun
+)
+
+$ErrorActionPreference = "Stop"
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$AppRoot = Resolve-Path (Join-Path $ScriptDir "..")
+$RuntimePython = Join-Path $AppRoot "runtime\Scripts\python.exe"
+$DevPython = Join-Path $AppRoot ".venv\Scripts\python.exe"
+
+if (Test-Path $RuntimePython) {
+    $Python = $RuntimePython
+} elseif (Test-Path $DevPython) {
+    $Python = $DevPython
+} else {
+    $Python = "python"
+}
+
+$args = @("-m", "rolling_a2sb.cli", "restore", "--input", $Input, "--steps", "$Steps")
+if ($Output) { $args += @("--output", $Output) }
+if ($CheckpointFolder) { $args += @("--checkpoint-folder", $CheckpointFolder) }
+if ($DryRun) { $args += @("--dry-run") }
+
+& $Python @args
+exit $LASTEXITCODE
+
