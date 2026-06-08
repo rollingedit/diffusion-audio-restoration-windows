@@ -55,6 +55,11 @@ def test_windows_readme_documents_release_blockers() -> None:
     assert "not public-release-ready yet" in text
     assert "nvidia/audio_to_audio_schrodinger_bridge" in text
     assert "must not be bundled" in text
+    assert "Click Restore to run the shared restore workflow" in text
+    assert "supports cancellation" in text
+    assert "Open Output Folder after success" in text
+    assert "currently plans restore jobs" not in text
+    assert "Full GUI execution" not in text
 
 
 def test_privacy_and_network_statements_are_documented() -> None:

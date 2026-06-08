@@ -14,8 +14,10 @@ This repository is not public-release-ready yet. Do not publish installer artifa
 6. Drop or select a WAV, MP3, or FLAC file.
 7. Select an output path if the default is not desired.
 8. Plan the restore and review the generated job/config/log details.
+9. Click Restore to run the shared restore workflow in the background.
+10. Watch streamed logs/progress, cancel if needed, and open the output folder after completion.
 
-The GUI restore tab currently plans restore jobs and validates setup through shared product code. Full GUI execution, progress, completion, and Open Output Folder still need to be finished and smoke-tested before public release.
+The GUI restore tab uses the shared product restore path for planning and execution, streams subprocess logs, shows exact step progress when upstream output provides counts, supports cancellation, and enables Open Output Folder after success. This still needs a real Windows CUDA smoke restore before public release.
 
 ## Model Files
 
@@ -60,6 +62,7 @@ The app should not include telemetry by default. Any future telemetry or update-
 - Confirm `a2sb doctor --json` passes in the installed runtime.
 - Download or select real two-split checkpoints.
 - Run a real CUDA restore smoke test on a short WAV.
+- Confirm GUI Restore, progress, cancellation, logs, and Open Output Folder in the installed app.
 - Build the launcher EXE and Inno Setup installer.
 - Generate and validate `SHA256SUMS.txt`.
 

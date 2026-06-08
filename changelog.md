@@ -127,6 +127,7 @@ This file is local coordination material unless the user explicitly decides to p
 - Changed runtime setup exit semantics so missing checkpoints or other doctor readiness warnings are recorded as `readiness_ok=false` without blocking the GUI from opening after dependencies install.
 - Made FFmpeg and ffprobe mandatory installer payloads instead of optional `skipifsourcedoesntexist` entries.
 - Added installer build preflight checks that block setup EXE creation until approved redistributable `bin\ffmpeg.exe` and `bin\ffprobe.exe` are present.
+- Updated `README-WINDOWS.md` to remove stale "planning only" GUI restore language and document the implemented background restore/progress/cancel/Open Output Folder path.
 
 ### Verified
 
