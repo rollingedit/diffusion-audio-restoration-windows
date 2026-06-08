@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 import wave
 
 from rolling_a2sb.cli import main
@@ -272,3 +273,36 @@ def test_reset_models_clears_checkpoint_settings(tmp_path: Path, monkeypatch, ca
     assert exit_code == 0
     output = capsys.readouterr().out
     assert '"checkpoint_folder": null' in output
+
+
+def test_cleanup_models_requires_force_and_lists_app_owned_files(tmp_path: Path, monkeypatch, capsys) -> None:
+    monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(tmp_path / "logs"))
+    models = tmp_path / "data" / "models"
+    checkpoint = models / "ckpt" / "A2SB_twosplit_0.0_0.5_release.ckpt"
+    write_checkpoint(checkpoint)
+
+    exit_code = main(["cleanup-models"])
+
+    assert exit_code == 2
+    output = capsys.readouterr().out
+    assert '"confirmation_required": true' in output
+    assert "a2sb cleanup-models --force" in output
+    data = json.loads(output)
+    assert str(checkpoint.resolve()) in data["files"]
+    assert checkpoint.exists()
+
+
+def test_cleanup_models_force_deletes_app_owned_files(tmp_path: Path, monkeypatch, capsys) -> None:
+    monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(tmp_path / "logs"))
+    models = tmp_path / "data" / "models"
+    checkpoint = models / "A2SB_onesplit_0.0_1.0_release.ckpt"
+    write_checkpoint(checkpoint)
+
+    exit_code = main(["cleanup-models", "--force"])
+
+    assert exit_code == 0
+    output = capsys.readouterr().out
+    assert '"deleted": true' in output
+    assert not checkpoint.exists()

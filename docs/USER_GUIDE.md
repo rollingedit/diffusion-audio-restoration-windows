@@ -26,6 +26,8 @@ If model checkpoints are missing, choose one of:
 - Download Recommended Model.
 - Use Existing Checkpoint Folder.
 
+To remove app-managed downloaded model files later, use the explicit cleanup action from the CLI. `a2sb cleanup-models` shows the exact files first; `a2sb cleanup-models --force` deletes only known app-managed checkpoint files and the app model manifest.
+
 The recommended model is the official NVIDIA two-split A2SB checkpoint set from Hugging Face:
 
 - `ckpt/A2SB_twosplit_0.0_0.5_release.ckpt`

@@ -3,6 +3,8 @@ from pathlib import Path
 import pytest
 
 from rolling_a2sb.checkpoint_manager import (
+    build_model_cleanup_plan,
+    cleanup_app_model_files,
     checkpoint_paths_from_validation,
     required_files,
     select_manual_checkpoint_folder,
@@ -87,3 +89,39 @@ def test_select_manual_checkpoint_folder_writes_manifest_and_settings(tmp_path: 
     settings = load_settings()
     assert settings.checkpoint_folder == str(folder.resolve())
     assert settings.trusted_manual_checkpoint_folder is True
+
+
+def test_model_cleanup_plan_only_targets_known_app_model_files(tmp_path: Path) -> None:
+    models = tmp_path / "models"
+    expected = models / "ckpt" / "A2SB_twosplit_0.0_0.5_release.ckpt"
+    write_checkpoint(expected)
+    write_checkpoint(models / "other.ckpt")
+    manifest = models / "checkpoint_manifest.json"
+    manifest.write_text("{}", encoding="utf-8")
+
+    plan = build_model_cleanup_plan(models)
+
+    assert expected.resolve() in plan.files
+    assert manifest.resolve() in plan.files
+    assert (models / "other.ckpt").resolve() not in plan.files
+
+
+def test_model_cleanup_requires_force_before_deleting(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(tmp_path / "logs"))
+    models = tmp_path / "data" / "models"
+    checkpoint = models / "A2SB_onesplit_0.0_1.0_release.ckpt"
+    write_checkpoint(checkpoint)
+    manifest = models / "checkpoint_manifest.json"
+    manifest.write_text("{}", encoding="utf-8")
+
+    plan = cleanup_app_model_files(models, force=False)
+
+    assert checkpoint.exists()
+    assert manifest.exists()
+    assert checkpoint.resolve() in plan.files
+
+    cleanup_app_model_files(models, force=True)
+
+    assert not checkpoint.exists()
+    assert not manifest.exists()

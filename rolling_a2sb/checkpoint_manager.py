@@ -44,6 +44,17 @@ class CheckpointValidation:
     errors: list[str]
 
 
+@dataclass(frozen=True)
+class ModelCleanupPlan:
+    target_dir: Path
+    files: list[Path]
+    bytes_to_free: int
+
+    @property
+    def empty(self) -> bool:
+        return not self.files
+
+
 def required_files(mode: str) -> list[str]:
     try:
         return MODEL_FILES[mode]
@@ -67,6 +78,39 @@ def scan_checkpoint_folder(folder: Path, mode: str = "twosplit") -> list[Path]:
         elif nested.exists():
             matches.append(nested)
     return matches
+
+
+def build_model_cleanup_plan(target_dir: Path | None = None) -> ModelCleanupPlan:
+    root = Path(target_dir) if target_dir else paths.models_dir()
+    candidates: list[Path] = []
+    for rel_name in {name for names in MODEL_FILES.values() for name in names}:
+        for candidate in [root / rel_name, root / expected_basename(rel_name)]:
+            if candidate.exists() and candidate.is_file() and candidate not in candidates:
+                candidates.append(candidate)
+
+    manifest = root / "checkpoint_manifest.json"
+    if manifest.exists() and manifest.is_file():
+        candidates.append(manifest)
+
+    return ModelCleanupPlan(
+        target_dir=root.resolve(),
+        files=[path.resolve() for path in candidates],
+        bytes_to_free=sum(path.stat().st_size for path in candidates),
+    )
+
+
+def cleanup_app_model_files(target_dir: Path | None = None, force: bool = False) -> ModelCleanupPlan:
+    plan = build_model_cleanup_plan(target_dir)
+    if not force:
+        return plan
+
+    for file in plan.files:
+        file.unlink()
+
+    from .settings import reset_model_settings
+
+    reset_model_settings()
+    return plan
 
 
 def validate_checkpoint_folder(

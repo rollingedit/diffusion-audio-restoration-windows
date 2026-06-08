@@ -14,6 +14,8 @@ The installer should install:
 - Documentation and license notices.
 - FFmpeg and ffprobe binaries, if bundled.
 
+Downloaded checkpoints are stored in the user app-data model folder. They are not removed by uninstall unless the user runs an explicit model cleanup action.
+
 ## Private Runtime
 
 The app uses a private Python runtime owned by the app. It should not install packages into the user's global Python.

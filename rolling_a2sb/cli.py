@@ -7,7 +7,7 @@ from pathlib import Path
 
 from . import paths
 from .audio_probe import audio_info_dict, probe_audio
-from .checkpoint_manager import select_manual_checkpoint_folder
+from .checkpoint_manager import cleanup_app_model_files, select_manual_checkpoint_folder
 from .downloader import build_download_plan, download_model
 from .errors import RestoreProcessError, format_user_error
 from .runtime_check import diagnostic_text, doctor
@@ -52,6 +52,8 @@ def main(argv: list[str] | None = None) -> int:
     restore_parser.add_argument("--dry-run", action="store_true")
 
     subparsers.add_parser("reset-models")
+    cleanup_parser = subparsers.add_parser("cleanup-models")
+    cleanup_parser.add_argument("--force", action="store_true", help="Delete app-managed checkpoint files.")
     subparsers.add_parser("open-model-folder")
     subparsers.add_parser("open-logs")
 
@@ -209,6 +211,24 @@ def main(argv: list[str] | None = None) -> int:
         settings = reset_model_settings()
         print(json.dumps({"ok": True, "settings": settings.__dict__}, indent=2))
         return 0
+
+    if args.command == "cleanup-models":
+        plan = cleanup_app_model_files(force=args.force)
+        print(
+            json.dumps(
+                {
+                    "ok": True,
+                    "deleted": bool(args.force),
+                    "confirmation_required": not args.force,
+                    "target_dir": str(plan.target_dir),
+                    "files": [str(file) for file in plan.files],
+                    "bytes_to_free": plan.bytes_to_free,
+                    "next_command": None if args.force else "a2sb cleanup-models --force",
+                },
+                indent=2,
+            )
+        )
+        return 0 if args.force else 2
 
     if args.command == "open-model-folder":
         return _open_folder(paths.models_dir())
