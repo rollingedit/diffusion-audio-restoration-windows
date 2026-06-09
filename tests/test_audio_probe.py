@@ -19,6 +19,13 @@ def test_supported_audio_extensions() -> None:
     assert is_supported_audio(Path("song.wav"))
     assert is_supported_audio(Path("song.mp3"))
     assert is_supported_audio(Path("song.flac"))
+    assert is_supported_audio(Path("song.ogg"))
+    assert is_supported_audio(Path("song.opus"))
+    assert is_supported_audio(Path("song.m4a"))
+    assert is_supported_audio(Path("song.aac"))
+    assert is_supported_audio(Path("song.wma"))
+    assert is_supported_audio(Path("song.aiff"))
+    assert is_supported_audio(Path("song.aif"))
     assert not is_supported_audio(Path("song.txt"))
 
 
@@ -41,4 +48,3 @@ def test_probe_rejects_unsupported_extension(tmp_path: Path) -> None:
 
     with pytest.raises(AudioProbeError):
         probe_audio(audio)
-

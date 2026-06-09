@@ -57,9 +57,20 @@ The NVIDIA model/code is the core restoration engine. This fork adds the Windows
 - Inno Setup installer with per-user install, Start Menu shortcuts, app icon, update behavior, uninstall behavior, and no checkpoint bundling.
 - Release validation tooling, installed-app smoke scripts, Sandbox bootstrap smoke, checksum generation, license notices, and release evidence.
 
+## Current Release
+
+`v0.1.1` is the current Windows preview point release.
+
+Changes since the first public build:
+
+- Added a larger Restore-tab drop target so audio can be dropped into the main restore area instead of only the input path field.
+- Expanded accepted input extensions to WAV, MP3, FLAC, OGG, Opus, M4A, AAC, WMA, AIFF, and AIF. Non-target formats are prepared through the bundled FFmpeg path before restore.
+- Fixed Windows taskbar app identity so the running GUI uses the A2SB Restorer icon instead of inheriting the private Python runtime icon.
+- Set the installed Start Menu shortcut to use the bundled app icon explicitly.
+
 ## What It Does
 
-A2SB Restorer uses NVIDIA A2SB to restore 44.1 kHz music audio locally on Windows. The app currently exposes two practical restore modes:
+A2SB Restorer uses NVIDIA A2SB to restore 44.1 kHz music audio locally on Windows. The app accepts common local audio formats and prepares them into the model's WAV restore path when needed. The app currently exposes two practical restore modes:
 
 - **Bandwidth extension**: restore missing high-frequency content.
 - **Inpainting**: repair a selected missing or damaged time segment.
@@ -73,7 +84,7 @@ The normal user flow is intentionally direct:
 5. Run the Setup tab Doctor check.
 6. Download the recommended official two-split checkpoints from Hugging Face, or select an existing trusted checkpoint folder.
 7. Open the Restore tab.
-8. Drop or select a WAV, MP3, or FLAC input.
+8. Drop audio onto the Restore tab, or select a WAV, MP3, FLAC, OGG, Opus, M4A, AAC, WMA, AIFF, or AIF input.
 9. Choose bandwidth extension or inpainting.
 10. Click Restore.
 11. Open the output folder when the restored WAV is finished.

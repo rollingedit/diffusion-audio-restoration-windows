@@ -8,6 +8,8 @@ The Windows app workflow replaces the Linux-style research setup path: runtime c
 
 The release artifact set is `A2SB-Restorer-Setup.exe`, `SHA256SUMS.txt`, this Windows README, and `LICENSE-NOTICES.txt`. Checkpoints are downloaded or selected by the user and must not be bundled into the GitHub release.
 
+`v0.1.1` is the current Windows preview point release. It adds a larger Restore-tab drop target, expands accepted input extensions to WAV, MP3, FLAC, OGG, Opus, M4A, AAC, WMA, AIFF, and AIF, and fixes the running app taskbar identity so the GUI uses the A2SB Restorer icon instead of the private Python runtime icon.
+
 ## Download This File
 
 For normal use, open the [latest GitHub release](../../releases/latest), then download and run:
@@ -29,7 +31,7 @@ Do not download the source ZIPs or clone the repo unless you are working on the 
 5. Run Doctor from the Setup tab.
 6. Download the recommended two-split checkpoints or select a trusted checkpoint folder.
 7. Open the Restore tab.
-8. Drop or select a WAV, MP3, or FLAC file.
+8. Drop audio onto the Restore tab, or select a WAV, MP3, FLAC, OGG, Opus, M4A, AAC, WMA, AIFF, or AIF file.
 9. Select an output path if the default is not desired.
 10. Plan the restore and review the generated job/config/log details.
 11. Click Restore to run the shared restore workflow in the background.
@@ -47,7 +49,7 @@ The GUI restore tab uses the shared product restore path for planning and execut
 - Official NVIDIA Hugging Face checkpoint download/validation and trusted manual checkpoint selection.
 - Windows-safe generated configs with absolute paths, single-GPU runtime settings, and no research-cluster assumptions.
 - GUI restore planning, execution, streamed logs, cancellation, and output-folder actions.
-- Inno Setup installer, launcher EXE, Start Menu shortcuts, update behavior, uninstall behavior, release checks, and smoke validation.
+- Inno Setup installer, launcher EXE, Start Menu shortcuts with explicit app icons, update behavior, uninstall behavior, release checks, and smoke validation.
 
 ## Runtime Bootstrap
 

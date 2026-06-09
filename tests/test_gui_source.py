@@ -23,7 +23,12 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
     assert "QIcon" in text
     assert "app_icon_path" in text
     assert "setWindowIcon(QIcon(str(icon_path)))" in text
-    assert "app.setWindowIcon(QIcon(str(icon_path)))" in text
+    assert 'WINDOWS_APP_USER_MODEL_ID = "RollingEdit.A2SBRestorer"' in text
+    assert "SetCurrentProcessExplicitAppUserModelID(WINDOWS_APP_USER_MODEL_ID)" in text
+    assert text.index("set_windows_app_user_model_id()") < text.index("app = QApplication(sys.argv)")
+    assert "app.setDesktopFileName(WINDOWS_APP_USER_MODEL_ID)" in text
+    assert "app_icon = QIcon(str(icon_path))" in text
+    assert "app.setWindowIcon(app_icon)" in text
     assert "QProgressBar" in text
     assert "QDoubleSpinBox" in text
     assert "QRadioButton" in text
@@ -141,4 +146,11 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
     assert "prepare_restore_dry_run" in text
     assert "audio_probe_text" in text
     assert "setAcceptDrops(True)" in text
+    assert "class AudioDropZone(QLabel)" in text
+    assert "audio_dropped = Signal(object)" in text
+    assert "self.drop_zone = AudioDropZone()" in text
+    assert "self.drop_zone.audio_dropped.connect(self.set_input_audio)" in text
+    assert "self.restore_output.setAcceptDrops(False)" in text
+    assert "AUDIO_FILE_FORMATS_TEXT" in text
+    assert "OGG, OPUS, M4A, AAC, WMA, AIFF" in text
     assert "SUPPORTED_AUDIO_EXTENSIONS" in text

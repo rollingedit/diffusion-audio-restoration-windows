@@ -4,8 +4,8 @@ Complete this file before any public release. Do not replace checklist items wit
 
 ## Release Candidate
 
-- Version: 0.1.0-alpha
-- Git commit: 4c0781a
+- Version: 0.1.1
+- Git commit: cff778c
 - Build machine: RollingEdit Windows 11 build workstation
 - Test machine: RollingEdit Windows 11 NVIDIA validation workstation
 - Windows version: Microsoft Windows 11 Pro 10.0.22631
@@ -13,7 +13,7 @@ Complete this file before any public release. Do not replace checklist items wit
 - NVIDIA driver version: 591.59
 - CUDA reported by PyTorch: 12.1
 - Installer filename: A2SB-Restorer-Setup.exe
-- Installer SHA256: 931bd3a4f00a370bff5ddb6a37a47706fc340207fe71d3970ae087c114302a28
+- Installer SHA256: d52285fb10daa7662bc909a2e72b68127aa4cdc1540498a6d0a834fe87392378
 - FFmpeg build filename: ffmpeg-master-latest-win64-lgpl.zip
 - FFmpeg source URL: https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-lgpl.zip
 - FFmpeg manifest path: bin/ffmpeg-manifest.json

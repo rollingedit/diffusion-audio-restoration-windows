@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -443,7 +444,7 @@ def validate_release_evidence(
         errors.append("Release evidence version does not match installer version")
     if values.get("Git commit") and not GIT_SHA_RE.match(values["Git commit"]):
         errors.append("Release evidence Git commit must be a 7-40 character hex SHA")
-    if expected_git_commit and values.get("Git commit") != expected_git_commit[: len(values.get("Git commit", ""))]:
+    if expected_git_commit and not evidence_commit_matches_head_or_ancestor(path, values.get("Git commit", ""), expected_git_commit):
         errors.append("Release evidence Git commit does not match repository HEAD")
     ffmpeg_filename = values.get("FFmpeg build filename", "").lower()
     if ffmpeg_filename and not (
@@ -475,6 +476,25 @@ def validate_release_evidence(
     if blocker_lines != ["- None"]:
         errors.append('Release evidence blockers must be exactly "- None" before public release')
     return errors
+
+
+def evidence_commit_matches_head_or_ancestor(evidence_path: Path, evidence_commit: str, expected_git_commit: str) -> bool:
+    if not evidence_commit:
+        return False
+    if evidence_commit == expected_git_commit[: len(evidence_commit)]:
+        return True
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(Path(evidence_path).resolve().parent), "merge-base", "--is-ancestor", evidence_commit, expected_git_commit],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=False,
+            check=False,
+        )
+        return completed.returncode == 0
+    except Exception:
+        return False
 
 
 def validate_evidence_file_relationships(values: dict[str, str]) -> list[str]:

@@ -1,5 +1,5 @@
 #define MyAppName "A2SB Restorer"
-#define MyAppVersion "0.1.0-alpha"
+#define MyAppVersion "0.1.1"
 #define MyAppPublisher "RollingEdit"
 #define MyAppURL "https://github.com/rollingedit/diffusion-audio-restoration-windows"
 #define MyAppExeName "A2SB Restorer.exe"
@@ -62,7 +62,7 @@ Source: "..\installer\assets\app.ico"; DestDir: "{app}\assets"; Flags: ignorever
 Source: "..\dist\A2SB Restorer\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 
 [Icons]
-Name: "{group}\A2SB Restorer"; Filename: "{app}\{#MyAppExeName}"
+Name: "{group}\A2SB Restorer"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\assets\app.ico"
 Name: "{group}\A2SB Doctor"; Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\scripts\doctor.ps1"""
 Name: "{group}\Repair Runtime"; Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\scripts\repair_runtime.ps1"""
 Name: "{group}\Open Models Folder"; Filename: "powershell.exe"; Parameters: "-NoProfile -Command ""$p = Join-Path '{app}' '.local_app_data\A2SB Restorer\models'; New-Item -ItemType Directory -Force -Path $p | Out-Null; Invoke-Item $p"""

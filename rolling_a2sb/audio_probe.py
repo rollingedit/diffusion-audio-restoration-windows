@@ -9,7 +9,18 @@ from pathlib import Path
 from . import paths
 from .errors import AudioProbeError
 
-SUPPORTED_EXTENSIONS = {".wav", ".mp3", ".flac"}
+SUPPORTED_EXTENSIONS = {
+    ".wav",
+    ".mp3",
+    ".flac",
+    ".ogg",
+    ".opus",
+    ".m4a",
+    ".aac",
+    ".wma",
+    ".aiff",
+    ".aif",
+}
 
 
 @dataclass(frozen=True)
@@ -94,4 +105,3 @@ def _probe_with_ffprobe(path: Path, ffprobe_path: Path | None = None) -> AudioIn
 def audio_info_dict(info: AudioInfo) -> dict:
     return asdict(info)
 CREATE_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
-

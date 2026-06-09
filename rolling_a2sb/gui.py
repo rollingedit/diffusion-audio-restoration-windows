@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 from . import paths
-from .audio_probe import probe_audio
+from .audio_probe import SUPPORTED_EXTENSIONS, is_supported_audio, probe_audio
 from .errors import format_user_error
 from .job import default_output_path
 from .gui_actions import (
@@ -31,7 +31,21 @@ from .gui_actions import (
 from .runtime_check import doctor
 
 
-SUPPORTED_AUDIO_EXTENSIONS = {".wav", ".mp3", ".flac"}
+SUPPORTED_AUDIO_EXTENSIONS = SUPPORTED_EXTENSIONS
+AUDIO_FILE_FILTER = "Audio files (*.wav *.mp3 *.flac *.ogg *.opus *.m4a *.aac *.wma *.aiff *.aif)"
+AUDIO_FILE_FORMATS_TEXT = "WAV, MP3, FLAC, OGG, OPUS, M4A, AAC, WMA, AIFF"
+WINDOWS_APP_USER_MODEL_ID = "RollingEdit.A2SBRestorer"
+
+
+def set_windows_app_user_model_id() -> None:
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(WINDOWS_APP_USER_MODEL_ID)
+    except Exception:
+        return
 
 
 def run_gui() -> int:
@@ -239,6 +253,46 @@ def run_gui() -> int:
         def _clamp_value(self, value: int) -> int:
             return max(self._minimum, min(value, self._maximum))
 
+    class AudioDropZone(QLabel):
+        audio_dropped = Signal(object)
+
+        def __init__(self) -> None:
+            super().__init__("Drop audio here")
+            self.setAcceptDrops(True)
+            self.setAlignment(Qt.AlignCenter)
+            self.setMinimumHeight(86)
+            self.setWordWrap(True)
+            self.setText(f"Drop audio here\n{AUDIO_FILE_FORMATS_TEXT}")
+            self.setStyleSheet(
+                "QLabel { border: 2px dashed #6f7d86; border-radius: 6px; padding: 16px; color: #d7dde2; }"
+                "QLabel:hover { border-color: #2aa88f; }"
+            )
+
+        def dragEnterEvent(self, event) -> None:
+            if self.first_supported_url(event):
+                event.acceptProposedAction()
+
+        def dragMoveEvent(self, event) -> None:
+            if self.first_supported_url(event):
+                event.acceptProposedAction()
+
+        def dropEvent(self, event) -> None:
+            audio_path = self.first_supported_url(event)
+            if audio_path:
+                self.audio_dropped.emit(audio_path)
+                event.acceptProposedAction()
+
+        def first_supported_url(self, event) -> Path | None:
+            if not event.mimeData().hasUrls():
+                return None
+            for url in event.mimeData().urls():
+                if not url.isLocalFile():
+                    continue
+                path = Path(url.toLocalFile())
+                if path.is_file() and is_supported_audio(path):
+                    return path
+            return None
+
     class MainWindow(QMainWindow):
         def __init__(self) -> None:
             super().__init__()
@@ -367,9 +421,12 @@ def run_gui() -> int:
             self.mode_help.setWordWrap(True)
             layout.addWidget(self.mode_help)
 
+            self.drop_zone = AudioDropZone()
+            layout.addWidget(self.drop_zone)
+
             input_row = QHBoxLayout()
             self.input_edit = QLineEdit()
-            self.input_edit.setPlaceholderText("Drop or select WAV, MP3, or FLAC")
+            self.input_edit.setPlaceholderText(f"Drop or select audio: {AUDIO_FILE_FORMATS_TEXT}")
             self.input_button = QPushButton("Select Audio")
             input_row.addWidget(QLabel("Input"))
             input_row.addWidget(self.input_edit, 1)
@@ -473,8 +530,10 @@ def run_gui() -> int:
 
             self.restore_output = QTextEdit()
             self.restore_output.setReadOnly(True)
+            self.restore_output.setAcceptDrops(False)
             layout.addWidget(self.restore_output, 1)
 
+            self.drop_zone.audio_dropped.connect(self.set_input_audio)
             self.input_button.clicked.connect(self.select_input_audio)
             self.output_button.clicked.connect(self.select_output_audio)
             self.checkpoint_button.clicked.connect(self.select_checkpoint_folder)
@@ -984,7 +1043,7 @@ def run_gui() -> int:
                 if not url.isLocalFile():
                     continue
                 path = Path(url.toLocalFile())
-                if path.is_file() and path.suffix.lower() in SUPPORTED_AUDIO_EXTENSIONS:
+                if path.is_file() and is_supported_audio(path):
                     return path
             return None
 
@@ -993,7 +1052,7 @@ def run_gui() -> int:
                 self,
                 "Select audio",
                 str(Path.home()),
-                "Audio files (*.wav *.mp3 *.flac)",
+                AUDIO_FILE_FILTER,
             )
             if filename:
                 self.set_input_audio(Path(filename))
@@ -1152,8 +1211,8 @@ def run_gui() -> int:
             if not text:
                 return None
             path = Path(text)
-            if path.is_dir() or path.suffix.lower() not in SUPPORTED_AUDIO_EXTENSIONS:
-                self.restore_output.setPlainText("Unsupported input. Select WAV, MP3, or FLAC audio.")
+            if path.is_dir() or not is_supported_audio(path):
+                self.restore_output.setPlainText(f"Unsupported input. Select audio: {AUDIO_FILE_FORMATS_TEXT}.")
                 return None
             return path
 
@@ -1171,10 +1230,15 @@ def run_gui() -> int:
         def current_task_mode(self) -> str:
             return "inpaint" if self.inpaint_radio.isChecked() else "bandwidth"
 
+    set_windows_app_user_model_id()
     app = QApplication(sys.argv)
+    app.setApplicationName(paths.APP_NAME)
+    app.setOrganizationName(paths.APP_AUTHOR)
+    app.setDesktopFileName(WINDOWS_APP_USER_MODEL_ID)
     icon_path = app_icon_path()
     if icon_path:
-        app.setWindowIcon(QIcon(str(icon_path)))
+        app_icon = QIcon(str(icon_path))
+        app.setWindowIcon(app_icon)
     window = MainWindow()
     window.show()
     QTimer.singleShot(250, window.offer_startup_model_download)

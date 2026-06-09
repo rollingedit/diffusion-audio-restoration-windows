@@ -2,9 +2,9 @@
 
 Notable changes for RollingEdit A2SB Restorer for Windows.
 
-## v0.1.0-alpha - 2026-06-09
+## v0.1.1 - 2026-06-09
 
-First public alpha release candidate for the Windows desktop installer.
+Windows preview point release for the desktop installer.
 
 ### Highlights
 
@@ -18,6 +18,7 @@ First public alpha release candidate for the Windows desktop installer.
 ### Added
 
 - Added public README validation notes covering full tests, release gates, Windows Sandbox bootstrap smoke, and manual installed NVIDIA GPU restore evidence.
+- Added a larger Restore-tab audio drop target and expanded accepted input extensions to include OGG, Opus, M4A, AAC, WMA, and AIFF through the bundled FFmpeg/ffprobe preparation path.
 - Rewrote the public README intro to describe the Windows port/productization work more directly.
 - Clarified that normal users should download and run `A2SB-Restorer-Setup.exe` from the GitHub release.
 - Added Microsoft Visual C++ Redistributable bootstrap during runtime setup so PyTorch native DLLs can load on clean Windows machines.
@@ -44,6 +45,7 @@ First public alpha release candidate for the Windows desktop installer.
 
 ### Fixed
 
+- Fixed the Windows taskbar app identity so the running GUI uses the A2SB Restorer icon instead of inheriting the private Python runtime icon.
 - Fixed runtime setup status parsing when Torch emits a Microsoft VC++ Redistributable warning before doctor JSON in a clean Windows Sandbox.
 - Fixed a bad install UX where the setup progress bar could sit fully green with no activity text while the private ML runtime was still installing.
 - Fixed setup progress text being clipped in the installer by shortening and wrapping the runtime-install status message.
