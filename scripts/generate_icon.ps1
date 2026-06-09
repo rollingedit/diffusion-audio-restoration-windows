@@ -17,18 +17,13 @@ Add-Type -AssemblyName System.Drawing
 
 function New-IconBitmap {
     param(
-        [int]$Size,
-        [switch]$OpaqueShellMatte
+        [int]$Size
     )
 
     $bitmap = New-Object System.Drawing.Bitmap $Size, $Size, ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
     $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
     $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
-    if ($OpaqueShellMatte) {
-        $graphics.Clear([System.Drawing.Color]::FromArgb(255, 32, 32, 32))
-    } else {
-        $graphics.Clear([System.Drawing.Color]::Transparent)
-    }
+    $graphics.Clear([System.Drawing.Color]::Transparent)
 
     $scale = $Size / 256.0
     $bgBrush = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
@@ -125,20 +120,33 @@ function ConvertTo-DibBytes {
     }
 }
 
+function ConvertTo-PngBytes {
+    param([System.Drawing.Bitmap]$Bitmap)
+
+    $stream = New-Object System.IO.MemoryStream
+    try {
+        $Bitmap.Save($stream, [System.Drawing.Imaging.ImageFormat]::Png)
+        return ,$stream.ToArray()
+    } finally {
+        $stream.Dispose()
+    }
+}
+
 function Write-IconFile {
     param(
         [string]$Path,
-        [switch]$OpaqueShellMatte
+        [switch]$PngEntries
     )
 
     $sizes = @(256, 128, 64, 48, 32, 16)
     $images = @()
     foreach ($size in $sizes) {
-        $bitmap = New-IconBitmap -Size $size -OpaqueShellMatte:$OpaqueShellMatte
+        $bitmap = New-IconBitmap -Size $size
         try {
+            $bytes = if ($PngEntries) { ConvertTo-PngBytes -Bitmap $bitmap } else { ConvertTo-DibBytes -Bitmap $bitmap }
             $images += [pscustomobject]@{
                 Size = $size
-                Bytes = [byte[]](ConvertTo-DibBytes -Bitmap $bitmap)
+                Bytes = [byte[]]$bytes
             }
         } finally {
             $bitmap.Dispose()
@@ -178,5 +186,5 @@ function Write-IconFile {
 
 Write-IconFile -Path $OutputPath
 Write-Host "Wrote $OutputPath"
-Write-IconFile -Path $SetupOutputPath -OpaqueShellMatte
+Write-IconFile -Path $SetupOutputPath -PngEntries
 Write-Host "Wrote $SetupOutputPath"

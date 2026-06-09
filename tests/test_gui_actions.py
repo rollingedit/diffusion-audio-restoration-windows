@@ -47,7 +47,9 @@ def test_doctor_report_text_contains_header() -> None:
 def test_about_text_contains_attribution_and_non_affiliation() -> None:
     text = about_text()
 
-    assert "Experimental RollingEdit Windows app" in text
+    assert "RollingEdit Windows app" in text
+    assert "Experimental RollingEdit" not in text
+    assert "Warning: this app and the upstream restoration workflow are experimental." in text
     assert "https://github.com/rollingedit/diffusion-audio-restoration-windows" in text
     assert "NVIDIA Audio-to-Audio Schrodinger Bridge" in text
     assert "not affiliated with or endorsed by NVIDIA" in text
@@ -61,7 +63,8 @@ def test_about_html_contains_clickable_github_and_warning() -> None:
 
     assert '<a href="https://github.com/rollingedit/diffusion-audio-restoration-windows">GitHub repository</a>' in text
     assert "non-commercial use only" in text
-    assert "Experimental" in text
+    assert "Use warning" in text
+    assert "experimental" in text
 
 
 def test_task_mode_help_uses_technical_names_with_plain_description() -> None:

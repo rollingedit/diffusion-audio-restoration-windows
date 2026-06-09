@@ -102,8 +102,9 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
     assert "Checking for existing model checkpoints" in text
     assert "Models already installed" in text
     assert "self.setup_progress = QProgressBar()" in text
-    assert "self.setup_progress.setRange(0, 0)" in text
+    assert "self.setup_progress.setFixedHeight(22)" in text
     assert "self.setup_progress.setRange(0, 1000)" in text
+    assert "self.setup_progress.setRange(0, 0)" not in text
     assert "update_model_download_progress" in text
     assert "model_download_progress(mode=self.download_mode)" in text
     assert "Downloading model: {percent}%" in text
@@ -118,6 +119,8 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
     assert "dialog.accept()" in text
     assert "Connecting to Hugging Face" in text
     assert "{label}: connecting..." in text
+    assert "self.inpaint_segment_slider.setValues(0, slider_max, emit=False)" in text
+    assert "self.inpaint_end_spin.setValue(duration)" in text
     assert "PyTorch checkpoint files can execute code" in text
     assert "confirm_and_download_model" in text
     assert "set_restore_ready" in text

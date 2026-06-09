@@ -26,11 +26,12 @@ def about_text() -> str:
     return "\n".join(
         [
             "A2SB Restorer",
-            "Experimental RollingEdit Windows app for NVIDIA Audio-to-Audio Schrodinger Bridge restoration.",
+            "RollingEdit Windows app for NVIDIA Audio-to-Audio Schrodinger Bridge restoration.",
             "GitHub: https://github.com/rollingedit/diffusion-audio-restoration-windows",
             "",
             "Uses upstream NVIDIA A2SB engine code and official NVIDIA Hugging Face checkpoints.",
             "This project is not affiliated with or endorsed by NVIDIA.",
+            "Warning: this app and the upstream restoration workflow are experimental.",
             "The upstream model card says the model is for non-commercial use only.",
             "Review the included NVIDIA A2SB license before commercial or production use.",
             "Audio stays local on this PC.",
@@ -43,10 +44,10 @@ def about_text() -> str:
 def about_html() -> str:
     return """
 <h2>A2SB Restorer</h2>
-<p>Experimental RollingEdit Windows app for NVIDIA Audio-to-Audio Schrodinger Bridge restoration.</p>
+<p>RollingEdit Windows app for NVIDIA Audio-to-Audio Schrodinger Bridge restoration.</p>
 <p><a href="https://github.com/rollingedit/diffusion-audio-restoration-windows">GitHub repository</a></p>
 <p>Uses upstream NVIDIA A2SB engine code and official NVIDIA Hugging Face checkpoints. This project is not affiliated with or endorsed by NVIDIA.</p>
-<p><b>Use warning:</b> the upstream model card says the model is for non-commercial use only. Review the included NVIDIA A2SB license before commercial or production use.</p>
+<p><b>Use warning:</b> this app and the upstream restoration workflow are experimental. The upstream model card says the model is for non-commercial use only. Review the included NVIDIA A2SB license before commercial or production use.</p>
 <p>Audio stays local on this PC. License notices are installed under the app LICENSES and docs folders.</p>
 """
 

@@ -300,7 +300,9 @@ def run_gui() -> int:
             layout.addWidget(self.report, 1)
 
             self.setup_progress = QProgressBar()
-            self.setup_progress.setRange(0, 0)
+            self.setup_progress.setRange(0, 1000)
+            self.setup_progress.setValue(0)
+            self.setup_progress.setFixedHeight(22)
             self.setup_progress.setTextVisible(False)
             self.setup_progress.hide()
             layout.addWidget(self.setup_progress)
@@ -633,17 +635,17 @@ def run_gui() -> int:
             if not duration or duration <= 0:
                 self.set_inpaint_controls_enabled(False)
                 return
-            slider_max = max(0, int(max(duration - 0.01, 0) * 100))
+            slider_max = max(1, int(duration * 100))
             self.inpaint_segment_slider.blockSignals(True)
             self.inpaint_segment_slider.setRange(0, slider_max)
-            self.inpaint_segment_slider.setValues(0, int(min(duration, 0.5) * 100), emit=False)
+            self.inpaint_segment_slider.setValues(0, slider_max, emit=False)
             self.inpaint_segment_slider.blockSignals(False)
             self.inpaint_start_spin.blockSignals(True)
             self.inpaint_end_spin.blockSignals(True)
             self.inpaint_start_spin.setRange(0.0, max(0.0, duration - 0.01))
             self.inpaint_end_spin.setRange(0.01, duration)
             self.inpaint_start_spin.setValue(0.0)
-            self.inpaint_end_spin.setValue(min(duration, 0.5))
+            self.inpaint_end_spin.setValue(duration)
             self.inpaint_start_spin.blockSignals(False)
             self.inpaint_end_spin.blockSignals(False)
             self.set_inpaint_controls_enabled(True)
@@ -652,14 +654,6 @@ def run_gui() -> int:
         def inpaint_slider_changed(self, start: float, end: float) -> None:
             if not self.inpaint_audio_loaded:
                 return
-            if end - start > 1.0:
-                if self.inpaint_segment_slider._active_handle == "start":
-                    end = start + 1.0
-                else:
-                    start = max(0.0, end - 1.0)
-                self.inpaint_segment_slider.blockSignals(True)
-                self.inpaint_segment_slider.setValues(int(start * 100), int(end * 100), emit=False)
-                self.inpaint_segment_slider.blockSignals(False)
             self.inpaint_start_spin.blockSignals(True)
             self.inpaint_end_spin.blockSignals(True)
             self.inpaint_start_spin.setValue(start)
@@ -678,14 +672,8 @@ def run_gui() -> int:
                 self.inpaint_end_spin.blockSignals(True)
                 self.inpaint_end_spin.setValue(end_seconds)
                 self.inpaint_end_spin.blockSignals(False)
-            if end_seconds - start_seconds > 1.0:
-                end_seconds = start_seconds + 1.0
-                self.inpaint_end_spin.blockSignals(True)
-                self.inpaint_end_spin.setValue(end_seconds)
-                self.inpaint_end_spin.blockSignals(False)
             if end_seconds > self.inpaint_end_spin.maximum():
                 end_seconds = self.inpaint_end_spin.maximum()
-                start_seconds = max(0.0, end_seconds - 1.0)
                 self.inpaint_start_spin.blockSignals(True)
                 self.inpaint_end_spin.blockSignals(True)
                 self.inpaint_start_spin.setValue(start_seconds)
@@ -802,7 +790,8 @@ def run_gui() -> int:
         def download_official_model(self, prompt: bool = True) -> None:
             mode = self.current_model_mode()
             self.report.setPlainText("Checking for existing model checkpoints...\n")
-            self.setup_progress.setRange(0, 0)
+            self.setup_progress.setRange(0, 1000)
+            self.setup_progress.setValue(0)
             self.setup_progress.setTextVisible(False)
             self.setup_progress.show()
             reused = reuse_existing_model_text(mode=mode, on_progress=lambda line: self.report.append(line))
@@ -832,7 +821,8 @@ def run_gui() -> int:
         def start_model_download(self, mode: str) -> None:
             self.download_mode = mode
             self.set_setup_busy(True, "Downloading official model...\n")
-            self.setup_progress.setRange(0, 0)
+            self.setup_progress.setRange(0, 1000)
+            self.setup_progress.setValue(0)
             self.setup_progress.setTextVisible(True)
             self.setup_progress.setFormat("Connecting to Hugging Face...")
             self.download_thread = ModelDownloadThread(mode)
@@ -850,8 +840,10 @@ def run_gui() -> int:
         def update_model_download_progress(self) -> None:
             downloaded, required = model_download_progress(mode=self.download_mode)
             if required <= 0:
-                self.setup_progress.setRange(0, 0)
-                self.setup_progress.setTextVisible(False)
+                self.setup_progress.setRange(0, 1000)
+                self.setup_progress.setValue(0)
+                self.setup_progress.setTextVisible(True)
+                self.setup_progress.setFormat("Connecting to Hugging Face...")
                 return
             ratio = max(0.0, min(float(downloaded) / float(required), 1.0))
             value = int(ratio * 1000)
@@ -865,7 +857,8 @@ def run_gui() -> int:
             downloaded = int(downloaded)
             required = int(required)
             if required <= 0:
-                self.setup_progress.setRange(0, 0)
+                self.setup_progress.setRange(0, 1000)
+                self.setup_progress.setValue(0)
                 self.setup_progress.setTextVisible(True)
                 self.setup_progress.setFormat(f"{label}: connecting...")
                 return
