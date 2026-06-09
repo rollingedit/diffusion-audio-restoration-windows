@@ -26,6 +26,10 @@ Planned runtime path:
 %LOCALAPPDATA%\Programs\RollingEdit\A2SB Restorer\runtime\
 ```
 
+Setup downloads the official Python.org 3.10.11 x64 installer, verifies its Authenticode signature, and installs it into the app-owned `python310\` folder with PATH, launcher, shortcuts, and file associations disabled. It then creates the private `runtime\` virtual environment from that app-owned interpreter. Setup does not use or modify the user's global Python installs.
+
+Setup also downloads and runs Microsoft's official Visual C++ Redistributable x64 installer because PyTorch native DLLs depend on that runtime on clean Windows machines.
+
 Core runtime packages include:
 
 - PyTorch CUDA 12.1 wheels.
@@ -36,6 +40,7 @@ Core runtime packages include:
 - SoundFile.
 - Hugging Face Hub.
 - PySide6.
+- Microsoft Visual C++ Redistributable x64.
 
 The installer and launcher start runtime setup if the private runtime is missing. Setup records doctor readiness in `runtime\setup-status.json`, but missing checkpoints or other readiness warnings should not prevent the GUI from opening so the user can finish setup. If dependency installation itself fails, the launcher should show a visible error and the Start Menu Repair Runtime shortcut should rerun setup in repair mode.
 

@@ -61,6 +61,7 @@ def test_inno_uninstall_does_not_delete_user_model_data() -> None:
     assert r"UninstallDisplayIcon={app}\{#MyAppExeName}" in text
     uninstall_section = text.split("[UninstallDelete]", 1)[1]
     assert "{app}\\runtime" in uninstall_section
+    assert "{app}\\python310" in uninstall_section
     assert "models" not in uninstall_section.lower()
     assert "RollingEdit\\A2SB` Restorer\\models" not in uninstall_section
 

@@ -5,15 +5,15 @@ Complete this file before any public release. Do not replace checklist items wit
 ## Release Candidate
 
 - Version: 0.1.0-alpha
-- Git commit: 46d8d6a5ff88cbcd1fab2032f1dcc47b6527790f
-- Build machine: RollingEdit Windows validation workstation
-- Test machine: RollingEdit Windows validation workstation
+- Git commit: 0cf1674
+- Build machine: RollingEdit Windows 11 build workstation
+- Test machine: RollingEdit Windows 11 NVIDIA validation workstation
 - Windows version: Microsoft Windows 11 Pro 10.0.22631
 - GPU model: NVIDIA GeForce RTX validation GPU
 - NVIDIA driver version: 591.59
 - CUDA reported by PyTorch: 12.1
 - Installer filename: A2SB-Restorer-Setup.exe
-- Installer SHA256: ff4e6abb46bcb39a5586e93c1990870a8a59ff7d0283d17d11e88137fda2d9db
+- Installer SHA256: 931bd3a4f00a370bff5ddb6a37a47706fc340207fe71d3970ae087c114302a28
 - FFmpeg build filename: ffmpeg-master-latest-win64-lgpl.zip
 - FFmpeg source URL: https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-lgpl.zip
 - FFmpeg manifest path: bin/ffmpeg-manifest.json
@@ -37,6 +37,7 @@ Use `scripts\installed_app_smoke.ps1` for installed-app install/doctor/restore/u
 - Launcher build: powershell -ExecutionPolicy Bypass -File scripts/build_launcher.ps1; exit 0; dist/A2SB Restorer/A2SB Restorer.exe
 - Installer build: powershell -ExecutionPolicy Bypass -File scripts/build_installer.ps1; exit 0; A2SB-Restorer-Setup.exe
 - SHA256 generation: powershell -ExecutionPolicy Bypass -File scripts/write_sha256sums.ps1 -ArtifactsDir dist/installer -GenerateOnly; exit 0; dist/installer/SHA256SUMS.txt
+- Windows Sandbox bootstrap smoke: Start-Process "evidence\windows-sandbox-smoke\a2sb-sandbox-smoke.wsb"; installer exit 0; evidence/windows-sandbox-smoke/sandbox-smoke-summary.json
 - Release validation: python -m rolling_a2sb.cli release-check --artifacts-dir dist/installer --licenses-dir LICENSES; exit 0; evidence/release_validation.txt
 
 ## Evidence Files
@@ -55,6 +56,8 @@ Store generated evidence outside the repo unless it is intentionally committed.
 - Screenshot of completed Restore tab: evidence/screenshots/completed_restore_tab.png
 - Screenshot of Start Menu shortcuts: evidence/screenshots/start_menu_shortcuts.png
 - Installer artifact folder: dist/installer
+- Windows Sandbox smoke summary: evidence/windows-sandbox-smoke/sandbox-smoke-summary.json
+- Windows Sandbox setup status: evidence/windows-sandbox-smoke/setup-status.json
 
 ## Required Results
 

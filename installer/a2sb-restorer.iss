@@ -74,3 +74,4 @@ Filename: "{app}\{#MyAppExeName}"; Description: "Launch A2SB Restorer"; Flags: n
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\runtime"
+Type: filesandordirs; Name: "{app}\python310"

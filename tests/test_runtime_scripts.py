@@ -9,11 +9,30 @@ def test_setup_runtime_uses_private_python_310_runtime() -> None:
 
     assert '$Runtime = Join-Path $AppRoot "runtime"' in text
     assert '$Python = Join-Path $Runtime "Scripts\\python.exe"' in text
-    assert "function Find-Python310" in text
-    assert 'Programs\\Python\\Python310\\python.exe' in text
-    assert "& py -3.10 -m venv $Runtime" in text
+    assert "function Find-Python310" not in text
+    assert "function Install-PrivatePython310" in text
+    assert "function Install-VcRedist" in text
+    assert "https://www.python.org/ftp/python/" in text
+    assert "https://aka.ms/vs/17/release/vc_redist.x64.exe" in text
+    assert "Get-AuthenticodeSignature" in text
+    assert "InstallAllUsers=0" in text
+    assert 'TargetDir=`"$InstallDir`"' in text
+    assert '/log `"$InstallerLog`"' in text
+    assert "InstallLauncherAllUsers=0" in text
+    assert "PrependPath=0" in text
+    assert "AssociateFiles=0" in text
+    assert "Shortcuts=0" in text
+    assert "Include_launcher=0" in text
+    assert '$PrivatePython310 = Join-Path $AppRoot "python310"' in text
+    assert 'Programs\\Python\\Python310\\python.exe' not in text
     assert "& $Python310 -m venv $Runtime" in text
+    assert "& py -3.10 -m venv $Runtime" not in text
+    assert "$Python310 = Find-Python310" not in text
     assert "Python 3.10 virtual environment" in text
+    assert "Installing Microsoft Visual C++ runtime" in text
+    assert "vc_redist" in text
+    assert "/install /quiet /norestart" in text
+    assert "3010" in text
     assert '& $Python -m pip install --upgrade pip "setuptools<81" wheel' in text
     assert "-m pip install -e $AppRoot" in text
     assert "setup-status.json" in text
@@ -65,6 +84,8 @@ def test_setup_runtime_checks_private_runtime_with_doctor_json() -> None:
     text = (ROOT / "scripts" / "setup_runtime.ps1").read_text(encoding="utf-8")
 
     assert "$doctorJson = & $Python -m rolling_a2sb.cli doctor --json" in text
+    assert '$doctorText = ($doctorJson -join "`n")' in text
+    assert '$doctorJsonStart = $doctorText.IndexOf("{")' in text
     assert "torch_ok" in text
     assert "checkpoints_ok" in text
     assert "doctor_ok" in text

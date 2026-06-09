@@ -46,26 +46,70 @@ function Write-SetupProgress {
     }
 }
 
-function Find-Python310 {
-    $pyLauncher = Get-Command py -ErrorAction SilentlyContinue
-    if ($pyLauncher) {
-        & py -3.10 -c "import sys; print(sys.executable)" 2>$null
-        if ($LASTEXITCODE -eq 0) {
-            return "py"
-        }
+function Install-PrivatePython310 {
+    param(
+        [string]$InstallDir,
+        [string]$DownloadsDir
+    )
+
+    $PythonVersion = "3.10.11"
+    $InstallerUrl = "https://www.python.org/ftp/python/$PythonVersion/python-$PythonVersion-amd64.exe"
+    $InstallerPath = Join-Path $DownloadsDir "python-$PythonVersion-amd64.exe"
+    $InstallerLog = Join-Path $DownloadsDir "python-$PythonVersion-install.log"
+    $InstalledPython = Join-Path $InstallDir "python.exe"
+
+    if (Test-Path $InstalledPython) {
+        return $InstalledPython
     }
 
-    $candidates = @(
-        (Join-Path $env:LOCALAPPDATA "Programs\Python\Python310\python.exe"),
-        (Join-Path $env:ProgramFiles "Python310\python.exe"),
-        (Join-Path ${env:ProgramFiles(x86)} "Python310\python.exe")
-    )
-    foreach ($candidate in $candidates) {
-        if ($candidate -and (Test-Path $candidate)) {
-            return $candidate
-        }
+    New-Item -ItemType Directory -Force -Path $DownloadsDir | Out-Null
+    New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
+
+    if (-not (Test-Path $InstallerPath)) {
+        Invoke-WebRequest -Uri $InstallerUrl -OutFile $InstallerPath
     }
-    return $null
+
+    $signature = Get-AuthenticodeSignature -FilePath $InstallerPath
+    if ($signature.Status -ne "Valid") {
+        throw "Downloaded Python installer signature is not valid: $($signature.Status)."
+    }
+
+    $installArgs = "/quiet InstallAllUsers=0 TargetDir=`"$InstallDir`" Include_launcher=0 InstallLauncherAllUsers=0 PrependPath=0 AssociateFiles=0 Shortcuts=0 Include_pip=1 Include_test=0 SimpleInstall=1 /log `"$InstallerLog`""
+    $process = Start-Process -FilePath $InstallerPath -ArgumentList $installArgs -Wait -PassThru
+    if ($process.ExitCode -ne 0) {
+        throw "Private Python 3.10 installer exited with code $($process.ExitCode)."
+    }
+    if (-not (Test-Path $InstalledPython)) {
+        throw "Private Python 3.10 install did not produce $InstalledPython."
+    }
+
+    return $InstalledPython
+}
+
+function Install-VcRedist {
+    param([string]$DownloadsDir)
+
+    $InstallerUrl = "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+    $InstallerPath = Join-Path $DownloadsDir "vc_redist.x64.exe"
+    $InstallerLog = Join-Path $DownloadsDir "vc_redist.x64-install.log"
+
+    New-Item -ItemType Directory -Force -Path $DownloadsDir | Out-Null
+    if (-not (Test-Path $InstallerPath)) {
+        Invoke-WebRequest -Uri $InstallerUrl -OutFile $InstallerPath
+    }
+
+    $signature = Get-AuthenticodeSignature -FilePath $InstallerPath
+    if ($signature.Status -ne "Valid") {
+        throw "Downloaded Microsoft Visual C++ Redistributable signature is not valid: $($signature.Status)."
+    }
+
+    $installArgs = "/install /quiet /norestart /log `"$InstallerLog`""
+    $process = Start-Process -FilePath $InstallerPath -ArgumentList $installArgs -Wait -PassThru
+    if (($process.ExitCode -ne 0) -and ($process.ExitCode -ne 3010)) {
+        throw "Microsoft Visual C++ Redistributable installer exited with code $($process.ExitCode)."
+    }
+
+    return $process.ExitCode
 }
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -80,6 +124,7 @@ if (-not $env:HF_HOME) { $env:HF_HOME = $DefaultHfHome }
 if (-not $env:HUGGINGFACE_HUB_CACHE) { $env:HUGGINGFACE_HUB_CACHE = Join-Path $DefaultHfHome "hub" }
 if (-not $env:TORCH_HOME) { $env:TORCH_HOME = Join-Path $DefaultDownloadsDir "torch-cache" }
 $Runtime = Join-Path $AppRoot "runtime"
+$PrivatePython310 = Join-Path $AppRoot "python310"
 $Python = Join-Path $Runtime "Scripts\python.exe"
 $Requirements = Join-Path $AppRoot "requirements\win-cu121.txt"
 $LockRequirements = Join-Path $AppRoot "requirements\lock-win-cu121.txt"
@@ -110,15 +155,9 @@ try {
 
     if (-not (Test-Path $Python)) {
         Write-SetupProgress 15 "A2SB Restorer setup" "Creating private Python runtime"
-        $Python310 = Find-Python310
-        if (-not $Python310) {
-            throw "Python 3.10 x64 was not found. Install Python 3.10 x64 or use the packaged runtime."
-        }
-        if ($Python310 -eq "py") {
-            & py -3.10 -m venv $Runtime
-        } else {
-            & $Python310 -m venv $Runtime
-        }
+        Write-SetupProgress 15 "A2SB Restorer setup" "Installing private Python 3.10 bootstrap"
+        $Python310 = Install-PrivatePython310 -InstallDir $PrivatePython310 -DownloadsDir $DefaultDownloadsDir
+        & $Python310 -m venv $Runtime
         if ($LASTEXITCODE -ne 0) {
             throw "Failed to create Python 3.10 virtual environment at $Runtime."
         }
@@ -127,6 +166,10 @@ try {
         Write-SetupProgress 15 "A2SB Restorer setup" "Private Python runtime already exists"
         $steps.Add((New-Status $true "venv" "Private Python runtime already exists." @{}))
     }
+
+    Write-SetupProgress 25 "A2SB Restorer setup" "Installing Microsoft Visual C++ runtime"
+    $vcRedistExit = Install-VcRedist -DownloadsDir $DefaultDownloadsDir
+    $steps.Add((New-Status $true "vc_redist" "Installed or repaired Microsoft Visual C++ Redistributable." @{ exit_code = $vcRedistExit }))
 
     Write-SetupProgress 30 "A2SB Restorer setup" "Upgrading pip tooling"
     & $Python -m pip install --upgrade pip "setuptools<81" wheel
@@ -168,7 +211,12 @@ try {
     Write-SetupProgress 95 "A2SB Restorer setup" "Checking runtime readiness"
     $doctorJson = & $Python -m rolling_a2sb.cli doctor --json
     $doctorExit = $LASTEXITCODE
-    $doctor = $doctorJson | ConvertFrom-Json
+    $doctorText = ($doctorJson -join "`n")
+    $doctorJsonStart = $doctorText.IndexOf("{")
+    if ($doctorJsonStart -lt 0) {
+        throw "Doctor did not produce JSON output."
+    }
+    $doctor = $doctorText.Substring($doctorJsonStart) | ConvertFrom-Json
     $steps.Add((New-Status ($doctorExit -eq 0) "doctor" "Runtime doctor completed." @{
         doctor_ok = [bool]$doctor.ok
         torch_ok = [bool]$doctor.torch.ok

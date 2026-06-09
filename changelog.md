@@ -1,17 +1,64 @@
 # Changelog
 
+Notable changes for RollingEdit A2SB Restorer for Windows.
 
-This file is local coordination material unless the user explicitly decides to publish it.
+## v0.1.0-alpha - 2026-06-09
 
-## Unreleased
+First public alpha release candidate for the Windows desktop installer.
+
+### Highlights
+
+- Productized NVIDIA A2SB into a local Windows app with an installer, Start Menu shortcuts, guided setup, runtime Doctor, checkpoint setup, restore GUI, logs, and obvious restored WAV output folders.
+- Added private runtime bootstrap so normal users do not need Git, Conda, global Python, WSL, Docker, manual CUDA package setup, YAML editing, or checkpoint filename hunting.
+- Added two restore modes in the GUI: bandwidth extension and inpainting.
+- Added official Hugging Face checkpoint download/setup flow and trusted manual checkpoint-folder selection.
+- Added NVIDIA credit, non-affiliation wording, non-commercial/research warnings, privacy notes, and release validation evidence in the public docs.
+- Validated the release candidate with `225 passed`, zero release-status blockers, passing release-check, Windows Sandbox clean bootstrap smoke, and manual installed NVIDIA GPU CUDA restore smoke.
 
 ### Added
 
+- Added public README validation notes covering full tests, release gates, Windows Sandbox bootstrap smoke, and manual installed NVIDIA GPU restore evidence.
+- Added Microsoft Visual C++ Redistributable bootstrap during runtime setup so PyTorch native DLLs can load on clean Windows machines.
+- Added app-private Python 3.10 bootstrap support to runtime setup so a clean Windows Sandbox without global Python can install the private venv from an official Python.org installer.
 - Added visible setup progress for runtime bootstrapping, first-launch checkpoint download prompting, streaming model-download progress, clearer setup gating on the Restore tab, and GitHub/product wording in About.
 - Added integrated Restore task selection for high-frequency restoration versus missing-segment inpainting, including inpainting start/end controls, task-specific output filenames, GUI default output population, no-console subprocess launch flags, and model download reuse for existing valid checkpoints.
 - Changed installer update behavior to reuse the previous install folder and close the running app during update, so normal users do not need to uninstall before installing a newer setup EXE.
 - Added installed-app restore hardening for E-local Windows smoke testing: repo-local install/data/cache defaults, stale checkpoint-folder fallback, data-root log fallback, and a prediction mask fallback when no augmentation transform produces a mask.
-- Added installed smoke evidence for a rebuilt installer on the NVIDIA RTX validation GPU test machine: Doctor passed, official two-split checkpoints validated, and a path-with-spaces 6-second WAV restored successfully to a 44.1 kHz mono WAV.
+- Added installed smoke evidence for a rebuilt installer on a Windows CUDA test machine: Doctor passed, official two-split checkpoints validated, and a path-with-spaces 6-second WAV restored successfully to a 44.1 kHz mono WAV.
+
+### Changed
+
+- Changed runtime setup to always create the app venv from the app-owned Python bootstrap instead of probing or using the user's global Python installs.
+- Reworked the Restore tab around two explicit modes: `Bandwidth extension` for high-frequency restoration and `Inpainting` for repairing a missing/damaged time segment.
+- Replaced the normal-user model dropdown workflow with mode-first restore controls, while keeping advanced checkpoint controls behind an `Advanced` option.
+- Updated output path behavior so dropping or selecting an input automatically proposes a default restored WAV path in an `A2SB Restored` folder next to the input.
+- Updated generated output filenames to include task-specific suffixes such as `_a2sb_bandwidth.wav` and `_a2sb_inpaint.wav`.
+- Changed the setup/model workflow so users can download official checkpoints or choose an existing trusted checkpoint folder from the GUI instead of using a separate console window.
+- Changed official checkpoint setup to reuse already-present valid checkpoints and app-managed manifests instead of blindly replacing files.
+- Changed About wording to avoid calling RollingEdit itself experimental; experimental and non-commercial/research warnings belong in the warning/legal section.
+- Changed GitHub/support text in the app to use clickable links instead of plain text where supported by Qt.
+- Changed installer update behavior so future setup EXEs can install over an existing app without requiring normal users to uninstall first.
+- Changed installer completion behavior to offer launching the app after install by default.
+
+### Fixed
+
+- Fixed runtime setup status parsing when Torch emits a Microsoft VC++ Redistributable warning before doctor JSON in a clean Windows Sandbox.
+- Fixed a bad install UX where the setup progress bar could sit fully green with no activity text while the private ML runtime was still installing.
+- Fixed setup progress text being clipped in the installer by shortening and wrapping the runtime-install status message.
+- Fixed launcher/app startup races where shortcuts could appear before setup had fully finished and the app could show a generic failure before the runtime completed.
+- Fixed model-download launches that opened a separate `cmd.exe`; download and setup progress should stay inside the GUI.
+- Fixed model-download progress jumps, flicker, and layout resizing by using one throttled byte-progress source, a fixed-height progress bar, and separate status text.
+- Fixed a post-download UI freeze/crash path by avoiding a blocking setup refresh when switching tabs or finishing a model download.
+- Fixed official model setup buttons that appeared to do nothing when checkpoint download state was stale.
+- Fixed misleading checkpoint state where the app recommended downloads even when valid local model files were already available.
+- Fixed the main app titlebar icon, launcher icon, and installer titlebar icon to use the same app mark with transparent corners.
+- Fixed a regression where the installer setup icon used a black-square-background asset in the setup titlebar.
+- Fixed inpainting controls so the time range initializes from the full audio duration instead of a tiny default segment.
+- Fixed inpainting segment controls so the range slider has two intended handles instead of a visually glued or hidden second handle.
+- Fixed inpainting range controls so the user can still type exact start/end times manually.
+- Fixed inpainting slider state when no input audio is loaded so stale or impossible ranges are not presented as usable.
+- Fixed clipped inpainting start/end spin boxes and labels in the top control row.
+- Fixed restore UX wording that undersold the app as a "wrapper"; the app should describe itself as an experimental Windows desktop app for A2SB restoration with clear upstream attribution.
 
 - Added this `changelog.md` for local change tracking.
 - Added initial Python project metadata and `a2sb` console script entrypoint.
@@ -203,7 +250,7 @@ This file is local coordination material unless the user explicitly decides to p
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli release-status --artifacts-dir dist\installer --licenses-dir LICENSES` reports the current blocker groups without any remaining license-notice category.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.
 - `powershell -ExecutionPolicy Bypass -File scripts/setup_runtime.ps1 -DryRun -Json` succeeds without modifying the runtime.
-- `powershell -ExecutionPolicy Bypass -File scripts\installed_app_smoke.ps1 -Install` succeeds on the rebuilt local installer: payload files are present, private Python 3.10 runtime is created, Torch `2.2.2+cu121` sees CUDA `12.1` on the NVIDIA RTX validation GPU, bundled FFmpeg is used, and doctor is blocked only by missing two-split checkpoints.
+- `powershell -ExecutionPolicy Bypass -File scripts\installed_app_smoke.ps1 -Install` succeeds on the rebuilt local installer: payload files are present, private Python 3.10 runtime is created, Torch `2.2.2+cu121` sees CUDA `12.1` on the Windows CUDA test machine, bundled FFmpeg is used, and doctor is blocked only by missing two-split checkpoints.
 
 ### Notes
 
