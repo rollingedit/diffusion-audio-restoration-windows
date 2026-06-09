@@ -212,7 +212,7 @@ def write_version_sources(root: Path, project_version: str = "0.1.0a0", package_
                 "OutputBaseFilename=A2SB-Restorer-Setup",
                 "PrivilegesRequired=lowest",
                 "ArchitecturesAllowed=x64",
-                "SetupIconFile=assets\\setup.ico",
+                "SetupIconFile=assets\\app.ico",
                 "",
                 "[Files]",
                 'Source: "..\\dist\\A2SB Restorer\\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion',
@@ -685,7 +685,7 @@ def test_validate_installer_metadata_requires_public_release_settings(tmp_path: 
 
     assert 'Installer script is missing required release metadata: #define MyAppName "A2SB Restorer"' in errors
     assert "Installer script is missing required release metadata: PrivilegesRequired=lowest" in errors
-    assert "Installer script is missing required release metadata: SetupIconFile=assets\\setup.ico" in errors
+    assert "Installer script is missing required release metadata: SetupIconFile=assets\\app.ico" in errors
 
 
 def test_validate_installer_metadata_rejects_dry_run_setup_and_model_deletion(tmp_path: Path) -> None:

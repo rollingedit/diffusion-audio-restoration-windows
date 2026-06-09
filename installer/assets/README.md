@@ -6,7 +6,7 @@ Required before building `A2SB-Restorer-Setup.exe`:
 
 - `app-icon.svg`: editable source icon.
 - `app.ico`: generated transparent Windows icon used by the installed app and launcher.
-- `setup.ico`: generated setup EXE icon with a dark Explorer-preview background to avoid black alpha boxes on Windows shell thumbnails.
+- `setup.ico`: generated transparent icon variant kept for release checks; the installer uses `app.ico` because it matches the installed app/window icon.
 
 Generate or refresh both `.ico` files with:
 

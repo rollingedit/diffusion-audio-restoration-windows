@@ -897,7 +897,7 @@ def run_gui() -> int:
             self.setup_progress.setTextVisible(False)
             self.setup_progress_label.setText("Model setup complete")
             self.report.setPlainText(text)
-            self.refresh_report()
+            self.status.setText("Model setup complete. Run Doctor to recheck setup.")
 
         def model_download_failed(self, text: str) -> None:
             self.download_progress_timer.stop()

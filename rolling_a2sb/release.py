@@ -59,7 +59,7 @@ REQUIRED_INSTALLER_METADATA_TOKENS = [
     "OutputBaseFilename=A2SB-Restorer-Setup",
     "PrivilegesRequired=lowest",
     "ArchitecturesAllowed=x64",
-    "SetupIconFile=assets\\setup.ico",
+    "SetupIconFile=assets\\app.ico",
     'Source: "..\\dist\\A2SB Restorer\\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion',
     'Source: "..\\bin\\ffmpeg.exe"; DestDir: "{app}\\bin"; Flags: ignoreversion',
     'Source: "..\\bin\\ffprobe.exe"; DestDir: "{app}\\bin"; Flags: ignoreversion',

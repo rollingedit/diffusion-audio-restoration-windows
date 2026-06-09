@@ -179,6 +179,5 @@ function Write-IconFile {
 
 Write-IconFile -Path $OutputPath
 Write-Host "Wrote $OutputPath"
-$setupFallback = [System.Drawing.Color]::FromArgb(255, 32, 32, 32)
-Write-IconFile -Path $SetupOutputPath -TransparentFallbackColor $setupFallback -BackgroundColor $setupFallback
+Write-IconFile -Path $SetupOutputPath
 Write-Host "Wrote $SetupOutputPath"
