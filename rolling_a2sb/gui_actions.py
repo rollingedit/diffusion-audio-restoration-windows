@@ -26,7 +26,8 @@ def about_text() -> str:
     return "\n".join(
         [
             "A2SB Restorer",
-            "RollingEdit Windows wrapper for NVIDIA Audio-to-Audio Schrodinger Bridge.",
+            "RollingEdit Windows app for NVIDIA Audio-to-Audio Schrodinger Bridge restoration.",
+            "GitHub: https://github.com/rollingedit/diffusion-audio-restoration-windows",
             "",
             "Uses upstream NVIDIA A2SB engine code and official NVIDIA Hugging Face checkpoints.",
             "This project is not affiliated with or endorsed by NVIDIA.",
@@ -41,38 +42,44 @@ def doctor_report_text() -> str:
     return diagnostic_text(doctor())
 
 
+def _format_gb(bytes_count: int) -> str:
+    return f"{bytes_count / (1024**3):.1f} GB"
+
+
 def download_plan_text(mode: str = "twosplit", target_dir: Path | None = None) -> str:
     plan = build_download_plan(mode=mode, target_dir=target_dir)
-    return json.dumps(
-        {
-            "repo_id": plan.repo_id,
-            "model": plan.mode,
-            "files": plan.filenames,
-            "target_dir": str(plan.target_dir),
-            "required_bytes": plan.required_bytes,
-            "free_bytes": plan.free_bytes,
-            "enough_space": plan.enough_space,
-        },
-        indent=2,
-    )
+    lines = [
+        "Official model download",
+        f"Source: {plan.repo_id}",
+        f"Model: {plan.mode}",
+        f"Save to: {plan.target_dir}",
+        f"Needs about: {_format_gb(plan.required_bytes)}",
+        f"Free space here: {_format_gb(plan.free_bytes)}",
+        f"Space check: {'ok' if plan.enough_space else 'not enough space'}",
+        "",
+        "Files:",
+    ]
+    lines.extend(f"- {filename}" for filename in plan.filenames)
+    return "\n".join(lines) + "\n"
 
 
 def model_download_confirmation_text(mode: str = "twosplit", target_dir: Path | None = None) -> str:
     plan = build_download_plan(mode=mode, target_dir=target_dir)
-    return json.dumps(
-        {
-            "confirmation_required": True,
-            "official_source": plan.repo_id,
-            "model": plan.mode,
-            "files": plan.filenames,
-            "local_storage_location": str(plan.target_dir),
-            "required_bytes": plan.required_bytes,
-            "free_bytes": plan.free_bytes,
-            "enough_space": plan.enough_space,
-            "internet_required": True,
-        },
-        indent=2,
-    )
+    lines = [
+        "Download the official NVIDIA model checkpoints?",
+        "",
+        f"Source: {plan.repo_id}",
+        f"Model: {plan.mode}",
+        f"Save to: {plan.target_dir}",
+        f"Download size estimate: {_format_gb(plan.required_bytes)}",
+        f"Free space here: {_format_gb(plan.free_bytes)}",
+        f"Space check: {'ok' if plan.enough_space else 'not enough space'}",
+        "Internet access is required for this action.",
+        "",
+        "Files:",
+    ]
+    lines.extend(f"- {filename}" for filename in plan.filenames)
+    return "\n".join(lines) + "\n"
 
 
 def download_recommended_model_text(mode: str = "twosplit", target_dir: Path | None = None) -> str:
@@ -82,16 +89,38 @@ def download_recommended_model_text(mode: str = "twosplit", target_dir: Path | N
         target_dir=target_dir,
         progress=progress.append,
     )
-    return json.dumps(
-        {
-            "ok": result.validation.ok,
-            "mode": result.mode,
-            "manifest": str(result.manifest_path),
-            "files": [str(path) for path in result.files],
-            "progress": progress,
-        },
-        indent=2,
-    )
+    return format_model_download_result(result, progress)
+
+
+def download_recommended_model_stream_text(
+    mode: str = "twosplit",
+    target_dir: Path | None = None,
+    on_progress: Callable[[str], None] | None = None,
+) -> str:
+    progress: list[str] = []
+
+    def collect(line: str) -> None:
+        progress.append(line)
+        if on_progress:
+            on_progress(line)
+
+    result = download_model(mode=mode, target_dir=target_dir, progress=collect)
+    return format_model_download_result(result, progress)
+
+
+def format_model_download_result(result, progress: list[str]) -> str:
+    lines = [
+        "Model download complete." if result.validation.ok else "Model download finished, but validation needs attention.",
+        f"Model: {result.mode}",
+        f"Manifest: {result.manifest_path}",
+        "",
+        "Progress:",
+    ]
+    lines.extend(f"- {line}" for line in progress)
+    lines.append("")
+    lines.append("Files:")
+    lines.extend(f"- {path}" for path in result.files)
+    return "\n".join(lines) + "\n"
 
 
 def audio_probe_text(audio_path: Path) -> str:

@@ -61,7 +61,7 @@ REQUIRED_INSTALLER_METADATA_TOKENS = [
     'Source: "..\\bin\\ffmpeg.exe"; DestDir: "{app}\\bin"; Flags: ignoreversion',
     'Source: "..\\bin\\ffprobe.exe"; DestDir: "{app}\\bin"; Flags: ignoreversion',
     'Source: "..\\pyproject.toml"; DestDir: "{app}"; Flags: ignoreversion',
-    'Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\\scripts\\setup_runtime.ps1"""; Flags: runhidden',
+    'Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\\scripts\\setup_runtime.ps1"""; StatusMsg:',
     'Type: filesandordirs; Name: "{app}\\runtime"',
 ]
 REQUIRED_RELEASE_SOURCE_PATHS = [

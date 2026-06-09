@@ -9,11 +9,15 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
 
     assert "QTabWidget" in text
     assert "QDialog" in text
-    assert "Model Setup" in text
+    assert "Set Up Models" in text
     assert "self.setup_tab = self.build_setup_tab()" in text
     assert "report = self.refresh_report()" in text
     assert "self.tabs.setCurrentWidget(self.setup_tab)" in text
     assert "open_model_setup_dialog" in text
+    assert "QTimer.singleShot" in text
+    assert "offer_startup_model_download" in text
+    assert "can_offer_model_download" in text
+    assert "download_official_model(prompt=False)" in text
     assert "Plan Restore" in text
     assert "QThread" in text
     assert "QProgressBar" in text
@@ -34,7 +38,7 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
     assert "Restore failed." in text
     assert "Cancel" in text
     assert "cancel_restore" in text
-    assert "self.restore_setup_button = QPushButton(\"Model Setup\")" in text
+    assert "self.restore_setup_button = QPushButton(\"Set Up Models\")" in text
     assert "self.restore_setup_button.clicked.connect(self.open_model_setup_dialog)" in text
     assert "show_restore_error" in text
     assert "is_checkpoint_setup_error(text)" in text
@@ -44,7 +48,7 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
     assert "restore_progress.show()" in text
     assert "restore_progress.hide()" in text
     assert "start_restore" in text
-    assert "Download Recommended Model" in text
+    assert "Download Official Model" in text
     assert "Repair Runtime" in text
     assert "RuntimeRepairThread" in text
     assert "repair_runtime_text" in text
@@ -54,11 +58,20 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
     assert "current_model_mode" in text
     assert "download_plan_text(mode=self.current_model_mode())" in text
     assert "model_download_confirmation_text(mode=mode_combo.currentText())" in text
-    assert "download_recommended_model_text(mode=mode)" in text
+    assert "download_recommended_model_stream_text" in text
+    assert "ModelDownloadThread" in text
+    assert "download_line = Signal(str)" in text
+    assert "self.setup_progress = QProgressBar()" in text
+    assert "self.setup_progress.setRange(0, 0)" in text
+    assert "set_setup_busy(True" in text
+    assert "model_download_line_received" in text
     assert "select_checkpoint_folder_text(Path(folder), mode=mode, trusted=True)" in text
     assert "mode_combo.currentTextChanged.connect" in text
     assert "PyTorch checkpoint files can execute code" in text
     assert "confirm_and_download_model" in text
+    assert "set_restore_ready" in text
+    assert "self.restore_button.setEnabled(ready)" in text
+    assert "self.plan_button.setEnabled(ready)" in text
     assert "build_logs_tab" in text
     assert "build_about_tab" in text
     assert "about_text" in text

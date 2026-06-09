@@ -44,6 +44,8 @@ def test_doctor_report_text_contains_header() -> None:
 def test_about_text_contains_attribution_and_non_affiliation() -> None:
     text = about_text()
 
+    assert "RollingEdit Windows app" in text
+    assert "https://github.com/rollingedit/diffusion-audio-restoration-windows" in text
     assert "NVIDIA Audio-to-Audio Schrodinger Bridge" in text
     assert "not affiliated with or endorsed by NVIDIA" in text
     assert "Audio stays local" in text
@@ -60,19 +62,19 @@ def test_download_plan_text_contains_official_repo(tmp_path: Path) -> None:
 def test_model_download_confirmation_text_explains_source_size_and_location(tmp_path: Path) -> None:
     text = model_download_confirmation_text(target_dir=tmp_path / "models")
 
-    assert '"confirmation_required": true' in text
+    assert "Download the official NVIDIA model checkpoints?" in text
     assert "nvidia/audio_to_audio_schrodinger_bridge" in text
     assert "A2SB_twosplit_0.0_0.5_release.ckpt" in text
     assert "A2SB_twosplit_0.5_1.0_release.ckpt" in text
-    assert '"required_bytes":' in text
-    assert '"local_storage_location":' in text
-    assert '"internet_required": true' in text
+    assert "Download size estimate:" in text
+    assert "Save to:" in text
+    assert "Internet access is required" in text
 
 
 def test_model_download_confirmation_text_supports_onesplit_advanced_mode(tmp_path: Path) -> None:
     text = model_download_confirmation_text(mode="onesplit", target_dir=tmp_path / "models")
 
-    assert '"model": "onesplit"' in text
+    assert "Model: onesplit" in text
     assert "A2SB_onesplit_0.0_1.0_release.ckpt" in text
     assert "A2SB_twosplit" not in text
 
@@ -99,7 +101,7 @@ def test_download_recommended_model_text_reports_progress(tmp_path: Path, monkey
 
     text = download_recommended_model_text(target_dir=tmp_path / "models")
 
-    assert '"ok": true' in text
+    assert "Model download complete." in text
     assert "checkpoint_manifest.json" in text
     assert "Model download complete" in text
 

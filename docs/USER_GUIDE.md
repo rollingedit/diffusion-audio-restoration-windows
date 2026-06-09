@@ -23,7 +23,7 @@ On first launch, the app should check:
 
 If model checkpoints are missing, choose one of:
 
-- Download Recommended Model.
+- Download Official Model.
 - Use Existing Checkpoint Folder.
 
 To remove app-managed downloaded model files later, use the explicit cleanup action from the CLI. `a2sb cleanup-models` shows the exact files first; `a2sb cleanup-models --force` deletes only known app-managed checkpoint files and the app model manifest.

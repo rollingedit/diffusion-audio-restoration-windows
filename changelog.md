@@ -98,7 +98,7 @@ This file is local coordination material unless the user explicitly decides to p
 - Added Unicode-path job manifest/output planning coverage for non-ASCII input folders and filenames.
 - Added explicit runtime doctor tests for CUDA-unavailable and missing-FFmpeg failure reporting.
 - Added GUI recommended-model download confirmation/action service with official source, required bytes, local model folder, internet requirement, and progress result text.
-- Wired the setup tab with a `Download Recommended Model` button that asks for confirmation before calling the shared download service.
+- Wired the setup tab with a `Download Official Model` button that asks for confirmation before calling the shared download service.
 - Added GUI action/source tests for model download confirmation and progress formatting.
 - Added a GUI Logs tab with latest restore log display, copy log, and open logs folder actions.
 - Added GUI action/source tests for latest-log empty and newest-log behavior.

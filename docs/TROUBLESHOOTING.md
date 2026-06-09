@@ -33,7 +33,7 @@ The app should not silently install GPU drivers.
 
 ## Doctor Says Checkpoints Are Missing
 
-Use Download Recommended Model or select a trusted checkpoint folder.
+Use Download Official Model or select a trusted checkpoint folder.
 
 Required two-split files:
 

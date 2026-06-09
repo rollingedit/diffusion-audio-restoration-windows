@@ -66,7 +66,7 @@ Name: "{group}\Open Models Folder"; Filename: "powershell.exe"; Parameters: "-No
 Name: "{group}\Open Logs Folder"; Filename: "powershell.exe"; Parameters: "-NoProfile -Command ""New-Item -ItemType Directory -Force -Path $env:LOCALAPPDATA\RollingEdit\A2SB` Restorer\logs | Out-Null; Invoke-Item $env:LOCALAPPDATA\RollingEdit\A2SB` Restorer\logs"""
 
 [Run]
-Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\scripts\setup_runtime.ps1"""; Flags: runhidden
+Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\scripts\setup_runtime.ps1"""; StatusMsg: "Installing private ML runtime. This downloads and verifies Python packages and can take several minutes."; Flags: waituntilterminated
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\runtime"

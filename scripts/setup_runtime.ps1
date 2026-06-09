@@ -33,6 +33,19 @@ function Write-Status {
     }
 }
 
+function Write-SetupProgress {
+    param(
+        [int]$Percent,
+        [string]$Activity,
+        [string]$Status
+    )
+
+    if (-not $Json) {
+        Write-Progress -Activity $Activity -Status $Status -PercentComplete $Percent
+        Write-Host "[SETUP] $Status"
+    }
+}
+
 function Find-Python310 {
     $pyLauncher = Get-Command py -ErrorAction SilentlyContinue
     if ($pyLauncher) {
@@ -68,6 +81,7 @@ $FilteredRequirements = Join-Path $Runtime "requirements-no-ssr-eval.txt"
 $steps = New-Object System.Collections.Generic.List[object]
 
 try {
+    Write-SetupProgress 5 "A2SB Restorer setup" "Preparing install paths"
     $steps.Add((New-Status $true "paths" "Resolved app paths." @{
         app_root = $AppRoot.Path
         runtime = $Runtime
@@ -86,6 +100,7 @@ try {
     }
 
     if (-not (Test-Path $Python)) {
+        Write-SetupProgress 15 "A2SB Restorer setup" "Creating private Python runtime"
         $Python310 = Find-Python310
         if (-not $Python310) {
             throw "Python 3.10 x64 was not found. Install Python 3.10 x64 or use the packaged runtime."
@@ -100,9 +115,11 @@ try {
         }
         $steps.Add((New-Status $true "venv" "Created private Python runtime." @{}))
     } else {
+        Write-SetupProgress 15 "A2SB Restorer setup" "Private Python runtime already exists"
         $steps.Add((New-Status $true "venv" "Private Python runtime already exists." @{}))
     }
 
+    Write-SetupProgress 30 "A2SB Restorer setup" "Upgrading pip tooling"
     & $Python -m pip install --upgrade pip "setuptools<81" wheel
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to upgrade pip tooling."
@@ -113,28 +130,33 @@ try {
     New-Item -ItemType Directory -Force -Path $Runtime | Out-Null
     $runtimeRequirementLines = Get-Content $RuntimeRequirements | Where-Object { $_ -notmatch '^\s*ssr-eval==' }
     $runtimeRequirementLines | Set-Content -Encoding UTF8 -Path $FilteredRequirements
+    Write-SetupProgress 45 "A2SB Restorer setup" "Installing CUDA and ML runtime packages"
     & $Python -m pip install -r $FilteredRequirements
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to install CUDA runtime requirements."
     }
+    Write-SetupProgress 65 "A2SB Restorer setup" "Installing Windows-safe evaluation dependency"
     & $Python -m pip install --no-deps ssr-eval==0.0.7
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to install ssr-eval without broken Windows transitive dependencies."
     }
     $steps.Add((New-Status $true "requirements" "Installed CUDA runtime requirements." @{ requirements = $RuntimeRequirements; filtered_requirements = $FilteredRequirements; lockfile_used = (Test-Path $LockRequirements); ssr_eval_no_deps = $true }))
 
+    Write-SetupProgress 75 "A2SB Restorer setup" "Installing GUI packages"
     & $Python -m pip install -r $GuiRequirements
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to install GUI requirements."
     }
     $steps.Add((New-Status $true "gui_requirements" "Installed GUI requirements." @{ requirements = $GuiRequirements }))
 
+    Write-SetupProgress 85 "A2SB Restorer setup" "Registering A2SB Restorer package"
     & $Python -m pip install -e $AppRoot
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to install RollingEdit A2SB package."
     }
     $steps.Add((New-Status $true "package" "Installed RollingEdit A2SB package in editable mode." @{}))
 
+    Write-SetupProgress 95 "A2SB Restorer setup" "Checking runtime readiness"
     $doctorJson = & $Python -m rolling_a2sb.cli doctor --json
     $doctorExit = $LASTEXITCODE
     $doctor = $doctorJson | ConvertFrom-Json
@@ -155,6 +177,7 @@ try {
     $result | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 -Path $SetupStatus
 
     if ($Json) { $result | ConvertTo-Json -Depth 8 } else { foreach ($step in $steps) { Write-Status $step } }
+    if (-not $Json) { Write-Progress -Activity "A2SB Restorer setup" -Completed }
     exit 0
 } catch {
     $steps.Add((New-Status $false "error" $_.Exception.Message @{}))
@@ -162,5 +185,6 @@ try {
     New-Item -ItemType Directory -Force -Path $Runtime | Out-Null
     $result | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 -Path $SetupStatus
     if ($Json) { $result | ConvertTo-Json -Depth 8 } else { foreach ($step in $steps) { Write-Status $step } }
+    if (-not $Json) { Write-Progress -Activity "A2SB Restorer setup" -Completed }
     exit 1
 }

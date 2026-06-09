@@ -17,6 +17,9 @@ def test_setup_runtime_uses_private_python_310_runtime() -> None:
     assert '& $Python -m pip install --upgrade pip "setuptools<81" wheel' in text
     assert "-m pip install -e $AppRoot" in text
     assert "setup-status.json" in text
+    assert "function Write-SetupProgress" in text
+    assert "Write-Progress -Activity" in text
+    assert "Installing CUDA and ML runtime packages" in text
 
 
 def test_runtime_entry_scripts_execute_from_app_root() -> None:

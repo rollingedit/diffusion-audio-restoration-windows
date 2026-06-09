@@ -11,7 +11,7 @@ from .gui_actions import (
     audio_probe_text,
     doctor_report_text,
     download_plan_text,
-    download_recommended_model_text,
+    download_recommended_model_stream_text,
     execute_restore_text,
     latest_restore_log_text,
     model_download_confirmation_text,
@@ -30,7 +30,7 @@ SUPPORTED_AUDIO_EXTENSIONS = {".wav", ".mp3", ".flac"}
 
 def run_gui() -> int:
     try:
-        from PySide6.QtCore import QThread, Qt, Signal
+        from PySide6.QtCore import QThread, QTimer, Qt, Signal
         from PySide6.QtWidgets import (
             QApplication,
             QCheckBox,
@@ -91,11 +91,32 @@ def run_gui() -> int:
             except Exception as exc:
                 self.repair_failed.emit(format_user_error(exc))
 
+    class ModelDownloadThread(QThread):
+        download_line = Signal(str)
+        download_finished = Signal(str)
+        download_failed = Signal(str)
+
+        def __init__(self, mode: str) -> None:
+            super().__init__()
+            self.mode = mode
+
+        def run(self) -> None:
+            try:
+                self.download_finished.emit(
+                    download_recommended_model_stream_text(
+                        mode=self.mode,
+                        on_progress=lambda line: self.download_line.emit(line),
+                    )
+                )
+            except Exception as exc:
+                self.download_failed.emit(format_user_error(exc))
+
     class MainWindow(QMainWindow):
         def __init__(self) -> None:
             super().__init__()
             self.restore_thread = None
             self.repair_thread = None
+            self.download_thread = None
             self.last_output_folder: Path | None = None
             self.setWindowTitle("A2SB Restorer")
             self.resize(900, 620)
@@ -134,9 +155,9 @@ def run_gui() -> int:
 
             button_row = QHBoxLayout()
             self.recheck_button = QPushButton("Run Doctor")
-            self.model_setup_button = QPushButton("Model Setup")
-            self.download_plan_button = QPushButton("Model Download Plan")
-            self.download_model_button = QPushButton("Download Recommended Model")
+            self.model_setup_button = QPushButton("Set Up Models")
+            self.download_plan_button = QPushButton("Show Download Details")
+            self.download_model_button = QPushButton("Download Official Model")
             self.repair_runtime_button = QPushButton("Repair Runtime")
             self.copy_button = QPushButton("Copy Diagnostic")
             self.models_button = QPushButton("Open Models Folder")
@@ -156,6 +177,12 @@ def run_gui() -> int:
             self.report.setReadOnly(True)
             layout.addWidget(self.report, 1)
 
+            self.setup_progress = QProgressBar()
+            self.setup_progress.setRange(0, 0)
+            self.setup_progress.setTextVisible(False)
+            self.setup_progress.hide()
+            layout.addWidget(self.setup_progress)
+
             self.recheck_button.clicked.connect(self.refresh_report)
             self.model_setup_button.clicked.connect(self.open_model_setup_dialog)
             self.download_plan_button.clicked.connect(self.show_download_plan)
@@ -169,6 +196,11 @@ def run_gui() -> int:
         def build_restore_tab(self) -> QWidget:
             tab = QWidget()
             layout = QVBoxLayout(tab)
+
+            self.setup_notice = QLabel("")
+            self.setup_notice.setWordWrap(True)
+            self.setup_notice.setStyleSheet("font-weight: 600; color: #f0c674;")
+            layout.addWidget(self.setup_notice)
 
             input_row = QHBoxLayout()
             self.input_edit = QLineEdit()
@@ -208,7 +240,7 @@ def run_gui() -> int:
             self.restore_button = QPushButton("Restore")
             self.cancel_button = QPushButton("Cancel")
             self.cancel_button.setEnabled(False)
-            self.restore_setup_button = QPushButton("Model Setup")
+            self.restore_setup_button = QPushButton("Set Up Models")
             self.restore_setup_button.setEnabled(False)
             self.open_output_button = QPushButton("Open Output Folder")
             self.open_output_button.setEnabled(False)
@@ -284,9 +316,51 @@ def run_gui() -> int:
 
         def refresh_report(self) -> dict:
             report = doctor()
-            self.status.setText("Ready" if report.get("ok") else "Setup needs attention")
+            self.status.setText("Ready" if report.get("ok") else self.not_ready_message(report))
             self.report.setPlainText(doctor_report_text())
+            self.set_restore_ready(bool(report.get("ok")), report)
             return report
+
+        def can_offer_model_download(self, report: dict) -> bool:
+            checkpoints = report.get("checkpoints", {}) if isinstance(report.get("checkpoints"), dict) else {}
+            required_ready = ["python", "imports", "torch", "ffmpeg", "ffprobe", "write_permissions"]
+            return (not checkpoints.get("ok")) and all(
+                isinstance(report.get(name), dict) and report[name].get("ok") for name in required_ready
+            )
+
+        def offer_startup_model_download(self) -> None:
+            report = doctor()
+            if not self.can_offer_model_download(report):
+                return
+            self.tabs.setCurrentWidget(self.setup_tab)
+            mode = self.current_model_mode()
+            self.report.setPlainText(model_download_confirmation_text(mode=mode))
+            answer = QMessageBox.question(
+                self,
+                "Download official model",
+                f"The app is installed, but the {mode} model checkpoints are missing.\n\n"
+                "Download the official NVIDIA checkpoints from Hugging Face now?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.Yes,
+            )
+            if answer == QMessageBox.Yes:
+                self.download_official_model(prompt=False)
+
+        def not_ready_message(self, report: dict) -> str:
+            checkpoints = report.get("checkpoints", {}) if isinstance(report.get("checkpoints"), dict) else {}
+            torch = report.get("torch", {}) if isinstance(report.get("torch"), dict) else {}
+            if not checkpoints.get("ok"):
+                return "Setup needs attention: download the official model or choose a trusted checkpoint folder."
+            if not torch.get("ok"):
+                return "Setup needs attention: repair the runtime or update the NVIDIA driver."
+            return "Setup needs attention: run Doctor for details."
+
+        def set_restore_ready(self, ready: bool, report: dict) -> None:
+            self.setup_notice.setVisible(not ready)
+            self.setup_notice.setText("" if ready else self.not_ready_message(report))
+            self.restore_button.setEnabled(ready)
+            self.plan_button.setEnabled(ready)
+            self.restore_setup_button.setEnabled(not ready)
 
         def show_download_plan(self) -> None:
             self.report.setPlainText(download_plan_text(mode=self.current_model_mode()))
@@ -296,7 +370,7 @@ def run_gui() -> int:
             dialog.setWindowTitle("Model Setup")
             layout = QVBoxLayout(dialog)
 
-            summary = QLabel("Official NVIDIA checkpoints")
+            summary = QLabel("Set up model checkpoints")
             summary.setStyleSheet("font-weight: 600;")
             layout.addWidget(summary)
 
@@ -315,7 +389,7 @@ def run_gui() -> int:
             layout.addWidget(output, 1)
 
             button_row = QHBoxLayout()
-            download_button = QPushButton("Download Recommended Model")
+            download_button = QPushButton("Download Official Model")
             existing_button = QPushButton("Use Existing Checkpoint Folder")
             open_models_button = QPushButton("Open Models Folder")
             close_button = QPushButton("Close")
@@ -330,7 +404,7 @@ def run_gui() -> int:
                 mode = mode_combo.currentText()
                 answer = QMessageBox.question(
                     dialog,
-                    "Download recommended model",
+                    "Download official model",
                     f"Download the official NVIDIA {mode} checkpoints from Hugging Face into the app model folder?",
                     QMessageBox.Yes | QMessageBox.No,
                     QMessageBox.No,
@@ -338,10 +412,9 @@ def run_gui() -> int:
                 if answer != QMessageBox.Yes:
                     return
                 try:
-                    output.setPlainText(download_recommended_model_text(mode=mode))
-                    self.report.setPlainText(output.toPlainText())
+                    output.setPlainText("Downloading official model...\n")
                     self.model_combo.setCurrentText(mode)
-                    self.refresh_report()
+                    self.download_official_model(prompt=False)
                 except Exception as exc:
                     output.setPlainText(format_user_error(exc))
 
@@ -382,33 +455,70 @@ def run_gui() -> int:
             dialog.exec()
 
         def confirm_and_download_model(self) -> None:
+            self.download_official_model(prompt=True)
+
+        def download_official_model(self, prompt: bool = True) -> None:
             mode = self.current_model_mode()
             confirmation = model_download_confirmation_text(mode=mode)
             self.report.setPlainText(confirmation)
-            answer = QMessageBox.question(
-                self,
-                "Download recommended model",
-                f"Download the official NVIDIA {mode} checkpoints from Hugging Face into the app model folder?",
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No,
-            )
-            if answer != QMessageBox.Yes:
-                return
-            try:
-                self.report.setPlainText(download_recommended_model_text(mode=mode))
-                self.refresh_report()
-            except Exception as exc:
-                self.report.setPlainText(format_user_error(exc))
+            if prompt:
+                answer = QMessageBox.question(
+                    self,
+                    "Download official model",
+                    f"Download the official NVIDIA {mode} checkpoints from Hugging Face into the app model folder?",
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.No,
+                )
+                if answer != QMessageBox.Yes:
+                    return
+            self.start_model_download(mode)
+
+        def start_model_download(self, mode: str) -> None:
+            self.set_setup_busy(True, "Downloading official model...\n")
+            self.download_thread = ModelDownloadThread(mode)
+            self.download_thread.download_line.connect(self.model_download_line_received)
+            self.download_thread.download_finished.connect(self.model_download_finished)
+            self.download_thread.download_failed.connect(self.model_download_failed)
+            self.download_thread.finished.connect(self.model_download_thread_finished)
+            self.download_thread.start()
+
+        def model_download_line_received(self, line: str) -> None:
+            self.report.append(line)
+
+        def model_download_finished(self, text: str) -> None:
+            self.report.setPlainText(text)
+            self.refresh_report()
+
+        def model_download_failed(self, text: str) -> None:
+            self.report.setPlainText(f"Model download failed.\n\n{text}")
+
+        def model_download_thread_finished(self) -> None:
+            self.set_setup_busy(False)
 
         def start_runtime_repair(self) -> None:
-            self.repair_runtime_button.setEnabled(False)
-            self.report.setPlainText("Repairing runtime...\n")
+            self.set_setup_busy(True, "Repairing runtime...\n")
             self.repair_thread = RuntimeRepairThread()
             self.repair_thread.repair_line.connect(self.repair_line_received)
             self.repair_thread.repair_finished.connect(self.repair_finished)
             self.repair_thread.repair_failed.connect(self.repair_failed)
             self.repair_thread.finished.connect(self.repair_thread_finished)
             self.repair_thread.start()
+
+        def set_setup_busy(self, busy: bool, text: str | None = None) -> None:
+            for button in [
+                self.recheck_button,
+                self.model_setup_button,
+                self.download_plan_button,
+                self.download_model_button,
+                self.repair_runtime_button,
+                self.copy_button,
+                self.models_button,
+                self.logs_button,
+            ]:
+                button.setEnabled(not busy)
+            self.setup_progress.setVisible(busy)
+            if text is not None:
+                self.report.setPlainText(text)
 
         def repair_line_received(self, stream_name: str, line: str) -> None:
             self.report.append(f"{stream_name}: {line}")
@@ -421,7 +531,7 @@ def run_gui() -> int:
             self.report.setPlainText(f"Runtime repair failed.\n\n{text}")
 
         def repair_thread_finished(self) -> None:
-            self.repair_runtime_button.setEnabled(True)
+            self.set_setup_busy(False)
 
         def copy_report(self) -> None:
             QApplication.clipboard().setText(self.report.toPlainText())
@@ -593,8 +703,9 @@ def run_gui() -> int:
             self.restore_output.setPlainText(text)
 
         def restore_thread_finished(self) -> None:
-            self.restore_button.setEnabled(True)
-            self.plan_button.setEnabled(True)
+            report = self.refresh_report()
+            self.restore_button.setEnabled(bool(report.get("ok")))
+            self.plan_button.setEnabled(bool(report.get("ok")))
             self.cancel_button.setEnabled(False)
             self.restore_progress.hide()
 
@@ -635,4 +746,5 @@ def run_gui() -> int:
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()
+    QTimer.singleShot(250, window.offer_startup_model_download)
     return app.exec()

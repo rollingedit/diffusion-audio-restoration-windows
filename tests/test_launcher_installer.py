@@ -152,3 +152,7 @@ def test_inno_runs_real_runtime_setup_not_dry_run() -> None:
 
     assert "setup_runtime.ps1" in run_section
     assert "-DryRun" not in run_section
+    assert "StatusMsg:" in run_section
+    assert "Installing private ML runtime" in run_section
+    assert "waituntilterminated" in run_section
+    assert "runhidden" not in run_section
