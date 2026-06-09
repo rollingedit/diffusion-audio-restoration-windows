@@ -178,6 +178,7 @@ The GitHub release should include:
 - `README-WINDOWS.md`
 - `LICENSE-NOTICES.txt`
 
+The release should not include checkpoint files, local model caches, virtual environments, build folders, smoke logs, or private planning files.
 
 ## Validation For This Release
 

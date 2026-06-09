@@ -264,8 +264,8 @@ def write_release_evidence(
                 "",
                 "- Version: 0.1.0-alpha",
                 "- Git commit: abc1234",
-                "- Build machine: BUILD-WIN11-RTX4090-01",
-                "- Test machine: TEST-WIN11-RTX4090-01",
+                "- Build machine: BUILD-WIN11-NVIDIA-01",
+                "- Test machine: TEST-WIN11-NVIDIA-01",
                 "- Windows version: Windows 11 23H2",
                 "- GPU model: NVIDIA GeForce RTX validation GPU",
                 "- NVIDIA driver version: 555.55",
@@ -427,7 +427,7 @@ def test_validate_release_evidence_rejects_blank_fields_and_open_blockers(tmp_pa
 
 def test_validate_release_evidence_rejects_placeholder_field_values(tmp_path: Path) -> None:
     evidence = write_release_evidence(tmp_path)
-    text = evidence.read_text(encoding="utf-8").replace("- Test machine: TEST-WIN11-RTX4090-01", "- Test machine: assumed")
+    text = evidence.read_text(encoding="utf-8").replace("- Test machine: TEST-WIN11-NVIDIA-01", "- Test machine: assumed")
     evidence.write_text(text, encoding="utf-8")
 
     errors = validate_release_evidence(evidence)
@@ -453,8 +453,8 @@ def test_validate_release_evidence_rejects_unit_test_or_dry_run_proof(tmp_path: 
 def test_validate_release_evidence_rejects_generic_environment_values(tmp_path: Path) -> None:
     evidence = write_release_evidence(tmp_path)
     text = evidence.read_text(encoding="utf-8")
-    text = text.replace("- Build machine: BUILD-WIN11-RTX4090-01", "- Build machine: builder")
-    text = text.replace("- Test machine: TEST-WIN11-RTX4090-01", "- Test machine: tester")
+    text = text.replace("- Build machine: BUILD-WIN11-NVIDIA-01", "- Build machine: builder")
+    text = text.replace("- Test machine: TEST-WIN11-NVIDIA-01", "- Test machine: tester")
     text = text.replace("- Windows version: Windows 11 23H2", "- Windows version: some windows")
     text = text.replace("- GPU model: NVIDIA GeForce RTX validation GPU", "- GPU model: test gpu")
     text = text.replace("- NVIDIA driver version: 555.55", "- NVIDIA driver version: current")

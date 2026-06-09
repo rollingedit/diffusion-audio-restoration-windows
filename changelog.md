@@ -60,9 +60,9 @@ First public alpha release candidate for the Windows desktop installer.
 - Fixed inpainting range controls so the user can still type exact start/end times manually.
 - Fixed inpainting slider state when no input audio is loaded so stale or impossible ranges are not presented as usable.
 - Fixed clipped inpainting start/end spin boxes and labels in the top control row.
-- Fixed restore UX wording that undersold the app as a "wrapper"; the app should describe itself as an experimental Windows desktop app for A2SB restoration with clear upstream attribution.
+- Fixed restore UX wording so the app describes itself as an experimental Windows desktop app for A2SB restoration with clear upstream attribution.
 
-- Added this `changelog.md` for local change tracking.
+- Added this changelog for release and project history.
 - Added initial Python project metadata and `a2sb` console script entrypoint.
 - Added `rolling_a2sb` package foundation: path handling, checkpoint validation, config generation, job manifest creation, runtime doctor, subprocess runner, worker command construction, and CLI restore dry-run support.
 - Added Windows config marker files for two-split and one-split modes.
@@ -253,8 +253,3 @@ First public alpha release candidate for the Windows desktop installer.
 - `.\.venv\Scripts\python.exe -m rolling_a2sb.cli doctor --json` runs and reports expected missing Torch/checkpoint readiness failures in the lightweight dev venv while detecting the local NVIDIA GPU through `nvidia-smi`.
 - `powershell -ExecutionPolicy Bypass -File scripts/setup_runtime.ps1 -DryRun -Json` succeeds without modifying the runtime.
 - `powershell -ExecutionPolicy Bypass -File scripts\installed_app_smoke.ps1 -Install` succeeds on the rebuilt local installer: payload files are present, private Python 3.10 runtime is created, Torch `2.2.2+cu121` sees CUDA `12.1` on the Windows CUDA test machine, bundled FFmpeg is used, and doctor is blocked only by missing two-split checkpoints.
-
-### Notes
-
-- `Publish Release` workflows must not be triggered without explicit user confirmation and a release tag.
-- The real CUDA/Torch/checkpoint restore path is not complete yet; this change creates the tested foundation for Phase A.
