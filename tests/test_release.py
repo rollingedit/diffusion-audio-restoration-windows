@@ -509,7 +509,7 @@ def test_validate_release_evidence_rejects_weak_file_relationships(tmp_path: Pat
 
     errors = validate_release_evidence(evidence)
 
-    assert "Release evidence restore job folder must be a dated job folder" in errors
+    assert "Release evidence restore job folder must be a dated or UUID job folder" in errors
     assert "Release evidence input and output audio paths must be different" in errors
     assert "Release evidence file path must not be inside release artifacts: Input test audio path" in errors
     assert "Release evidence screenshots must use distinct PNG files" in errors

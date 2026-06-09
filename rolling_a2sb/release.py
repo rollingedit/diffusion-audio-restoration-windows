@@ -475,8 +475,9 @@ def validate_release_evidence(
 def validate_evidence_file_relationships(values: dict[str, str]) -> list[str]:
     errors: list[str] = []
     restore_job_folder = normalize_evidence_path(values.get("Restore job folder", ""))
-    if restore_job_folder and not re.search(r"/jobs/\d{8}-\d{6}$", restore_job_folder):
-        errors.append("Release evidence restore job folder must be a dated job folder")
+    valid_job_folder = re.search(r"/jobs/(\d{8}-\d{6}|[0-9a-f]{32})$", restore_job_folder)
+    if restore_job_folder and not valid_job_folder:
+        errors.append("Release evidence restore job folder must be a dated or UUID job folder")
 
     input_path = normalize_evidence_path(values.get("Input test audio path", ""))
     output_path = normalize_evidence_path(values.get("Output WAV path", ""))

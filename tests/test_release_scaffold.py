@@ -144,10 +144,10 @@ def test_release_evidence_template_requires_real_smoke_proof() -> None:
     assert "Do not replace checklist items with \"assumed\"" in text
 
 
-def test_windows_readme_documents_release_blockers() -> None:
+def test_windows_readme_documents_release_validation() -> None:
     text = (ROOT / "README-WINDOWS.md").read_text(encoding="utf-8")
 
-    assert "not public-release-ready yet" in text
+    assert "release-check --artifacts-dir" in text
     assert "nvidia/audio_to_audio_schrodinger_bridge" in text
     assert "must not be bundled" in text
     assert "Click Restore to run the shared restore workflow" in text

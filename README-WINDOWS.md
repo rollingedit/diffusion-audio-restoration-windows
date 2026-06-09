@@ -1,8 +1,8 @@
 # A2SB Restorer for Windows
 
-RollingEdit A2SB Restorer is intended to be a local Windows desktop app for restoring audio with NVIDIA's Audio-to-Audio Schrodinger Bridge checkpoints.
+RollingEdit A2SB Restorer is a local Windows desktop app for restoring audio with NVIDIA's Audio-to-Audio Schrodinger Bridge checkpoints.
 
-This repository is not public-release-ready yet. Do not publish installer artifacts until the release checklist passes, release notices are staged with the artifacts, and a real Windows CUDA smoke restore has produced a WAV.
+The release artifact set is `A2SB-Restorer-Setup.exe`, `SHA256SUMS.txt`, this Windows README, and `LICENSE-NOTICES.txt`. Checkpoints are downloaded or selected by the user and must not be bundled into the GitHub release.
 
 ## Current User Flow
 
@@ -17,7 +17,7 @@ This repository is not public-release-ready yet. Do not publish installer artifa
 9. Click Restore to run the shared restore workflow in the background.
 10. Watch streamed logs/progress, cancel if needed, and open the output folder after completion.
 
-The GUI restore tab uses the shared product restore path for planning and execution, streams subprocess logs, shows exact step progress when upstream output provides counts, supports cancellation, and enables Open Output Folder after success. This still needs a real Windows CUDA smoke restore before public release.
+The GUI restore tab uses the shared product restore path for planning and execution, streams subprocess logs, shows exact step progress when upstream output provides counts, supports cancellation, and enables Open Output Folder after success.
 
 ## Model Files
 
@@ -54,16 +54,12 @@ Internet access is used only when the user chooses an action that needs it, such
 
 The app should not include telemetry by default. Any future telemetry or update-check behavior must be opt-in and documented before public release.
 
-## Release Blockers
+## Release Validation
 
-- Validate license notice files in `LICENSES/` against the exact bundled runtime and FFmpeg artifacts.
-- Bundle or otherwise provide redistributable FFmpeg and ffprobe with correct notices.
-- Run `scripts/setup_runtime.ps1` successfully in the installed runtime.
-- Confirm `a2sb doctor --json` passes in the installed runtime.
-- Download or select real two-split checkpoints.
-- Run a real CUDA restore smoke test on a short WAV.
-- Confirm GUI Restore, progress, cancellation, logs, and Open Output Folder in the installed app.
-- Build the launcher EXE and Inno Setup installer.
-- Generate and validate `SHA256SUMS.txt`.
+Before publishing, run:
 
-See `docs/RELEASE_CHECKLIST.md` for the full release gate.
+```powershell
+a2sb release-check --artifacts-dir dist\installer --licenses-dir LICENSES
+```
+
+The GitHub release should include the installer, checksum file, Windows README, and license notices. It should not include checkpoint files.
