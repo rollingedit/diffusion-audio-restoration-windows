@@ -114,7 +114,7 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
     assert "self.setup_progress_label.setText(f\"Downloading model: {percent}%\")" in text
     assert "model_download_progress_received" in text
     assert "self.setup_progress_label.setText(f\"{label}: {percent}%\")" in text
-    assert "self.download_progress_timer.start(500)" in text
+    assert "self.download_progress_timer.start(500)" not in text
     assert "set_setup_busy(True" in text
     assert "model_download_line_received" in text
     assert "select_checkpoint_folder_text(Path(folder), mode=mode, trusted=True)" in text

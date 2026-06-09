@@ -17,13 +17,14 @@ Add-Type -AssemblyName System.Drawing
 
 function New-IconBitmap {
     param(
-        [int]$Size
+        [int]$Size,
+        [System.Drawing.Color]$BackgroundColor = [System.Drawing.Color]::Transparent
     )
 
     $bitmap = New-Object System.Drawing.Bitmap $Size, $Size, ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
     $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
     $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
-    $graphics.Clear([System.Drawing.Color]::Transparent)
+    $graphics.Clear($BackgroundColor)
 
     $scale = $Size / 256.0
     $bgBrush = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
@@ -126,13 +127,14 @@ function ConvertTo-DibBytes {
 function Write-IconFile {
     param(
         [string]$Path,
-        [System.Drawing.Color]$TransparentFallbackColor = [System.Drawing.Color]::FromArgb(255, 32, 139, 120)
+        [System.Drawing.Color]$TransparentFallbackColor = [System.Drawing.Color]::FromArgb(255, 32, 139, 120),
+        [System.Drawing.Color]$BackgroundColor = [System.Drawing.Color]::Transparent
     )
 
     $sizes = @(256, 128, 64, 48, 32, 16)
     $images = @()
     foreach ($size in $sizes) {
-        $bitmap = New-IconBitmap -Size $size
+        $bitmap = New-IconBitmap -Size $size -BackgroundColor $BackgroundColor
         try {
             $bytes = ConvertTo-DibBytes -Bitmap $bitmap -TransparentFallbackColor $TransparentFallbackColor
             $images += [pscustomobject]@{
@@ -178,5 +180,5 @@ function Write-IconFile {
 Write-IconFile -Path $OutputPath
 Write-Host "Wrote $OutputPath"
 $setupFallback = [System.Drawing.Color]::FromArgb(255, 32, 32, 32)
-Write-IconFile -Path $SetupOutputPath -TransparentFallbackColor $setupFallback
+Write-IconFile -Path $SetupOutputPath -TransparentFallbackColor $setupFallback -BackgroundColor $setupFallback
 Write-Host "Wrote $SetupOutputPath"

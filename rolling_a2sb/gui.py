@@ -852,7 +852,6 @@ def run_gui() -> int:
             self.download_thread.download_finished.connect(self.model_download_finished)
             self.download_thread.download_failed.connect(self.model_download_failed)
             self.download_thread.finished.connect(self.model_download_thread_finished)
-            self.download_progress_timer.start(500)
             self.download_thread.start()
 
         def model_download_line_received(self, line: str) -> None:

@@ -60,14 +60,14 @@ def assert_dib_icon(icon: Path) -> None:
         assert image_size > 40
 
 
-def test_setup_icon_uses_transparent_dark_shell_fallback() -> None:
+def test_setup_icon_uses_dark_shell_preview_background() -> None:
     icon = ROOT / "installer" / "assets" / "setup.ico"
     data = icon.read_bytes()
     image_offset = int.from_bytes(data[18:22], "little")
     assert data[image_offset + 40] == 32
     assert data[image_offset + 41] == 32
     assert data[image_offset + 42] == 32
-    assert data[image_offset + 43] == 0
+    assert data[image_offset + 43] == 255
 
 
 def test_github_workflows_are_safe_and_non_publishing() -> None:
