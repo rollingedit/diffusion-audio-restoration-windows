@@ -15,7 +15,7 @@ from .config_builder import RestoreConfigRequest, write_restore_config
 from .job import create_restore_job, with_config_path
 from .log import append_block, append_log
 from .runtime_check import diagnostic_text, doctor
-from .settings import load_settings, remember_input, update_settings
+from .settings import effective_checkpoint_folder, load_settings, remember_input, update_settings
 from .subprocess_runner import CommandResult
 from .worker import inference_command, run_restore_config_streaming
 
@@ -58,9 +58,7 @@ def prepare_restore(
     dry_run: bool = False,
 ) -> RestorePreparation:
     settings = load_settings()
-    selected_checkpoint_folder = checkpoint_folder or (
-        Path(settings.checkpoint_folder) if settings.checkpoint_folder else paths.models_dir()
-    )
+    selected_checkpoint_folder = effective_checkpoint_folder(settings, checkpoint_folder)
 
     if checkpoint_folder:
         if not trust_manual_checkpoints:

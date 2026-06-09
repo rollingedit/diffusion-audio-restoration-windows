@@ -18,6 +18,14 @@ def test_path_overrides_and_directory_creation(tmp_path: Path, monkeypatch) -> N
     assert all(path.exists() for path in created)
 
 
+def test_data_override_keeps_default_logs_with_data_root(tmp_path: Path, monkeypatch) -> None:
+    data_dir = tmp_path / "Data Root With Spaces"
+    monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(data_dir))
+    monkeypatch.delenv("ROLLING_A2SB_LOG_DIR", raising=False)
+
+    assert paths.logs_dir() == data_dir.resolve() / "Logs"
+
+
 def test_runtime_data_paths_stay_outside_install_dir(tmp_path: Path, monkeypatch) -> None:
     install_dir = tmp_path / "Program Files" / "A2SB Restorer"
     data_dir = tmp_path / "User AppData" / "A2SB Restorer"

@@ -63,3 +63,15 @@ def reset_model_settings(path: Path | None = None) -> AppSettings:
     save_settings(updated, path)
     return updated
 
+
+def effective_checkpoint_folder(settings: AppSettings | None = None, explicit_folder: Path | None = None) -> Path:
+    if explicit_folder:
+        return Path(explicit_folder).expanduser().resolve()
+
+    current = settings or load_settings()
+    if current.checkpoint_folder:
+        saved = Path(current.checkpoint_folder).expanduser()
+        if saved.exists():
+            return saved.resolve()
+
+    return paths.models_dir()

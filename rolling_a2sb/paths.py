@@ -27,6 +27,8 @@ def logs_dir() -> Path:
     override = os.environ.get("ROLLING_A2SB_LOG_DIR")
     if override:
         return Path(override).expanduser().resolve()
+    if os.environ.get("ROLLING_A2SB_DATA_DIR"):
+        return app_data_dir() / "Logs"
     return Path(user_log_dir(APP_NAME, APP_AUTHOR))
 
 

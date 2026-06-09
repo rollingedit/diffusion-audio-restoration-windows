@@ -7,6 +7,9 @@ This file is local coordination material unless the user explicitly decides to p
 
 ### Added
 
+- Added installed-app restore hardening for E-local Windows smoke testing: repo-local install/data/cache defaults, stale checkpoint-folder fallback, data-root log fallback, and a prediction mask fallback when no augmentation transform produces a mask.
+- Added installed smoke evidence for a rebuilt installer on the NVIDIA RTX validation GPU test machine: Doctor passed, official two-split checkpoints validated, and a path-with-spaces 6-second WAV restored successfully to a 44.1 kHz mono WAV.
+
 - Added this `changelog.md` for local change tracking.
 - Added initial Python project metadata and `a2sb` console script entrypoint.
 - Added `rolling_a2sb` package foundation: path handling, checkpoint validation, config generation, job manifest creation, runtime doctor, subprocess runner, worker command construction, and CLI restore dry-run support.

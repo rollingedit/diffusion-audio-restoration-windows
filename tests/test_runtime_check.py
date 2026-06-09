@@ -12,6 +12,7 @@ from rolling_a2sb.runtime_check import (
     readiness_summary,
 )
 from rolling_a2sb import __version__
+from rolling_a2sb.settings import save_settings, AppSettings
 
 
 def test_check_app_reports_version_and_paths() -> None:
@@ -136,6 +137,28 @@ def test_next_actions_added_to_failed_checks() -> None:
     checks = add_next_actions({"torch": {"ok": False, "error": "missing"}})
 
     assert "Repair Runtime" in checks["torch"]["next_action"]
+
+
+def test_checkpoints_ignore_missing_saved_folder_for_default_models(tmp_path, monkeypatch) -> None:
+    data_dir = tmp_path / "data"
+    monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(data_dir))
+    save_settings(AppSettings(checkpoint_folder=str(tmp_path / "missing-c-drive-models")))
+
+    called = {}
+
+    def fake_validate(folder, **kwargs):
+        called["folder"] = folder
+        return SimpleNamespace(ok=True, mode="twosplit", files=[], missing=[], errors=[])
+
+    monkeypatch.setattr("rolling_a2sb.runtime_check.validate_checkpoint_folder", fake_validate)
+
+    from rolling_a2sb.runtime_check import check_checkpoints
+
+    result = check_checkpoints()
+
+    assert called["folder"] == data_dir.resolve() / "models"
+    assert result["ok"] is True
+    assert result["ignored_saved_folder"].endswith("missing-c-drive-models")
 
 
 def test_diagnostic_text_includes_next_action() -> None:

@@ -37,6 +37,13 @@ def test_windows_runtime_requirements_include_upstream_import_dependencies() -> 
     assert "torchlibrosa==0.1.0" in text
 
 
+def test_predict_dataset_replaces_missing_mask_before_collation() -> None:
+    text = (ROOT / "datasets" / "datasets.py").read_text(encoding="utf-8")
+
+    assert "if mask is None:" in text
+    assert "mask = torch.ones_like(stft_transformed)" in text
+
+
 def test_setup_runtime_checks_private_runtime_with_doctor_json() -> None:
     text = (ROOT / "scripts" / "setup_runtime.ps1").read_text(encoding="utf-8")
 

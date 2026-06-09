@@ -235,6 +235,8 @@ class FullSequencePredictDataset(torch.utils.data.Dataset):
         stft_target, _ = apply_audio_transforms(audio, self.transforms_gt)
 
         stft_transformed, mask = apply_audio_transforms(stft_target, self.transforms_aug)
+        if mask is None:
+            mask = torch.ones_like(stft_transformed)
 
         return {"x_0_clean": stft_target,
                 "x_0_corrupted": stft_transformed,
