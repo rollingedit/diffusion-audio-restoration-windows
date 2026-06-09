@@ -41,6 +41,21 @@ def test_generated_installer_icon_exists() -> None:
     assert icon.read_bytes().startswith(b"\x00\x00\x01\x00")
 
 
+def test_generated_installer_icon_uses_dib_entries_with_alpha_mask() -> None:
+    icon = ROOT / "installer" / "assets" / "app.ico"
+    data = icon.read_bytes()
+    count = int.from_bytes(data[4:6], "little")
+
+    assert count >= 1
+    for index in range(count):
+        entry = 6 + (index * 16)
+        image_size = int.from_bytes(data[entry + 8:entry + 12], "little")
+        image_offset = int.from_bytes(data[entry + 12:entry + 16], "little")
+        assert data[image_offset:image_offset + 4] == b"\x28\x00\x00\x00"
+        assert int.from_bytes(data[image_offset + 14:image_offset + 16], "little") == 32
+        assert image_size > 40
+
+
 def test_github_workflows_are_safe_and_non_publishing() -> None:
     ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     release_validate = (ROOT / ".github" / "workflows" / "release-validate.yml").read_text(encoding="utf-8")

@@ -241,29 +241,12 @@ def run_gui() -> int:
             self.cutoff_spin.setRange(1000, 20000)
             self.cutoff_spin.setSingleStep(500)
             self.cutoff_spin.setValue(4000)
-            self.inpaint_start_label = QLabel("Gap start")
-            self.inpaint_start_spin = QDoubleSpinBox()
-            self.inpaint_start_spin.setRange(0.0, 3600.0)
-            self.inpaint_start_spin.setDecimals(2)
-            self.inpaint_start_spin.setSingleStep(0.1)
-            self.inpaint_start_spin.setEnabled(False)
-            self.inpaint_end_label = QLabel("Gap end")
-            self.inpaint_end_spin = QDoubleSpinBox()
-            self.inpaint_end_spin.setRange(0.01, 3600.0)
-            self.inpaint_end_spin.setDecimals(2)
-            self.inpaint_end_spin.setSingleStep(0.1)
-            self.inpaint_end_spin.setValue(0.5)
-            self.inpaint_end_spin.setEnabled(False)
             self.advanced_check = QCheckBox("Advanced")
             task_row.addWidget(QLabel("Mode"))
             task_row.addWidget(self.bandwidth_radio)
             task_row.addWidget(self.inpaint_radio)
             task_row.addWidget(self.cutoff_label)
             task_row.addWidget(self.cutoff_spin)
-            task_row.addWidget(self.inpaint_start_label)
-            task_row.addWidget(self.inpaint_start_spin)
-            task_row.addWidget(self.inpaint_end_label)
-            task_row.addWidget(self.inpaint_end_spin)
             task_row.addStretch(1)
             task_row.addWidget(self.advanced_check)
             layout.addLayout(task_row)
@@ -292,20 +275,39 @@ def run_gui() -> int:
             self.inpaint_range_row = QVBoxLayout()
             range_title_row = QHBoxLayout()
             self.inpaint_range_label = QLabel("Inpainting segment")
-            self.inpaint_range_value = QLabel("0.00s to 0.50s")
+            self.inpaint_range_value = QLabel("Select audio first")
             range_title_row.addWidget(self.inpaint_range_label)
             range_title_row.addStretch(1)
             range_title_row.addWidget(self.inpaint_range_value)
-            self.inpaint_start_slider = QSlider(Qt.Horizontal)
-            self.inpaint_start_slider.setRange(0, 500)
-            self.inpaint_start_slider.setEnabled(False)
-            self.inpaint_end_slider = QSlider(Qt.Horizontal)
-            self.inpaint_end_slider.setRange(1, 500)
-            self.inpaint_end_slider.setValue(500)
-            self.inpaint_end_slider.setEnabled(False)
+            inpaint_time_row = QHBoxLayout()
+            self.inpaint_start_label = QLabel("Start")
+            self.inpaint_start_spin = QDoubleSpinBox()
+            self.inpaint_start_spin.setRange(0.0, 3600.0)
+            self.inpaint_start_spin.setDecimals(2)
+            self.inpaint_start_spin.setSingleStep(0.1)
+            self.inpaint_start_spin.setMinimumWidth(120)
+            self.inpaint_start_spin.setEnabled(False)
+            self.inpaint_end_label = QLabel("End")
+            self.inpaint_end_spin = QDoubleSpinBox()
+            self.inpaint_end_spin.setRange(0.01, 3600.0)
+            self.inpaint_end_spin.setDecimals(2)
+            self.inpaint_end_spin.setSingleStep(0.1)
+            self.inpaint_end_spin.setValue(0.5)
+            self.inpaint_end_spin.setMinimumWidth(120)
+            self.inpaint_end_spin.setEnabled(False)
+            self.inpaint_duration_label = QLabel("Duration 0.50s")
+            inpaint_time_row.addWidget(self.inpaint_start_label)
+            inpaint_time_row.addWidget(self.inpaint_start_spin)
+            inpaint_time_row.addWidget(self.inpaint_end_label)
+            inpaint_time_row.addWidget(self.inpaint_end_spin)
+            inpaint_time_row.addWidget(self.inpaint_duration_label)
+            inpaint_time_row.addStretch(1)
+            self.inpaint_segment_slider = QSlider(Qt.Horizontal)
+            self.inpaint_segment_slider.setRange(0, 0)
+            self.inpaint_segment_slider.setEnabled(False)
             self.inpaint_range_row.addLayout(range_title_row)
-            self.inpaint_range_row.addWidget(self.inpaint_start_slider)
-            self.inpaint_range_row.addWidget(self.inpaint_end_slider)
+            self.inpaint_range_row.addLayout(inpaint_time_row)
+            self.inpaint_range_row.addWidget(self.inpaint_segment_slider)
             layout.addLayout(self.inpaint_range_row)
 
             checkpoint_row = QHBoxLayout()
@@ -373,8 +375,7 @@ def run_gui() -> int:
             self.restore_another_button.clicked.connect(self.restore_another_file)
             self.bandwidth_radio.toggled.connect(self.restore_task_changed)
             self.inpaint_radio.toggled.connect(self.restore_task_changed)
-            self.inpaint_start_slider.valueChanged.connect(self.inpaint_slider_changed)
-            self.inpaint_end_slider.valueChanged.connect(self.inpaint_slider_changed)
+            self.inpaint_segment_slider.valueChanged.connect(self.inpaint_slider_changed)
             self.inpaint_start_spin.valueChanged.connect(self.inpaint_spin_changed)
             self.inpaint_end_spin.valueChanged.connect(self.inpaint_spin_changed)
             self.advanced_check.stateChanged.connect(self.update_restore_mode_ui)
@@ -522,8 +523,7 @@ def run_gui() -> int:
         def set_inpaint_controls_enabled(self, enabled: bool) -> None:
             self.inpaint_audio_loaded = enabled
             for widget in [
-                self.inpaint_start_slider,
-                self.inpaint_end_slider,
+                self.inpaint_segment_slider,
                 self.inpaint_start_spin,
                 self.inpaint_end_spin,
             ]:
@@ -541,41 +541,41 @@ def run_gui() -> int:
             if not duration or duration <= 0:
                 self.set_inpaint_controls_enabled(False)
                 return
-            slider_max = max(100, int(duration * 100))
-            self.inpaint_start_slider.blockSignals(True)
-            self.inpaint_end_slider.blockSignals(True)
-            self.inpaint_start_slider.setRange(0, slider_max - 1)
-            self.inpaint_end_slider.setRange(1, slider_max)
-            end_value = min(slider_max, max(1, int(min(duration, 0.5) * 100)))
-            self.inpaint_start_slider.setValue(0)
-            self.inpaint_end_slider.setValue(end_value)
-            self.inpaint_start_slider.blockSignals(False)
-            self.inpaint_end_slider.blockSignals(False)
+            slider_max = max(0, int(max(duration - 0.01, 0) * 100))
+            self.inpaint_segment_slider.blockSignals(True)
+            self.inpaint_segment_slider.setRange(0, slider_max)
+            self.inpaint_segment_slider.setValue(0)
+            self.inpaint_segment_slider.blockSignals(False)
+            self.inpaint_start_spin.blockSignals(True)
+            self.inpaint_end_spin.blockSignals(True)
+            self.inpaint_start_spin.setRange(0.0, max(0.0, duration - 0.01))
+            self.inpaint_end_spin.setRange(0.01, duration)
+            self.inpaint_start_spin.setValue(0.0)
+            self.inpaint_end_spin.setValue(min(duration, 0.5))
+            self.inpaint_start_spin.blockSignals(False)
+            self.inpaint_end_spin.blockSignals(False)
             self.set_inpaint_controls_enabled(True)
-            self.inpaint_slider_changed()
+            self.update_inpaint_range_label()
 
         def inpaint_slider_changed(self) -> None:
-            start = self.inpaint_start_slider.value() / 100
-            end = self.inpaint_end_slider.value() / 100
-            if end <= start:
-                end = min(start + 0.01, self.inpaint_end_slider.maximum() / 100)
-                self.inpaint_end_slider.blockSignals(True)
-                self.inpaint_end_slider.setValue(int(end * 100))
-                self.inpaint_end_slider.blockSignals(False)
-            if end - start > 1.0:
-                end = start + 1.0
-                self.inpaint_end_slider.blockSignals(True)
-                self.inpaint_end_slider.setValue(int(end * 100))
-                self.inpaint_end_slider.blockSignals(False)
+            if not self.inpaint_audio_loaded:
+                return
+            start = self.inpaint_segment_slider.value() / 100
+            current_duration = max(0.01, min(1.0, self.inpaint_end_spin.value() - self.inpaint_start_spin.value()))
+            end = min(self.inpaint_end_spin.maximum(), start + current_duration)
+            if end - start < 0.01:
+                start = max(0.0, end - 0.01)
             self.inpaint_start_spin.blockSignals(True)
             self.inpaint_end_spin.blockSignals(True)
             self.inpaint_start_spin.setValue(start)
             self.inpaint_end_spin.setValue(end)
             self.inpaint_start_spin.blockSignals(False)
             self.inpaint_end_spin.blockSignals(False)
-            self.inpaint_range_value.setText(f"{start:.2f}s to {end:.2f}s")
+            self.update_inpaint_range_label()
 
         def inpaint_spin_changed(self) -> None:
+            if not self.inpaint_audio_loaded:
+                return
             start_seconds = self.inpaint_start_spin.value()
             end_seconds = self.inpaint_end_spin.value()
             if end_seconds <= start_seconds:
@@ -588,15 +588,27 @@ def run_gui() -> int:
                 self.inpaint_end_spin.blockSignals(True)
                 self.inpaint_end_spin.setValue(end_seconds)
                 self.inpaint_end_spin.blockSignals(False)
-            start = int(start_seconds * 100)
-            end = int(end_seconds * 100)
-            self.inpaint_start_slider.blockSignals(True)
-            self.inpaint_end_slider.blockSignals(True)
-            self.inpaint_start_slider.setValue(max(self.inpaint_start_slider.minimum(), min(start, self.inpaint_start_slider.maximum())))
-            self.inpaint_end_slider.setValue(max(self.inpaint_end_slider.minimum(), min(end, self.inpaint_end_slider.maximum())))
-            self.inpaint_start_slider.blockSignals(False)
-            self.inpaint_end_slider.blockSignals(False)
-            self.inpaint_range_value.setText(f"{start_seconds:.2f}s to {end_seconds:.2f}s")
+            if end_seconds > self.inpaint_end_spin.maximum():
+                end_seconds = self.inpaint_end_spin.maximum()
+                start_seconds = max(0.0, end_seconds - 1.0)
+                self.inpaint_start_spin.blockSignals(True)
+                self.inpaint_end_spin.blockSignals(True)
+                self.inpaint_start_spin.setValue(start_seconds)
+                self.inpaint_end_spin.setValue(end_seconds)
+                self.inpaint_start_spin.blockSignals(False)
+                self.inpaint_end_spin.blockSignals(False)
+            self.inpaint_segment_slider.blockSignals(True)
+            self.inpaint_segment_slider.setValue(
+                max(self.inpaint_segment_slider.minimum(), min(int(start_seconds * 100), self.inpaint_segment_slider.maximum()))
+            )
+            self.inpaint_segment_slider.blockSignals(False)
+            self.update_inpaint_range_label()
+
+        def update_inpaint_range_label(self) -> None:
+            start = self.inpaint_start_spin.value()
+            end = self.inpaint_end_spin.value()
+            self.inpaint_range_value.setText(f"{start:.2f}s to {end:.2f}s")
+            self.inpaint_duration_label.setText(f"Duration {max(0.0, end - start):.2f}s")
 
         def show_download_plan(self) -> None:
             self.report.setPlainText(download_plan_text(mode=self.current_model_mode()))
@@ -695,11 +707,20 @@ def run_gui() -> int:
 
         def download_official_model(self, prompt: bool = True) -> None:
             mode = self.current_model_mode()
+            self.report.setPlainText("Checking for existing model checkpoints...\n")
+            self.setup_progress.setRange(0, 0)
+            self.setup_progress.setTextVisible(False)
+            self.setup_progress.show()
             reused = reuse_existing_model_text(mode=mode, on_progress=lambda line: self.report.append(line))
             if reused is not None:
-                self.report.setPlainText(reused)
                 self.refresh_report()
+                self.setup_progress.setRange(0, 1000)
+                self.setup_progress.setValue(1000)
+                self.setup_progress.setTextVisible(True)
+                self.setup_progress.setFormat("Models already installed")
+                self.report.setPlainText(reused)
                 return
+            self.setup_progress.hide()
             confirmation = model_download_confirmation_text(mode=mode)
             self.report.setPlainText(confirmation)
             if prompt:

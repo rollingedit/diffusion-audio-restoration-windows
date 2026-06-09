@@ -28,6 +28,14 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
     assert "QDoubleSpinBox" in text
     assert "QRadioButton" in text
     assert "QSlider" in text
+    assert "self.inpaint_segment_slider = QSlider" in text
+    assert "self.inpaint_start_slider" not in text
+    assert "self.inpaint_end_slider" not in text
+    assert "task_row.addWidget(self.inpaint_start_spin)" not in text
+    assert "task_row.addWidget(self.inpaint_end_spin)" not in text
+    assert "self.inpaint_start_spin.setMinimumWidth(120)" in text
+    assert "self.inpaint_end_spin.setMinimumWidth(120)" in text
+    assert "self.inpaint_duration_label" in text
     assert "Bandwidth extension" in text
     assert "Inpainting" in text
     assert "self.bandwidth_radio = QRadioButton" in text
@@ -88,6 +96,8 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
     assert "download_progress = Signal(int, int, str)" in text
     assert "on_progress_bytes=lambda current, total, label" in text
     assert "reuse_existing_model_text" in text
+    assert "Checking for existing model checkpoints" in text
+    assert "Models already installed" in text
     assert "self.setup_progress = QProgressBar()" in text
     assert "self.setup_progress.setRange(0, 0)" in text
     assert "self.setup_progress.setRange(0, 1000)" in text

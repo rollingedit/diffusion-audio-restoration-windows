@@ -61,11 +61,48 @@ function New-IconBitmap {
     return $bitmap
 }
 
-function ConvertTo-PngBytes {
+function ConvertTo-DibBytes {
     param([System.Drawing.Bitmap]$Bitmap)
+    $width = $Bitmap.Width
+    $height = $Bitmap.Height
+    $xorStride = $width * 4
+    $andStride = [int]([Math]::Ceiling($width / 32.0) * 4)
+    $pixelBytes = [byte[]]::new([int]($xorStride * $height))
+    $maskBytes = [byte[]]::new([int]($andStride * $height))
+
+    for ($y = 0; $y -lt $height; $y++) {
+        $sourceY = $height - 1 - $y
+        for ($x = 0; $x -lt $width; $x++) {
+            $color = $Bitmap.GetPixel($x, $sourceY)
+            $pixelOffset = ($y * $xorStride) + ($x * 4)
+            $pixelBytes[$pixelOffset] = $color.B
+            $pixelBytes[$pixelOffset + 1] = $color.G
+            $pixelBytes[$pixelOffset + 2] = $color.R
+            $pixelBytes[$pixelOffset + 3] = $color.A
+            if ($color.A -lt 128) {
+                $maskOffset = ($y * $andStride) + [int][Math]::Floor($x / 8.0)
+                $maskBytes[$maskOffset] = $maskBytes[$maskOffset] -bor ([byte](0x80 -shr ($x % 8)))
+            }
+        }
+    }
+
     $stream = New-Object System.IO.MemoryStream
     try {
-        $Bitmap.Save($stream, [System.Drawing.Imaging.ImageFormat]::Png)
+        $writer = New-Object System.IO.BinaryWriter $stream
+        $writer.Write([UInt32]40)
+        $writer.Write([Int32]$width)
+        $writer.Write([Int32]($height * 2))
+        $writer.Write([UInt16]1)
+        $writer.Write([UInt16]32)
+        $writer.Write([UInt32]0)
+        $writer.Write([UInt32]$pixelBytes.Length)
+        $writer.Write([Int32]0)
+        $writer.Write([Int32]0)
+        $writer.Write([UInt32]0)
+        $writer.Write([UInt32]0)
+        $writer.Write($pixelBytes)
+        $writer.Write($maskBytes)
+        $writer.Dispose()
         return ,$stream.ToArray()
     } finally {
         $stream.Dispose()
@@ -79,7 +116,7 @@ foreach ($size in $sizes) {
     try {
         $images += [pscustomobject]@{
             Size = $size
-            Bytes = [byte[]](ConvertTo-PngBytes -Bitmap $bitmap)
+            Bytes = [byte[]](ConvertTo-DibBytes -Bitmap $bitmap)
         }
     } finally {
         $bitmap.Dispose()
