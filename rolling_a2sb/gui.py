@@ -637,7 +637,7 @@ def run_gui() -> int:
             layout.addWidget(output, 1)
 
             button_row = QHBoxLayout()
-            download_button = QPushButton("Download Official Model")
+            download_button = QPushButton("Start Official Model Setup")
             existing_button = QPushButton("Use Existing Checkpoint Folder")
             open_models_button = QPushButton("Open Models Folder")
             close_button = QPushButton("Close")
@@ -660,8 +660,9 @@ def run_gui() -> int:
                 if answer != QMessageBox.Yes:
                     return
                 try:
-                    output.setPlainText("Downloading official model...\n")
                     self.model_combo.setCurrentText(mode)
+                    self.tabs.setCurrentWidget(self.setup_tab)
+                    dialog.accept()
                     self.download_official_model(prompt=False)
                 except Exception as exc:
                     output.setPlainText(format_user_error(exc))
@@ -738,10 +739,9 @@ def run_gui() -> int:
         def start_model_download(self, mode: str) -> None:
             self.download_mode = mode
             self.set_setup_busy(True, "Downloading official model...\n")
-            self.setup_progress.setRange(0, 1000)
-            self.setup_progress.setValue(0)
+            self.setup_progress.setRange(0, 0)
             self.setup_progress.setTextVisible(True)
-            self.setup_progress.setFormat("Starting download...")
+            self.setup_progress.setFormat("Connecting to Hugging Face...")
             self.download_thread = ModelDownloadThread(mode)
             self.download_thread.download_line.connect(self.model_download_line_received)
             self.download_thread.download_progress.connect(self.model_download_progress_received)
@@ -769,7 +769,8 @@ def run_gui() -> int:
         def model_download_progress_received(self, downloaded: int, required: int, label: str) -> None:
             if required <= 0:
                 self.setup_progress.setRange(0, 0)
-                self.setup_progress.setTextVisible(False)
+                self.setup_progress.setTextVisible(True)
+                self.setup_progress.setFormat(f"{label}: connecting...")
                 return
             value = int((downloaded / required) * 1000)
             percent = int((downloaded / required) * 100)

@@ -27,10 +27,10 @@ function New-IconBitmap {
         [System.Drawing.Color]::FromArgb(255, 42, 92, 170),
         45
     )
-    $graphics.FillEllipse($bgBrush, [int](18 * $scale), [int](18 * $scale), [int](220 * $scale), [int](220 * $scale))
+    $graphics.FillEllipse($bgBrush, [int](4 * $scale), [int](4 * $scale), [int](248 * $scale), [int](248 * $scale))
 
     $ringPen = New-Object System.Drawing.Pen ([System.Drawing.Color]::FromArgb(230, 245, 244, 238)), ([single](10 * $scale))
-    $graphics.DrawEllipse($ringPen, [int](38 * $scale), [int](38 * $scale), [int](180 * $scale), [int](180 * $scale))
+    $graphics.DrawEllipse($ringPen, [int](25 * $scale), [int](25 * $scale), [int](206 * $scale), [int](206 * $scale))
 
     $wavePen = New-Object System.Drawing.Pen ([System.Drawing.Color]::FromArgb(255, 255, 255, 255)), ([single](12 * $scale))
     $wavePen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
@@ -75,9 +75,15 @@ function ConvertTo-DibBytes {
         for ($x = 0; $x -lt $width; $x++) {
             $color = $Bitmap.GetPixel($x, $sourceY)
             $pixelOffset = ($y * $xorStride) + ($x * 4)
-            $pixelBytes[$pixelOffset] = $color.B
-            $pixelBytes[$pixelOffset + 1] = $color.G
-            $pixelBytes[$pixelOffset + 2] = $color.R
+            if ($color.A -lt 128) {
+                $pixelBytes[$pixelOffset] = 120
+                $pixelBytes[$pixelOffset + 1] = 139
+                $pixelBytes[$pixelOffset + 2] = 32
+            } else {
+                $pixelBytes[$pixelOffset] = $color.B
+                $pixelBytes[$pixelOffset + 1] = $color.G
+                $pixelBytes[$pixelOffset + 2] = $color.R
+            }
             $pixelBytes[$pixelOffset + 3] = $color.A
             if ($color.A -lt 128) {
                 $maskOffset = ($y * $andStride) + [int][Math]::Floor($x / 8.0)

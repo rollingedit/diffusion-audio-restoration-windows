@@ -81,6 +81,7 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
     assert "restore_progress.hide()" in text
     assert "start_restore" in text
     assert "Download Official Model" in text
+    assert "Start Official Model Setup" in text
     assert "Repair Runtime" in text
     assert "RuntimeRepairThread" in text
     assert "repair_runtime_text" in text
@@ -111,6 +112,10 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
     assert "model_download_line_received" in text
     assert "select_checkpoint_folder_text(Path(folder), mode=mode, trusted=True)" in text
     assert "mode_combo.currentTextChanged.connect" in text
+    assert "self.tabs.setCurrentWidget(self.setup_tab)" in text
+    assert "dialog.accept()" in text
+    assert "Connecting to Hugging Face" in text
+    assert "{label}: connecting..." in text
     assert "PyTorch checkpoint files can execute code" in text
     assert "confirm_and_download_model" in text
     assert "set_restore_ready" in text
