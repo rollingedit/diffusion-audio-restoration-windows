@@ -1,8 +1,10 @@
 param(
     [Parameter(Mandatory=$true)]
-    [string]$Input,
+    [Alias("Input")]
+    [string]$InputPath,
 
-    [string]$Output,
+    [Alias("Output")]
+    [string]$OutputPath,
     [int]$Steps = 2,
     [string]$CheckpointFolder,
     [switch]$TrustManualCheckpoints,
@@ -23,8 +25,8 @@ if (Test-Path $RuntimePython) {
     $Python = "python"
 }
 
-$args = @("-m", "rolling_a2sb.cli", "restore", "--input", $Input, "--steps", "$Steps")
-if ($Output) { $args += @("--output", $Output) }
+$args = @("-m", "rolling_a2sb.cli", "restore", "--input", $InputPath, "--steps", "$Steps")
+if ($OutputPath) { $args += @("--output", $OutputPath) }
 if ($CheckpointFolder) { $args += @("--checkpoint-folder", $CheckpointFolder) }
 if ($TrustManualCheckpoints) { $args += @("--trust-manual-checkpoints") }
 if ($DryRun) { $args += @("--dry-run") }

@@ -103,7 +103,7 @@ try {
         $steps.Add((New-Status $true "venv" "Private Python runtime already exists." @{}))
     }
 
-    & $Python -m pip install --upgrade pip setuptools wheel
+    & $Python -m pip install --upgrade pip "setuptools<81" wheel
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to upgrade pip tooling."
     }

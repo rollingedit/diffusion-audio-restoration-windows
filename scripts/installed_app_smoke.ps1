@@ -1,9 +1,16 @@
 param(
     [string]$InstallerPath = "dist\installer\A2SB-Restorer-Setup.exe",
-    [string]$InstallDir = "$env:LOCALAPPDATA\Programs\RollingEdit\A2SB Restorer",
+    [string]$InstallDir,
+    [string]$AppDataDir,
+    [string]$PipCacheDir,
+    [string]$HfHome,
+    [string]$HfHubCache,
+    [string]$TorchHome,
     [string]$EvidenceDir = "evidence\installed-app",
-    [string]$Input,
-    [string]$Output,
+    [Alias("Input")]
+    [string]$InputPath,
+    [Alias("Output")]
+    [string]$OutputPath,
     [string]$CheckpointFolder,
     [switch]$TrustManualCheckpoints,
     [switch]$Install,
@@ -14,6 +21,19 @@ param(
 $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $AppRoot = Resolve-Path (Join-Path $ScriptDir "..")
+if (-not $InstallDir) { $InstallDir = Join-Path $AppRoot ".local_app_install\A2SB Restorer" }
+if (-not $AppDataDir) { $AppDataDir = Join-Path $AppRoot ".local_app_data\A2SB Restorer" }
+if (-not $PipCacheDir) { $PipCacheDir = Join-Path $AppRoot ".local_downloads\pip-cache" }
+if (-not $HfHome) { $HfHome = Join-Path $AppRoot ".local_downloads\huggingface-cache" }
+if (-not $HfHubCache) { $HfHubCache = Join-Path $HfHome "hub" }
+if (-not $TorchHome) { $TorchHome = Join-Path $AppRoot ".local_downloads\torch-cache" }
+
+$env:ROLLING_A2SB_DATA_DIR = $AppDataDir
+$env:PIP_CACHE_DIR = $PipCacheDir
+$env:HF_HOME = $HfHome
+$env:HUGGINGFACE_HUB_CACHE = $HfHubCache
+$env:TORCH_HOME = $TorchHome
+
 if ([System.IO.Path]::IsPathRooted($InstallerPath)) {
     $Installer = $InstallerPath
 } else {
@@ -31,6 +51,7 @@ $RestoreLog = Join-Path $EvidencePath "installed_restore.log"
 $UninstallLog = Join-Path $EvidencePath "uninstall.log"
 
 New-Item -ItemType Directory -Force -Path $EvidencePath | Out-Null
+New-Item -ItemType Directory -Force -Path $AppDataDir, $PipCacheDir, $HfHome, $HfHubCache, $TorchHome | Out-Null
 
 $summary = [ordered]@{
     ok = $false
@@ -43,6 +64,13 @@ $summary = [ordered]@{
     uninstall_exit = $null
     required_files = @()
     missing_files = @()
+    local_paths = [ordered]@{
+        app_data_dir = $AppDataDir
+        pip_cache_dir = $PipCacheDir
+        hf_home = $HfHome
+        hf_hub_cache = $HfHubCache
+        torch_home = $TorchHome
+    }
     evidence = [ordered]@{
         summary = $SummaryPath
         install_log = $InstallLog
@@ -55,6 +83,22 @@ $summary = [ordered]@{
 function Save-Summary {
     param([object]$Data)
     $Data | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 -Path $SummaryPath
+}
+
+function Resolve-SmokeInput {
+    param([string]$Path)
+    if ([System.IO.Path]::IsPathRooted($Path)) {
+        return $Path
+    }
+    return (Resolve-Path (Join-Path $AppRoot $Path)).Path
+}
+
+function Resolve-SmokeOutput {
+    param([string]$Path)
+    if ([System.IO.Path]::IsPathRooted($Path)) {
+        return $Path
+    }
+    return (Join-Path $AppRoot $Path)
 }
 
 try {
@@ -102,7 +146,7 @@ try {
     }
     $summary.installed = $true
 
-    $shouldRunDoctor = (-not $Uninstall) -or $RequireDoctorPass -or [bool]$Input
+    $shouldRunDoctor = (-not $Uninstall) -or $RequireDoctorPass -or [bool]$InputPath
     if ($shouldRunDoctor) {
         $doctor = Join-Path $InstallDir "scripts\doctor.ps1"
         & powershell -ExecutionPolicy Bypass -File $doctor -Json *> $DoctorJson
@@ -112,10 +156,11 @@ try {
         }
     }
 
-    if ($Input) {
+    if ($InputPath) {
         $smoke = Join-Path $InstallDir "scripts\smoke_restore.ps1"
-        $smokeArgs = @("-Input", $Input)
-        if ($Output) { $smokeArgs += @("-Output", $Output) }
+        $resolvedInput = Resolve-SmokeInput $InputPath
+        $smokeArgs = @("-Input", $resolvedInput)
+        if ($OutputPath) { $smokeArgs += @("-Output", (Resolve-SmokeOutput $OutputPath)) }
         if ($CheckpointFolder) { $smokeArgs += @("-CheckpointFolder", $CheckpointFolder) }
         if ($TrustManualCheckpoints) { $smokeArgs += @("-TrustManualCheckpoints") }
         & powershell -ExecutionPolicy Bypass -File $smoke @smokeArgs *> $RestoreLog

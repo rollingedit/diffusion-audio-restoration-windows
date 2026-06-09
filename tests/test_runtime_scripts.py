@@ -14,6 +14,7 @@ def test_setup_runtime_uses_private_python_310_runtime() -> None:
     assert "& py -3.10 -m venv $Runtime" in text
     assert "& $Python310 -m venv $Runtime" in text
     assert "Python 3.10 virtual environment" in text
+    assert '& $Python -m pip install --upgrade pip "setuptools<81" wheel' in text
     assert "-m pip install -e $AppRoot" in text
     assert "setup-status.json" in text
 
@@ -25,6 +26,15 @@ def test_runtime_entry_scripts_execute_from_app_root() -> None:
     for text in [doctor, smoke]:
         assert "Push-Location $AppRoot" in text
         assert "Pop-Location" in text
+
+
+def test_windows_runtime_requirements_include_upstream_import_dependencies() -> None:
+    text = (ROOT / "requirements" / "lock-win-cu121.txt").read_text(encoding="utf-8")
+
+    assert "moviepy==1.0.3" in text
+    assert "ssr-eval==0.0.7" in text
+    assert "scikit-image==0.25.2" in text
+    assert "torchlibrosa==0.1.0" in text
 
 
 def test_setup_runtime_checks_private_runtime_with_doctor_json() -> None:
@@ -62,10 +72,15 @@ def test_repair_runtime_delegates_to_setup_runtime_repair_mode() -> None:
 def test_smoke_restore_uses_short_restore_defaults_and_runtime_fallback() -> None:
     text = (ROOT / "scripts" / "smoke_restore.ps1").read_text(encoding="utf-8")
 
+    assert '[Alias("Input")]' in text
+    assert "[string]$InputPath" in text
+    assert '[Alias("Output")]' in text
+    assert "[string]$OutputPath" in text
     assert "[int]$Steps = 2" in text
     assert '$RuntimePython = Join-Path $AppRoot "runtime\\Scripts\\python.exe"' in text
     assert '$DevPython = Join-Path $AppRoot ".venv\\Scripts\\python.exe"' in text
     assert '"rolling_a2sb.cli", "restore"' in text
+    assert '"--input", $InputPath' in text
     assert '"--steps", "$Steps"' in text
     assert 'if ($DryRun) { $args += @("--dry-run") }' in text
 
@@ -101,15 +116,31 @@ def test_collect_release_evidence_records_build_facts_without_smoke_claims() -> 
 def test_installed_app_smoke_can_install_check_doctor_restore_and_uninstall() -> None:
     text = (ROOT / "scripts" / "installed_app_smoke.ps1").read_text(encoding="utf-8")
 
+    assert '[Alias("Input")]' in text
+    assert "[string]$InputPath" in text
+    assert '[Alias("Output")]' in text
+    assert "[string]$OutputPath" in text
+    assert 'if (-not $InstallDir) { $InstallDir = Join-Path $AppRoot ".local_app_install\\A2SB Restorer" }' in text
+    assert 'if (-not $AppDataDir) { $AppDataDir = Join-Path $AppRoot ".local_app_data\\A2SB Restorer" }' in text
+    assert '$env:ROLLING_A2SB_DATA_DIR = $AppDataDir' in text
+    assert '$env:PIP_CACHE_DIR = $PipCacheDir' in text
+    assert '$env:HF_HOME = $HfHome' in text
+    assert '$env:HUGGINGFACE_HUB_CACHE = $HfHubCache' in text
+    assert '$env:TORCH_HOME = $TorchHome' in text
+    assert "local_paths" in text
+    assert "function Resolve-SmokeInput" in text
+    assert "function Resolve-SmokeOutput" in text
     assert "A2SB-Restorer-Setup.exe" in text
     assert "/VERYSILENT" in text
     assert '"/DIR=""$InstallDir"""' in text
     assert "Start-Process -FilePath $Installer" in text
     assert "Start-Process -FilePath $uninstaller.FullName" in text
-    assert "$shouldRunDoctor = (-not $Uninstall) -or $RequireDoctorPass -or [bool]$Input" in text
+    assert "$shouldRunDoctor = (-not $Uninstall) -or $RequireDoctorPass -or [bool]$InputPath" in text
     assert "installed_app_smoke.json" in text
     assert "scripts\\doctor.ps1" in text
     assert "scripts\\smoke_restore.ps1" in text
+    assert '$resolvedInput = Resolve-SmokeInput $InputPath' in text
+    assert '$smokeArgs = @("-Input", $resolvedInput)' in text
     assert "bin\\ffmpeg.exe" in text
     assert "bin\\ffprobe.exe" in text
     assert "unins*.exe" in text

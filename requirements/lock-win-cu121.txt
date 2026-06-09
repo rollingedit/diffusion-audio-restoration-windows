@@ -6,6 +6,7 @@ torchaudio==2.2.2+cu121
 numpy==1.26.4
 scipy==1.11.4
 matplotlib==3.8.4
+moviepy==1.0.3
 librosa==0.10.2.post1
 soundfile==0.12.1
 
@@ -16,6 +17,8 @@ PyYAML==6.0.2
 einops==0.8.0
 rotary-embedding-torch==0.8.9
 ssr-eval==0.0.7
+scikit-image==0.25.2
+torchlibrosa==0.1.0
 
 huggingface-hub==0.23.4
 tqdm==4.66.5
