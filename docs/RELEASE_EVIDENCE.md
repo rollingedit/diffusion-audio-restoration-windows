@@ -5,7 +5,7 @@ Complete this file before any public release. Do not replace checklist items wit
 ## Release Candidate
 
 - Version: 0.1.0-alpha
-- Git commit: 0cf1674
+- Git commit: 4c0781a
 - Build machine: RollingEdit Windows 11 build workstation
 - Test machine: RollingEdit Windows 11 NVIDIA validation workstation
 - Windows version: Microsoft Windows 11 Pro 10.0.22631
