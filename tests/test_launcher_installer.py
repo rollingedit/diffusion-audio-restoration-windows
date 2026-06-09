@@ -25,7 +25,9 @@ def test_inno_installer_is_per_user_and_has_shortcuts() -> None:
 
     assert "PrivilegesRequired=lowest" in text
     assert "DefaultDirName={localappdata}\\Programs\\RollingEdit\\A2SB Restorer" in text
-    assert "UsePreviousAppDir=no" in text
+    assert "UsePreviousAppDir=yes" in text
+    assert "CloseApplications=yes" in text
+    assert "RestartApplications=no" in text
     assert "A2SB Restorer" in text
     assert "A2SB Doctor" in text
     assert "Repair Runtime" in text

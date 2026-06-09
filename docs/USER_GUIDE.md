@@ -10,6 +10,10 @@ This document describes the intended public Windows user flow. It should be upda
 
 The app should install per-user by default and should not require administrator rights.
 
+## Update
+
+Run the newer `A2SB-Restorer-Setup.exe`. It should update the existing app in place, reuse the previous install folder, and keep downloaded model checkpoints.
+
 ## First Launch
 
 On first launch, the app should check:
