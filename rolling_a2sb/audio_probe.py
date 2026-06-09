@@ -74,7 +74,7 @@ def _probe_with_ffprobe(path: Path, ffprobe_path: Path | None = None) -> AudioIn
         "json",
         str(path),
     ]
-    completed = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False, check=False)
+    completed = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False, check=False, creationflags=CREATE_NO_WINDOW)
     if completed.returncode != 0:
         raise AudioProbeError(completed.stderr.strip() or f"ffprobe failed for {path}")
 
@@ -93,4 +93,5 @@ def _probe_with_ffprobe(path: Path, ffprobe_path: Path | None = None) -> AudioIn
 
 def audio_info_dict(info: AudioInfo) -> dict:
     return asdict(info)
+CREATE_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 

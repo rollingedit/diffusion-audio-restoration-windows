@@ -1,6 +1,6 @@
 A2SB Restorer License Notices
 
-RollingEdit A2SB Restorer wraps NVIDIA Audio-to-Audio Schrodinger Bridge / A2SB for a Windows-first local application. It is not affiliated with or endorsed by NVIDIA.
+RollingEdit A2SB Restorer is an experimental Windows-first local application that uses NVIDIA Audio-to-Audio Schrodinger Bridge / A2SB source code. It is not affiliated with or endorsed by NVIDIA.
 
 Included notice sources:
 

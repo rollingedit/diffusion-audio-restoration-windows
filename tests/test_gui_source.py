@@ -21,6 +21,15 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
     assert "Plan Restore" in text
     assert "QThread" in text
     assert "QProgressBar" in text
+    assert "QDoubleSpinBox" in text
+    assert "Restore high frequencies" in text
+    assert "Repair missing segment" in text
+    assert "self.advanced_check = QCheckBox(\"Advanced\")" in text
+    assert "update_restore_mode_ui" in text
+    assert "restore_task_changed" in text
+    assert "default_output_path(audio_path, task_mode=self.current_task_mode())" in text
+    assert '"task_mode": self.current_task_mode()' in text
+    assert '"inpaint_start_seconds"' in text
     assert "restore_line = Signal(str, str)" in text
     assert "restore_line_received" in text
     assert "parse_restore_step_progress" in text
@@ -42,7 +51,7 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
     assert "self.restore_setup_button.clicked.connect(self.open_model_setup_dialog)" in text
     assert "show_restore_error" in text
     assert "is_checkpoint_setup_error(text)" in text
-    assert "Use Model Setup to download the recommended model" in text
+    assert "Use Set Up Models to download the official model" in text
     assert "should_cancel=lambda: self.cancel_requested" in text
     assert "Cancel requested. Waiting for restore process to stop..." in text
     assert "restore_progress.show()" in text
@@ -63,6 +72,11 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
     assert "download_line = Signal(str)" in text
     assert "self.setup_progress = QProgressBar()" in text
     assert "self.setup_progress.setRange(0, 0)" in text
+    assert "self.setup_progress.setRange(0, 1000)" in text
+    assert "update_model_download_progress" in text
+    assert "model_download_progress(mode=self.download_mode)" in text
+    assert "Downloading model: {percent}%" in text
+    assert "self.download_progress_timer.start(500)" in text
     assert "set_setup_busy(True" in text
     assert "model_download_line_received" in text
     assert "select_checkpoint_folder_text(Path(folder), mode=mode, trusted=True)" in text

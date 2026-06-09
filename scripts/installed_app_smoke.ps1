@@ -109,6 +109,8 @@ try {
         $installArgs = @(
             "/VERYSILENT",
             "/SUPPRESSMSGBOXES",
+            "/CLOSEAPPLICATIONS",
+            "/FORCECLOSEAPPLICATIONS",
             "/NORESTART",
             "/SP-",
             "/DIR=""$InstallDir""",

@@ -211,7 +211,7 @@ def test_restore_cli_prints_missing_checkpoint_setup_failure(tmp_path: Path, mon
             "Restore cannot start because setup is not ready: checkpoints\n\n"
             "checkpoints: needs attention\n"
             "  missing: A2SB_twosplit_0.0_0.5_release.ckpt\n"
-            "  next: Download the recommended model or select a trusted checkpoint folder.\n"
+            "  next: Download Official Model or select a trusted checkpoint folder.\n"
         )
     ))
     audio = tmp_path / "short.wav"
@@ -222,7 +222,7 @@ def test_restore_cli_prints_missing_checkpoint_setup_failure(tmp_path: Path, mon
     assert exit_code == 1
     output = capsys.readouterr().out
     assert "A2SB_twosplit_0.0_0.5_release.ckpt" in output
-    assert "Download the recommended model" in output
+    assert "Download Official Model" in output
     assert "Traceback" not in output
 
 

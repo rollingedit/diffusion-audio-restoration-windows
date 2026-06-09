@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
@@ -77,6 +78,8 @@ def download_model(
     hf_download: Callable[..., str] | None = None,
     retries: int = 3,
 ) -> DownloadResult:
+    os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
+    os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
     if retries < 1:
         raise ValueError("retries must be at least 1")
 
@@ -89,6 +92,24 @@ def download_model(
 
     downloader = hf_download or _load_hf_download()
     downloaded: list[Path] = []
+    existing = validate_checkpoint_folder(
+        plan.target_dir,
+        mode=mode,
+        min_size_bytes=min_size_bytes,
+        compute_hashes=False,
+    )
+    if existing.ok and not force:
+        manifest = manifest_from_validation(existing)
+        manifest_path = save_manifest(manifest, plan.target_dir / "checkpoint_manifest.json")
+        update_settings(
+            model_mode=mode,
+            checkpoint_folder=str(plan.target_dir.resolve()),
+            checkpoint_manifest=str(manifest_path.resolve()),
+            trusted_manual_checkpoint_folder=False,
+        )
+        _emit(progress, "Model checkpoints already present")
+        return DownloadResult(mode=mode, files=[file.path for file in existing.files], validation=existing, manifest_path=manifest_path)
+
     for index, filename in enumerate(plan.filenames, start=1):
         _emit(progress, f"Downloading checkpoint {index} of {len(plan.filenames)}: {Path(filename).name}")
         path = _download_with_retries(

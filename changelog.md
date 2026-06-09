@@ -8,6 +8,7 @@ This file is local coordination material unless the user explicitly decides to p
 ### Added
 
 - Added visible setup progress for runtime bootstrapping, first-launch checkpoint download prompting, streaming model-download progress, clearer setup gating on the Restore tab, and GitHub/product wording in About.
+- Added integrated Restore task selection for high-frequency restoration versus missing-segment inpainting, including inpainting start/end controls, task-specific output filenames, GUI default output population, no-console subprocess launch flags, and model download reuse for existing valid checkpoints.
 - Changed installer update behavior to reuse the previous install folder and close the running app during update, so normal users do not need to uninstall before installing a newer setup EXE.
 - Added installed-app restore hardening for E-local Windows smoke testing: repo-local install/data/cache defaults, stale checkpoint-folder fallback, data-root log fallback, and a prediction mask fallback when no augmentation transform produces a mask.
 - Added installed smoke evidence for a rebuilt installer on the NVIDIA RTX validation GPU test machine: Doctor passed, official two-split checkpoints validated, and a path-with-spaces 6-second WAV restored successfully to a 44.1 kHz mono WAV.

@@ -10,6 +10,9 @@ def test_launcher_uses_runtime_python_and_app_module() -> None:
     assert "runtime" in text
     assert "rolling_a2sb.app" in text
     assert "shell=False" in text
+    assert "CREATE_NO_WINDOW" in text
+    assert "creationflags=CREATE_NO_WINDOW" in text
+    assert "subprocess.Popen" in text
 
 
 def test_launcher_surfaces_setup_failures_for_windowed_exe() -> None:

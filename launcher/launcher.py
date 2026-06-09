@@ -6,6 +6,9 @@ import sys
 from pathlib import Path
 
 
+CREATE_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+
+
 def app_root() -> Path:
     if getattr(sys, "frozen", False):
         return Path(sys.executable).resolve().parent
@@ -41,6 +44,7 @@ def ensure_runtime(root: Path) -> int:
         cwd=str(root),
         shell=False,
         check=False,
+        creationflags=CREATE_NO_WINDOW,
     )
     return completed.returncode
 
@@ -53,14 +57,14 @@ def launch_app(root: Path) -> int:
 
     env = os.environ.copy()
     env["PYTHONUTF8"] = "1"
-    completed = subprocess.run(
+    subprocess.Popen(
         [str(python), "-m", "rolling_a2sb.app"],
         cwd=str(root),
         env=env,
         shell=False,
-        check=False,
+        creationflags=CREATE_NO_WINDOW,
     )
-    return completed.returncode
+    return 0
 
 
 def show_error(title: str, message: str) -> None:
@@ -81,13 +85,7 @@ def main() -> int:
             "Runtime setup failed. Use the Start Menu Repair Runtime shortcut, then run A2SB Doctor.",
         )
         return setup_code
-    app_code = launch_app(root)
-    if app_code != 0:
-        show_error(
-            "A2SB Restorer failed",
-            "The app exited with an error. Use Copy Diagnostic Report or the Open Logs shortcut for details.",
-        )
-    return app_code
+    return launch_app(root)
 
 
 if __name__ == "__main__":

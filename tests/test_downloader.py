@@ -49,6 +49,39 @@ def test_download_model_uses_hf_download_and_writes_manifest(tmp_path: Path, mon
     assert result.manifest_path.exists()
     assert "Downloading checkpoint 1 of 2" in progress[0]
     assert progress[-1] == "Model download complete"
+    assert calls
+    assert __import__("os").environ["HF_HUB_DISABLE_PROGRESS_BARS"] == "1"
+    assert __import__("os").environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] == "1"
+
+
+def test_download_model_reuses_existing_valid_checkpoints(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(tmp_path / "logs"))
+    target = tmp_path / "models"
+    progress: list[str] = []
+    for filename in [
+        "ckpt/A2SB_twosplit_0.0_0.5_release.ckpt",
+        "ckpt/A2SB_twosplit_0.5_1.0_release.ckpt",
+    ]:
+        path = target / filename
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"x" * 16)
+
+    def fail_download(**kwargs) -> str:
+        raise AssertionError("existing valid checkpoints should not be downloaded again")
+
+    result = download_model(
+        mode="twosplit",
+        target_dir=target,
+        progress=progress.append,
+        compute_hashes=False,
+        min_size_bytes=1,
+        hf_download=fail_download,
+    )
+
+    assert result.validation.ok
+    assert result.manifest_path.exists()
+    assert progress == ["Model checkpoints already present"]
 
 
 def test_download_model_retries_transient_failure(tmp_path: Path, monkeypatch) -> None:

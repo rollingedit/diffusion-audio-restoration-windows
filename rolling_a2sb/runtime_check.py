@@ -82,6 +82,7 @@ def check_nvidia_smi() -> dict[str, Any]:
         stderr=subprocess.PIPE,
         shell=False,
         check=False,
+        creationflags=CREATE_NO_WINDOW,
     )
     if completed.returncode != 0:
         return {"ok": False, "available": True, "error": completed.stderr.strip()}
@@ -177,7 +178,7 @@ def add_next_actions(checks: dict[str, dict[str, Any]]) -> dict[str, dict[str, A
         "ffmpeg": "Use the packaged app build with bundled FFmpeg or add ffmpeg.exe to PATH for development.",
         "ffprobe": "Use the packaged app build with bundled ffprobe or add ffprobe.exe to PATH for development.",
         "write_permissions": "Choose a writable per-user install/app-data location or run Repair Runtime.",
-        "checkpoints": "Download the recommended model or select a trusted checkpoint folder.",
+        "checkpoints": "Download Official Model or select a trusted checkpoint folder.",
     }
     enriched: dict[str, dict[str, Any]] = {}
     for name, check in checks.items():
@@ -232,3 +233,4 @@ def diagnostic_text(report: dict[str, Any] | None = None) -> str:
             if value.get("next_action"):
                 lines.append(f"  next: {value['next_action']}")
     return "\n".join(lines) + "\n"
+CREATE_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)

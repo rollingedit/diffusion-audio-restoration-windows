@@ -48,6 +48,10 @@ def main(argv: list[str] | None = None) -> int:
     restore_parser.add_argument("--output", type=Path)
     restore_parser.add_argument("--steps", type=int, default=50)
     restore_parser.add_argument("--model", choices=["twosplit", "onesplit"], default="twosplit")
+    restore_parser.add_argument("--task", choices=["bandwidth", "inpaint"], default="bandwidth")
+    restore_parser.add_argument("--cutoff-hz", type=int, default=4000)
+    restore_parser.add_argument("--inpaint-start", type=float)
+    restore_parser.add_argument("--inpaint-end", type=float)
     restore_parser.add_argument("--checkpoint-folder", type=Path)
     restore_parser.add_argument("--trust-manual-checkpoints", action="store_true")
     restore_parser.add_argument("--dry-run", action="store_true")
@@ -163,6 +167,10 @@ def main(argv: list[str] | None = None) -> int:
                     output_audio=args.output,
                     steps=args.steps,
                     model_mode=args.model,
+                    task_mode=args.task,
+                    cutoff_hz=args.cutoff_hz,
+                    inpaint_start_seconds=args.inpaint_start,
+                    inpaint_end_seconds=args.inpaint_end,
                     checkpoint_folder=args.checkpoint_folder,
                     trust_manual_checkpoints=args.trust_manual_checkpoints,
                     dry_run=True,
@@ -173,6 +181,10 @@ def main(argv: list[str] | None = None) -> int:
                     output_audio=args.output,
                     steps=args.steps,
                     model_mode=args.model,
+                    task_mode=args.task,
+                    cutoff_hz=args.cutoff_hz,
+                    inpaint_start_seconds=args.inpaint_start,
+                    inpaint_end_seconds=args.inpaint_end,
                     checkpoint_folder=args.checkpoint_folder,
                     trust_manual_checkpoints=args.trust_manual_checkpoints,
                 )

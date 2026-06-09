@@ -18,6 +18,10 @@ class RestoreConfigRequest:
     job_dir: Path
     steps: int = 50
     model_mode: str = "twosplit"
+    task_mode: str = "bandwidth"
+    cutoff_hz: int = 4000
+    inpaint_start_seconds: float | None = None
+    inpaint_end_seconds: float | None = None
     base_config: Path | None = None
     require_input_exists: bool = True
 
@@ -56,6 +60,7 @@ def build_restore_config(request: RestoreConfigRequest) -> dict[str, Any]:
     model["pretrained_checkpoints"] = [str(Path(path).resolve()) for path in request.checkpoint_paths]
     model["predict_n_steps"] = request.steps
     model["output_audio_filename"] = str(Path(request.output_audio).resolve())
+    model.pop("fast_inpaint_mode", None)
 
     if request.model_mode == "twosplit":
         if len(request.checkpoint_paths) != 2:
@@ -78,9 +83,61 @@ def build_restore_config(request: RestoreConfigRequest) -> dict[str, Any]:
         }
     ]
     data.pop("mix_dataset_config", None)
+    data["transforms_aug"] = restore_transforms(request)
+    if request.task_mode == "inpaint":
+        model["fast_inpaint_mode"] = True
 
     validate_generated_config(config)
     return config
+
+
+def restore_transforms(request: RestoreConfigRequest) -> list[dict[str, Any]]:
+    if request.task_mode == "bandwidth":
+        if request.cutoff_hz < 1000 or request.cutoff_hz > 20000:
+            raise ValueError("bandwidth cutoff must be between 1000 and 20000 Hz")
+        return [
+            {
+                "class_path": "corruption.corruptions.MultinomialInpaintMaskTransform",
+                "init_args": {
+                    "p_upsample_mask": 1.0,
+                    "p_extension_mask": 0.0,
+                    "p_inpaint_mask": 0.0,
+                    "fill_noise_level": 0.5,
+                    "sampling_rate": 44100,
+                    "upsample_mask_kwargs": {
+                        "min_cutoff_freq": request.cutoff_hz,
+                        "max_cutoff_freq": request.cutoff_hz,
+                    },
+                    "inpainting_mask_kwargs": {
+                        "min_inpainting_frac": 0.1013,
+                        "max_inpainting_frac": 0.1013,
+                        "is_random": False,
+                    },
+                },
+            }
+        ]
+    if request.task_mode == "inpaint":
+        if request.inpaint_start_seconds is None or request.inpaint_end_seconds is None:
+            raise ValueError("inpainting requires start and end times")
+        if request.inpaint_start_seconds < 0:
+            raise ValueError("inpainting start time must be zero or greater")
+        if request.inpaint_end_seconds <= request.inpaint_start_seconds:
+            raise ValueError("inpainting end time must be after start time")
+        if request.inpaint_end_seconds - request.inpaint_start_seconds > 1.0:
+            raise ValueError("inpainting gaps should be 1.0 second or shorter")
+        return [
+            {
+                "class_path": "corruption.corruptions.TimestampedSegmentInpaintMaskTransform",
+                "init_args": {
+                    "start_time": request.inpaint_start_seconds,
+                    "end_time": request.inpaint_end_seconds,
+                    "hop_length": 512,
+                    "sampling_rate": 44100,
+                    "fill_noise_level": 0.5,
+                },
+            }
+        ]
+    raise ValueError(f"Unsupported task mode: {request.task_mode}")
 
 
 def validate_restore_request(request: RestoreConfigRequest) -> None:

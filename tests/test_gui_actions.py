@@ -10,6 +10,7 @@ from rolling_a2sb.gui_actions import (
     execute_restore_text,
     latest_restore_log_text,
     model_download_confirmation_text,
+    model_download_progress,
     is_checkpoint_setup_error,
     parse_restore_step_progress,
     prepare_restore_dry_run,
@@ -77,6 +78,18 @@ def test_model_download_confirmation_text_supports_onesplit_advanced_mode(tmp_pa
     assert "Model: onesplit" in text
     assert "A2SB_onesplit_0.0_1.0_release.ckpt" in text
     assert "A2SB_twosplit" not in text
+
+
+def test_model_download_progress_counts_selected_mode_files(tmp_path: Path) -> None:
+    target = tmp_path / "models"
+    first = target / "ckpt" / "A2SB_twosplit_0.0_0.5_release.ckpt"
+    first.parent.mkdir(parents=True)
+    first.write_bytes(b"x" * 10)
+
+    downloaded, required = model_download_progress(mode="twosplit", target_dir=target)
+
+    assert downloaded == 10
+    assert required == 5_200_000_000
 
 
 def test_download_recommended_model_text_reports_progress(tmp_path: Path, monkeypatch) -> None:

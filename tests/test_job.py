@@ -13,18 +13,26 @@ def test_default_output_path_uses_a2sb_restored_folder(tmp_path: Path) -> None:
 
     output = default_output_path(input_audio)
 
-    assert output == tmp_path / "A2SB Restored" / "Track One__a2sb.wav"
+    assert output == tmp_path / "A2SB Restored" / "Track One__a2sb_highfreq.wav"
 
 
 def test_default_output_path_increments_existing_output(tmp_path: Path) -> None:
     input_audio = tmp_path / "song.wav"
-    existing = tmp_path / "A2SB Restored" / "song__a2sb.wav"
+    existing = tmp_path / "A2SB Restored" / "song__a2sb_highfreq.wav"
     existing.parent.mkdir()
     existing.write_text("exists", encoding="utf-8")
 
     output = default_output_path(input_audio)
 
-    assert output == tmp_path / "A2SB Restored" / "song__a2sb-2.wav"
+    assert output == tmp_path / "A2SB Restored" / "song__a2sb_highfreq-2.wav"
+
+
+def test_default_output_path_uses_inpaint_suffix(tmp_path: Path) -> None:
+    input_audio = tmp_path / "song.wav"
+
+    output = default_output_path(input_audio, task_mode="inpaint")
+
+    assert output == tmp_path / "A2SB Restored" / "song__a2sb_inpaint.wav"
 
 
 def test_create_restore_job_writes_manifest(tmp_path: Path, monkeypatch) -> None:
@@ -41,8 +49,8 @@ def test_create_restore_job_writes_manifest(tmp_path: Path, monkeypatch) -> None
     assert data["input_audio"] == str(input_audio.resolve())
     assert data["steps"] == 2
     assert data["model_mode"] == "twosplit"
-    assert Path(data["output_audio"]).name == "input__a2sb.wav"
-    assert Path(data["partial_output_audio"]).name == "input__a2sb.wav.partial"
+    assert Path(data["output_audio"]).name == "input__a2sb_highfreq.wav"
+    assert Path(data["partial_output_audio"]).name == "input__a2sb_highfreq.wav.partial"
 
 
 def test_create_restore_job_defaults_output_near_input_and_logs_in_app_data(tmp_path: Path, monkeypatch) -> None:
@@ -58,7 +66,7 @@ def test_create_restore_job_defaults_output_near_input_and_logs_in_app_data(tmp_
     job = create_restore_job(input_audio, steps=2)
 
     assert Path(job.output_audio).parent == (input_dir / "A2SB Restored").resolve()
-    assert Path(job.output_audio).name == "take__a2sb.wav"
+    assert Path(job.output_audio).name == "take__a2sb_highfreq.wav"
     assert Path(job.job_dir).is_relative_to((data_dir / "jobs").resolve())
     assert Path(job.log_path).parent == Path(job.job_dir)
     assert not Path(job.output_audio).is_relative_to(data_dir.resolve())
@@ -77,13 +85,13 @@ def test_create_restore_job_supports_unicode_paths_where_practical(tmp_path: Pat
     data = json.loads(manifest.read_text(encoding="utf-8"))
 
     assert data["input_audio"] == str(input_audio.resolve())
-    assert Path(data["output_audio"]).name == "take \u00e9lan__a2sb.wav"
+    assert Path(data["output_audio"]).name == "take \u00e9lan__a2sb_highfreq.wav"
 
 
 def test_partial_output_path_can_live_in_job_dir(tmp_path: Path) -> None:
-    output = tmp_path / "A2SB Restored" / "song__a2sb.wav"
+    output = tmp_path / "A2SB Restored" / "song__a2sb_highfreq.wav"
     job_dir = tmp_path / "jobs" / "123"
 
     partial = partial_output_path(output, job_dir)
 
-    assert partial == job_dir / "song__a2sb.wav.partial"
+    assert partial == job_dir / "song__a2sb_highfreq.wav.partial"

@@ -85,6 +85,7 @@ PUBLIC_README_TEXT = (
     "Outputs default to the A2SB Restored folder.\n"
 )
 PUBLIC_NOTICES_TEXT = (
+    "RollingEdit A2SB Restorer is an experimental Windows-first local application.\n"
     "RollingEdit A2SB Restorer is not affiliated with or endorsed by NVIDIA.\n"
     "FFmpeg redistribution notices are included.\n"
     "Python runtime notices are included.\n"
@@ -219,7 +220,7 @@ def write_version_sources(root: Path, project_version: str = "0.1.0a0", package_
                 'Source: "..\\bin\\ffprobe.exe"; DestDir: "{app}\\bin"; Flags: ignoreversion',
                 "",
                 "[Run]",
-                'Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\\scripts\\setup_runtime.ps1"""; StatusMsg: "Installing private ML runtime."; Flags: waituntilterminated',
+                'Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\\scripts\\setup_runtime.ps1"""; StatusMsg: "Installing private ML runtime..."; Flags: waituntilterminated',
                 "",
                 "[UninstallDelete]",
                 'Type: filesandordirs; Name: "{app}\\runtime"',

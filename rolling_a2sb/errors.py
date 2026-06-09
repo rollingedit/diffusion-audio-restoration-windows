@@ -52,7 +52,7 @@ class MissingFfmpegError(A2SBError):
 class MissingCheckpointError(A2SBError):
     code = "missing_checkpoint"
     title = "Model checkpoints are missing"
-    suggested_fix = "Download the recommended model or select a trusted checkpoint folder."
+    suggested_fix = "Download Official Model or select a trusted checkpoint folder."
 
 
 class CheckpointTrustError(A2SBError):

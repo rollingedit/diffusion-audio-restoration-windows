@@ -1,6 +1,6 @@
 # License Notices
 
-This project wraps NVIDIA Audio-to-Audio Schrodinger Bridge / A2SB for a Windows-first local application.
+This experimental Windows-first local application uses NVIDIA Audio-to-Audio Schrodinger Bridge / A2SB source code.
 
 ## NVIDIA A2SB
 

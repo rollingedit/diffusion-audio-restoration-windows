@@ -37,6 +37,7 @@ REQUIRED_RELEASE_DOC_TOKENS = {
         "must not be bundled",
     ],
     "LICENSE-NOTICES.txt": [
+        "experimental",
         "not affiliated with or endorsed by NVIDIA",
         "FFmpeg",
         "Python",

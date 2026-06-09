@@ -8,6 +8,9 @@ from pathlib import Path
 from typing import Callable, Iterable, Mapping
 
 
+CREATE_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+
+
 @dataclass(frozen=True)
 class CommandResult:
     returncode: int
@@ -42,6 +45,7 @@ def run_command(
         shell=False,
         timeout=timeout,
         check=False,
+        creationflags=CREATE_NO_WINDOW,
     )
     return CommandResult(completed.returncode, completed.stdout, completed.stderr, cancelled=False)
 
@@ -69,6 +73,7 @@ def run_command_streaming(
         stderr=subprocess.PIPE,
         shell=False,
         bufsize=1,
+        creationflags=CREATE_NO_WINDOW,
     )
 
     stdout_lines: list[str] = []

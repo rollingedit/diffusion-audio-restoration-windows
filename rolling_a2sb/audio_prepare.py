@@ -51,7 +51,7 @@ def prepare_audio(
     command = ffmpeg_prepare_command(input_audio, prepared_path, ffmpeg_path=ffmpeg_path)
     if not dry_run:
         prepared_path.parent.mkdir(parents=True, exist_ok=True)
-        completed = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False, check=False)
+        completed = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False, check=False, creationflags=CREATE_NO_WINDOW)
         if completed.returncode != 0:
             raise AudioProbeError(completed.stderr.strip() or f"FFmpeg failed to prepare {input_audio}")
 
@@ -84,4 +84,5 @@ def ffmpeg_prepare_command(input_audio: Path, output_audio: Path, ffmpeg_path: P
         "-vn",
         str(Path(output_audio)),
     ]
+CREATE_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 

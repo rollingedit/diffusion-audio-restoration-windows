@@ -41,17 +41,25 @@ The Restore tab also exposes `onesplit` as an advanced model mode. Keep `twospli
 
 ## Restore Audio
 
-1. Drag a WAV, MP3, or FLAC file into the app, or choose one with the file picker.
-2. Confirm the output folder.
-3. Click Restore.
-4. Wait for the job to complete.
-5. Use Cancel if you need to stop a running restore.
-6. Click Open Output Folder.
+1. Choose a task: Restore high frequencies or Repair missing segment.
+2. Drag a WAV, MP3, or FLAC file into the app, or choose one with the file picker.
+3. Confirm the output folder, or keep the generated default.
+4. For missing-segment repair, set the damaged gap start and end time.
+5. Click Restore.
+6. Wait for the job to complete.
+7. Use Cancel if you need to stop a running restore.
+8. Click Open Output Folder.
 
 The default output path should be:
 
 ```text
-<input folder>\A2SB Restored\<input name>__a2sb.wav
+<input folder>\A2SB Restored\<input name>__a2sb_highfreq.wav
+```
+
+Missing-segment repair defaults to:
+
+```text
+<input folder>\A2SB Restored\<input name>__a2sb_inpaint.wav
 ```
 
 The original input file must never be modified, including after cancellation.

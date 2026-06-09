@@ -63,6 +63,16 @@ def download_plan_text(mode: str = "twosplit", target_dir: Path | None = None) -
     return "\n".join(lines) + "\n"
 
 
+def model_download_progress(mode: str = "twosplit", target_dir: Path | None = None) -> tuple[int, int]:
+    plan = build_download_plan(mode=mode, target_dir=target_dir)
+    downloaded = 0
+    for filename in plan.filenames:
+        path = plan.target_dir / filename
+        if path.exists():
+            downloaded += min(path.stat().st_size, plan.required_bytes)
+    return min(downloaded, plan.required_bytes), plan.required_bytes
+
+
 def model_download_confirmation_text(mode: str = "twosplit", target_dir: Path | None = None) -> str:
     plan = build_download_plan(mode=mode, target_dir=target_dir)
     lines = [
@@ -196,6 +206,10 @@ def prepare_restore_dry_run(
     output_audio: Path | None = None,
     steps: int = 50,
     model_mode: str = "twosplit",
+    task_mode: str = "bandwidth",
+    cutoff_hz: int = 4000,
+    inpaint_start_seconds: float | None = None,
+    inpaint_end_seconds: float | None = None,
     checkpoint_folder: Path | None = None,
     trust_manual_checkpoints: bool = False,
 ) -> DryRunRestorePlan:
@@ -204,6 +218,10 @@ def prepare_restore_dry_run(
         output_audio=output_audio,
         steps=steps,
         model_mode=model_mode,
+        task_mode=task_mode,
+        cutoff_hz=cutoff_hz,
+        inpaint_start_seconds=inpaint_start_seconds,
+        inpaint_end_seconds=inpaint_end_seconds,
         checkpoint_folder=checkpoint_folder,
         trust_manual_checkpoints=trust_manual_checkpoints,
         dry_run=True,
@@ -215,6 +233,10 @@ def execute_restore_text(
     output_audio: Path | None = None,
     steps: int = 50,
     model_mode: str = "twosplit",
+    task_mode: str = "bandwidth",
+    cutoff_hz: int = 4000,
+    inpaint_start_seconds: float | None = None,
+    inpaint_end_seconds: float | None = None,
     checkpoint_folder: Path | None = None,
     trust_manual_checkpoints: bool = False,
     on_line: LineCallback | None = None,
@@ -225,6 +247,10 @@ def execute_restore_text(
         output_audio=output_audio,
         steps=steps,
         model_mode=model_mode,
+        task_mode=task_mode,
+        cutoff_hz=cutoff_hz,
+        inpaint_start_seconds=inpaint_start_seconds,
+        inpaint_end_seconds=inpaint_end_seconds,
         checkpoint_folder=checkpoint_folder,
         trust_manual_checkpoints=trust_manual_checkpoints,
         on_line=on_line,

@@ -31,6 +31,13 @@ def test_runtime_entry_scripts_execute_from_app_root() -> None:
         assert "Pop-Location" in text
 
 
+def test_subprocess_runner_uses_no_console_windows_flag() -> None:
+    text = (ROOT / "rolling_a2sb" / "subprocess_runner.py").read_text(encoding="utf-8")
+
+    assert "CREATE_NO_WINDOW" in text
+    assert "creationflags=CREATE_NO_WINDOW" in text
+
+
 def test_windows_runtime_requirements_include_upstream_import_dependencies() -> None:
     text = (ROOT / "requirements" / "lock-win-cu121.txt").read_text(encoding="utf-8")
 
@@ -142,6 +149,8 @@ def test_installed_app_smoke_can_install_check_doctor_restore_and_uninstall() ->
     assert "function Resolve-SmokeOutput" in text
     assert "A2SB-Restorer-Setup.exe" in text
     assert "/VERYSILENT" in text
+    assert "/CLOSEAPPLICATIONS" in text
+    assert "/FORCECLOSEAPPLICATIONS" in text
     assert '"/DIR=""$InstallDir"""' in text
     assert "Start-Process -FilePath $Installer" in text
     assert "Start-Process -FilePath $uninstaller.FullName" in text

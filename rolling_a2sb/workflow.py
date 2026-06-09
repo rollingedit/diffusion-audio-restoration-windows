@@ -53,6 +53,10 @@ def prepare_restore(
     output_audio: Path | None = None,
     steps: int = 50,
     model_mode: str = "twosplit",
+    task_mode: str = "bandwidth",
+    cutoff_hz: int = 4000,
+    inpaint_start_seconds: float | None = None,
+    inpaint_end_seconds: float | None = None,
     checkpoint_folder: Path | None = None,
     trust_manual_checkpoints: bool = False,
     dry_run: bool = False,
@@ -75,7 +79,13 @@ def prepare_restore(
 
     validation = validate_checkpoint_folder(selected_checkpoint_folder, mode=model_mode)
     checkpoint_paths = checkpoint_paths_from_validation(validation)
-    job = create_restore_job(input_audio, output_audio=output_audio, steps=steps, model_mode=model_mode)
+    job = create_restore_job(
+        input_audio,
+        output_audio=output_audio,
+        steps=steps,
+        model_mode=model_mode,
+        task_mode=task_mode,
+    )
     prepared = prepare_audio(input_audio, Path(job.job_dir), dry_run=dry_run)
     remember_input(input_audio)
 
@@ -95,6 +105,10 @@ def prepare_restore(
             job_dir=Path(job.job_dir),
             steps=steps,
             model_mode=model_mode,
+            task_mode=task_mode,
+            cutoff_hz=cutoff_hz,
+            inpaint_start_seconds=inpaint_start_seconds,
+            inpaint_end_seconds=inpaint_end_seconds,
             require_input_exists=not (dry_run and prepared.converted),
         )
     )
@@ -133,6 +147,10 @@ def execute_restore(
     output_audio: Path | None = None,
     steps: int = 50,
     model_mode: str = "twosplit",
+    task_mode: str = "bandwidth",
+    cutoff_hz: int = 4000,
+    inpaint_start_seconds: float | None = None,
+    inpaint_end_seconds: float | None = None,
     checkpoint_folder: Path | None = None,
     trust_manual_checkpoints: bool = False,
     on_line: LineCallback | None = None,
@@ -144,6 +162,10 @@ def execute_restore(
         output_audio=output_audio,
         steps=steps,
         model_mode=model_mode,
+        task_mode=task_mode,
+        cutoff_hz=cutoff_hz,
+        inpaint_start_seconds=inpaint_start_seconds,
+        inpaint_end_seconds=inpaint_end_seconds,
         checkpoint_folder=checkpoint_folder,
         trust_manual_checkpoints=trust_manual_checkpoints,
         dry_run=False,

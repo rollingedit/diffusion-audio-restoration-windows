@@ -1,6 +1,6 @@
 NVIDIA A2SB Notice
 
-This application includes and wraps source code from NVIDIA Audio-to-Audio Schrodinger Bridge / diffusion-audio-restoration.
+This experimental application includes source code from NVIDIA Audio-to-Audio Schrodinger Bridge / diffusion-audio-restoration.
 
 Upstream source:
 https://github.com/NVIDIA/diffusion-audio-restoration
@@ -11,6 +11,6 @@ https://huggingface.co/nvidia/audio_to_audio_schrodinger_bridge
 The bundled upstream source files retain their NVIDIA copyright notices, including:
 Copyright (c) 2025, NVIDIA CORPORATION. All rights reserved.
 
-The upstream code is provided under the NVIDIA Source Code License for A2SB, included at the repository root as LICENSE and carried with the release notices. The model/checkpoint terms are separate from this wrapper and must be followed when the user downloads or selects checkpoints.
+The upstream code is provided under the NVIDIA Source Code License for A2SB, included at the repository root as LICENSE and carried with the release notices. The model/checkpoint terms are separate and must be followed when the user downloads or selects checkpoints.
 
 RollingEdit A2SB Restorer is not affiliated with, sponsored by, or endorsed by NVIDIA.

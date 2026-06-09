@@ -48,6 +48,9 @@ def test_twosplit_config_sanitizes_upstream_hpc_defaults(tmp_path: Path) -> None
     assert config["model"]["predict_n_steps"] == 2
     assert config["model"]["pretrained_checkpoints"] == [str(path.resolve()) for path in checkpoints]
     assert config["model"]["t_cutoffs"] == [0.5]
+    transform = config["data"]["transforms_aug"][0]
+    assert transform["class_path"] == "corruption.corruptions.MultinomialInpaintMaskTransform"
+    assert transform["init_args"]["upsample_mask_kwargs"]["min_cutoff_freq"] == 4000
 
 
 def test_onesplit_config_removes_t_cutoffs(tmp_path: Path) -> None:
@@ -69,6 +72,57 @@ def test_onesplit_config_removes_t_cutoffs(tmp_path: Path) -> None:
 
     assert config["model"]["pretrained_checkpoints"] == [str(checkpoint.resolve())]
     assert "t_cutoffs" not in config["model"]
+
+
+def test_inpaint_config_uses_timestamped_segment_transform(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "models" / "A2SB_onesplit_0.0_1.0_release.ckpt"
+    input_audio = tmp_path / "song.wav"
+    input_audio.write_bytes(b"audio")
+    checkpoint.parent.mkdir(parents=True, exist_ok=True)
+    checkpoint.write_bytes(b"checkpoint")
+
+    config = build_restore_config(
+        RestoreConfigRequest(
+            input_audio=input_audio,
+            output_audio=tmp_path / "song__a2sb_inpaint.wav",
+            checkpoint_paths=[checkpoint],
+            job_dir=tmp_path / "job",
+            model_mode="onesplit",
+            task_mode="inpaint",
+            inpaint_start_seconds=1.2,
+            inpaint_end_seconds=1.7,
+        )
+    )
+
+    transform = config["data"]["transforms_aug"][0]
+    assert config["model"]["fast_inpaint_mode"] is True
+    assert transform["class_path"] == "corruption.corruptions.TimestampedSegmentInpaintMaskTransform"
+    assert transform["init_args"]["start_time"] == 1.2
+    assert transform["init_args"]["end_time"] == 1.7
+
+
+def test_inpaint_config_rejects_long_gap(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "a.ckpt"
+    input_audio = tmp_path / "song.wav"
+    input_audio.write_bytes(b"audio")
+    checkpoint.write_bytes(b"checkpoint")
+
+    try:
+        build_restore_config(
+            RestoreConfigRequest(
+                input_audio=input_audio,
+                output_audio=tmp_path / "out.wav",
+                checkpoint_paths=[checkpoint, checkpoint],
+                job_dir=tmp_path / "job",
+                task_mode="inpaint",
+                inpaint_start_seconds=1.0,
+                inpaint_end_seconds=2.5,
+            )
+        )
+    except ValueError as exc:
+        assert "1.0 second or shorter" in str(exc)
+    else:
+        raise AssertionError("long inpainting gap should fail")
 
 
 def test_write_restore_config_creates_job_config(tmp_path: Path) -> None:

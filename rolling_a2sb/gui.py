@@ -6,6 +6,7 @@ from pathlib import Path
 
 from . import paths
 from .errors import format_user_error
+from .job import default_output_path
 from .gui_actions import (
     about_text,
     audio_probe_text,
@@ -15,6 +16,7 @@ from .gui_actions import (
     execute_restore_text,
     latest_restore_log_text,
     model_download_confirmation_text,
+    model_download_progress,
     is_checkpoint_setup_error,
     parse_restore_step_progress,
     prepare_restore_dry_run,
@@ -36,6 +38,7 @@ def run_gui() -> int:
             QCheckBox,
             QComboBox,
             QDialog,
+            QDoubleSpinBox,
             QFileDialog,
             QHBoxLayout,
             QLabel,
@@ -117,6 +120,7 @@ def run_gui() -> int:
             self.restore_thread = None
             self.repair_thread = None
             self.download_thread = None
+            self.download_mode = "twosplit"
             self.last_output_folder: Path | None = None
             self.setWindowTitle("A2SB Restorer")
             self.resize(900, 620)
@@ -145,6 +149,8 @@ def run_gui() -> int:
             layout.addWidget(self.tabs, 1)
 
             self.setCentralWidget(root)
+            self.download_progress_timer = QTimer(self)
+            self.download_progress_timer.timeout.connect(self.update_model_download_progress)
             report = self.refresh_report()
             if not report.get("ok"):
                 self.tabs.setCurrentWidget(self.setup_tab)
@@ -202,6 +208,39 @@ def run_gui() -> int:
             self.setup_notice.setStyleSheet("font-weight: 600; color: #f0c674;")
             layout.addWidget(self.setup_notice)
 
+            task_row = QHBoxLayout()
+            self.task_combo = QComboBox()
+            self.task_combo.addItem("Restore high frequencies", "bandwidth")
+            self.task_combo.addItem("Repair missing segment", "inpaint")
+            self.cutoff_label = QLabel("Cutoff")
+            self.cutoff_spin = QSpinBox()
+            self.cutoff_spin.setRange(1000, 20000)
+            self.cutoff_spin.setSingleStep(500)
+            self.cutoff_spin.setValue(4000)
+            self.inpaint_start_label = QLabel("Gap start")
+            self.inpaint_start_spin = QDoubleSpinBox()
+            self.inpaint_start_spin.setRange(0.0, 3600.0)
+            self.inpaint_start_spin.setDecimals(2)
+            self.inpaint_start_spin.setSingleStep(0.1)
+            self.inpaint_end_label = QLabel("Gap end")
+            self.inpaint_end_spin = QDoubleSpinBox()
+            self.inpaint_end_spin.setRange(0.01, 3600.0)
+            self.inpaint_end_spin.setDecimals(2)
+            self.inpaint_end_spin.setSingleStep(0.1)
+            self.inpaint_end_spin.setValue(0.5)
+            self.advanced_check = QCheckBox("Advanced")
+            task_row.addWidget(QLabel("Task"))
+            task_row.addWidget(self.task_combo)
+            task_row.addWidget(self.cutoff_label)
+            task_row.addWidget(self.cutoff_spin)
+            task_row.addWidget(self.inpaint_start_label)
+            task_row.addWidget(self.inpaint_start_spin)
+            task_row.addWidget(self.inpaint_end_label)
+            task_row.addWidget(self.inpaint_end_spin)
+            task_row.addStretch(1)
+            task_row.addWidget(self.advanced_check)
+            layout.addLayout(task_row)
+
             input_row = QHBoxLayout()
             self.input_edit = QLineEdit()
             self.input_edit.setPlaceholderText("Drop or select WAV, MP3, or FLAC")
@@ -220,18 +259,21 @@ def run_gui() -> int:
             layout.addLayout(output_row)
 
             checkpoint_row = QHBoxLayout()
+            self.checkpoint_label = QLabel("Models")
             self.checkpoint_edit = QLineEdit()
             self.checkpoint_button = QPushButton("Checkpoints")
             self.trust_check = QCheckBox("Trust manual checkpoints")
-            checkpoint_row.addWidget(QLabel("Models"))
+            checkpoint_row.addWidget(self.checkpoint_label)
             checkpoint_row.addWidget(self.checkpoint_edit, 1)
             checkpoint_row.addWidget(self.checkpoint_button)
             checkpoint_row.addWidget(self.trust_check)
             layout.addLayout(checkpoint_row)
 
             option_row = QHBoxLayout()
+            self.model_label = QLabel("Model")
             self.model_combo = QComboBox()
             self.model_combo.addItems(["twosplit", "onesplit"])
+            self.steps_label = QLabel("Quality")
             self.steps_spin = QSpinBox()
             self.steps_spin.setRange(1, 500)
             self.steps_spin.setValue(50)
@@ -245,9 +287,9 @@ def run_gui() -> int:
             self.open_output_button = QPushButton("Open Output Folder")
             self.open_output_button.setEnabled(False)
             self.restore_another_button = QPushButton("Restore Another File")
-            option_row.addWidget(QLabel("Model"))
+            option_row.addWidget(self.model_label)
             option_row.addWidget(self.model_combo)
-            option_row.addWidget(QLabel("Steps"))
+            option_row.addWidget(self.steps_label)
             option_row.addWidget(self.steps_spin)
             option_row.addStretch(1)
             option_row.addWidget(self.inspect_button)
@@ -279,6 +321,9 @@ def run_gui() -> int:
             self.restore_setup_button.clicked.connect(self.open_model_setup_dialog)
             self.open_output_button.clicked.connect(self.open_output_folder)
             self.restore_another_button.clicked.connect(self.restore_another_file)
+            self.task_combo.currentIndexChanged.connect(self.restore_task_changed)
+            self.advanced_check.stateChanged.connect(self.update_restore_mode_ui)
+            self.update_restore_mode_ui()
             return tab
 
         def build_logs_tab(self) -> QWidget:
@@ -361,6 +406,37 @@ def run_gui() -> int:
             self.restore_button.setEnabled(ready)
             self.plan_button.setEnabled(ready)
             self.restore_setup_button.setEnabled(not ready)
+
+        def update_restore_mode_ui(self) -> None:
+            inpaint = self.current_task_mode() == "inpaint"
+            advanced = self.advanced_check.isChecked()
+            for widget in [self.cutoff_label, self.cutoff_spin]:
+                widget.setVisible(not inpaint)
+            for widget in [self.inpaint_start_label, self.inpaint_start_spin, self.inpaint_end_label, self.inpaint_end_spin]:
+                widget.setVisible(inpaint)
+            for widget in [
+                self.checkpoint_label,
+                self.checkpoint_edit,
+                self.checkpoint_button,
+                self.trust_check,
+                self.model_label,
+                self.model_combo,
+                self.inspect_button,
+                self.plan_button,
+            ]:
+                widget.setVisible(advanced)
+
+        def restore_task_changed(self) -> None:
+            self.update_restore_mode_ui()
+            audio_path = self.current_input_audio()
+            if audio_path:
+                current = self.current_output_audio()
+                defaults = {
+                    default_output_path(audio_path, task_mode="bandwidth"),
+                    default_output_path(audio_path, task_mode="inpaint"),
+                }
+                if current is None or current in defaults:
+                    self.output_edit.setText(str(default_output_path(audio_path, task_mode=self.current_task_mode())))
 
         def show_download_plan(self) -> None:
             self.report.setPlainText(download_plan_text(mode=self.current_model_mode()))
@@ -474,7 +550,13 @@ def run_gui() -> int:
             self.start_model_download(mode)
 
         def start_model_download(self, mode: str) -> None:
+            self.download_mode = mode
             self.set_setup_busy(True, "Downloading official model...\n")
+            self.setup_progress.setRange(0, 1000)
+            self.setup_progress.setValue(0)
+            self.setup_progress.setTextVisible(True)
+            self.setup_progress.setFormat("Starting download...")
+            self.download_progress_timer.start(500)
             self.download_thread = ModelDownloadThread(mode)
             self.download_thread.download_line.connect(self.model_download_line_received)
             self.download_thread.download_finished.connect(self.model_download_finished)
@@ -484,12 +566,32 @@ def run_gui() -> int:
 
         def model_download_line_received(self, line: str) -> None:
             self.report.append(line)
+            self.update_model_download_progress()
+
+        def update_model_download_progress(self) -> None:
+            downloaded, required = model_download_progress(mode=self.download_mode)
+            if required <= 0:
+                self.setup_progress.setRange(0, 0)
+                self.setup_progress.setTextVisible(False)
+                return
+            value = int((downloaded / required) * 1000)
+            percent = int((downloaded / required) * 100)
+            self.setup_progress.setRange(0, 1000)
+            self.setup_progress.setValue(max(0, min(value, 1000)))
+            self.setup_progress.setTextVisible(True)
+            self.setup_progress.setFormat(f"Downloading model: {percent}%")
 
         def model_download_finished(self, text: str) -> None:
+            self.download_progress_timer.stop()
+            self.setup_progress.setRange(0, 1000)
+            self.setup_progress.setValue(1000)
+            self.setup_progress.setTextVisible(True)
+            self.setup_progress.setFormat("Model setup complete")
             self.report.setPlainText(text)
             self.refresh_report()
 
         def model_download_failed(self, text: str) -> None:
+            self.download_progress_timer.stop()
             self.report.setPlainText(f"Model download failed.\n\n{text}")
 
         def model_download_thread_finished(self) -> None:
@@ -517,6 +619,8 @@ def run_gui() -> int:
             ]:
                 button.setEnabled(not busy)
             self.setup_progress.setVisible(busy)
+            if not busy:
+                self.setup_progress.setTextVisible(False)
             if text is not None:
                 self.report.setPlainText(text)
 
@@ -585,7 +689,7 @@ def run_gui() -> int:
 
         def set_input_audio(self, audio_path: Path) -> None:
             self.input_edit.setText(str(audio_path))
-            self.output_edit.clear()
+            self.output_edit.setText(str(default_output_path(audio_path, task_mode=self.current_task_mode())))
             self.inspect_audio()
 
         def select_output_audio(self) -> None:
@@ -624,6 +728,10 @@ def run_gui() -> int:
                     output_audio=self.current_output_audio(),
                     steps=self.steps_spin.value(),
                     model_mode=self.model_combo.currentText(),
+                    task_mode=self.current_task_mode(),
+                    cutoff_hz=self.cutoff_spin.value(),
+                    inpaint_start_seconds=self.inpaint_start_spin.value() if self.current_task_mode() == "inpaint" else None,
+                    inpaint_end_seconds=self.inpaint_end_spin.value() if self.current_task_mode() == "inpaint" else None,
                     checkpoint_folder=checkpoint_folder,
                     trust_manual_checkpoints=self.trust_check.isChecked(),
                 )
@@ -653,6 +761,10 @@ def run_gui() -> int:
                     "output_audio": self.current_output_audio(),
                     "steps": self.steps_spin.value(),
                     "model_mode": self.model_combo.currentText(),
+                    "task_mode": self.current_task_mode(),
+                    "cutoff_hz": self.cutoff_spin.value(),
+                    "inpaint_start_seconds": self.inpaint_start_spin.value() if self.current_task_mode() == "inpaint" else None,
+                    "inpaint_end_seconds": self.inpaint_end_spin.value() if self.current_task_mode() == "inpaint" else None,
                     "checkpoint_folder": self.current_checkpoint_folder(),
                     "trust_manual_checkpoints": self.trust_check.isChecked(),
                 }
@@ -696,7 +808,7 @@ def run_gui() -> int:
 
         def show_restore_error(self, text: str) -> None:
             if is_checkpoint_setup_error(text):
-                text = f"{text}\n\nUse Model Setup to download the recommended model or select a trusted checkpoint folder."
+                text = f"{text}\n\nUse Set Up Models to download the official model or select a trusted checkpoint folder."
                 self.restore_setup_button.setEnabled(True)
             else:
                 self.restore_setup_button.setEnabled(False)
@@ -742,6 +854,9 @@ def run_gui() -> int:
 
         def current_model_mode(self) -> str:
             return self.model_combo.currentText()
+
+        def current_task_mode(self) -> str:
+            return str(self.task_combo.currentData())
 
     app = QApplication(sys.argv)
     window = MainWindow()

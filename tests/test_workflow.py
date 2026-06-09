@@ -167,7 +167,7 @@ def test_require_runtime_ready_reports_missing_checkpoint_setup_path(monkeypatch
             "checkpoints": {
                 "ok": False,
                 "missing": ["A2SB_twosplit_0.0_0.5_release.ckpt"],
-                "next_action": "Download the recommended model or select a trusted checkpoint folder.",
+                "next_action": "Download Official Model or select a trusted checkpoint folder.",
             },
         },
     )
@@ -179,7 +179,7 @@ def test_require_runtime_ready_reports_missing_checkpoint_setup_path(monkeypatch
         assert "Restore cannot start" in message
         assert "checkpoints" in message
         assert "A2SB_twosplit_0.0_0.5_release.ckpt" in message
-        assert "Download the recommended model" in message
+        assert "Download Official Model" in message
         assert "Traceback" not in message
     else:
         raise AssertionError("restore should be blocked when checkpoints are missing")

@@ -32,14 +32,19 @@ def safe_stem(path: Path) -> str:
     return stem or "audio"
 
 
-def default_output_path(input_audio: Path, output_dir: Path | None = None) -> Path:
+def default_output_path(input_audio: Path, output_dir: Path | None = None, task_mode: str = "bandwidth") -> Path:
     input_audio = Path(input_audio)
     target_dir = Path(output_dir) if output_dir else input_audio.parent / "A2SB Restored"
-    base = f"{safe_stem(input_audio)}__a2sb.wav"
+    task_suffixes = {
+        "bandwidth": "highfreq",
+        "inpaint": "inpaint",
+    }
+    suffix = task_suffixes.get(task_mode, "restore")
+    base = f"{safe_stem(input_audio)}__a2sb_{suffix}.wav"
     candidate = target_dir / base
     index = 2
     while candidate.resolve() == input_audio.resolve() or candidate.exists():
-        candidate = target_dir / f"{safe_stem(input_audio)}__a2sb-{index}.wav"
+        candidate = target_dir / f"{safe_stem(input_audio)}__a2sb_{suffix}-{index}.wav"
         index += 1
     return candidate
 
@@ -56,13 +61,14 @@ def create_restore_job(
     output_audio: Path | None = None,
     steps: int = 50,
     model_mode: str = "twosplit",
+    task_mode: str = "bandwidth",
 ) -> RestoreJob:
     paths.ensure_app_dirs()
     job_id = uuid.uuid4().hex
     job_dir = paths.jobs_dir() / job_id
     job_dir.mkdir(parents=True, exist_ok=False)
 
-    output = output_audio or default_output_path(Path(input_audio))
+    output = output_audio or default_output_path(Path(input_audio), task_mode=task_mode)
     output.parent.mkdir(parents=True, exist_ok=True)
     log_path = job_dir / "restore.log"
     partial_output = partial_output_path(output, job_dir)
