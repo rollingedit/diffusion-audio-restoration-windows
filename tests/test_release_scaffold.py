@@ -42,7 +42,8 @@ def test_generated_icons_exist() -> None:
 
 
 def test_generated_icons_use_dib_entries_with_alpha_mask() -> None:
-    assert_dib_icon(ROOT / "installer" / "assets" / "app.ico")
+    for name in ["app.ico", "setup.ico"]:
+        assert_dib_icon(ROOT / "installer" / "assets" / name)
 
 
 def assert_dib_icon(icon: Path) -> None:
@@ -59,16 +60,14 @@ def assert_dib_icon(icon: Path) -> None:
         assert image_size > 40
 
 
-def test_setup_icon_uses_png_entries_for_explorer_alpha() -> None:
+def test_setup_icon_uses_transparent_dark_shell_fallback() -> None:
     icon = ROOT / "installer" / "assets" / "setup.ico"
     data = icon.read_bytes()
-    count = int.from_bytes(data[4:6], "little")
-
-    assert count >= 1
-    for index in range(count):
-        entry = 6 + (index * 16)
-        image_offset = int.from_bytes(data[entry + 12:entry + 16], "little")
-        assert data[image_offset:image_offset + 8] == b"\x89PNG\r\n\x1a\n"
+    image_offset = int.from_bytes(data[18:22], "little")
+    assert data[image_offset + 40] == 32
+    assert data[image_offset + 41] == 32
+    assert data[image_offset + 42] == 32
+    assert data[image_offset + 43] == 0
 
 
 def test_github_workflows_are_safe_and_non_publishing() -> None:

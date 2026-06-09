@@ -123,11 +123,24 @@ def run_gui() -> int:
 
         def run(self) -> None:
             try:
+                import time
+
+                last_progress = {"time": 0.0, "percent": None}
+
+                def emit_progress(current: int, total: int, label: str) -> None:
+                    now = time.monotonic()
+                    percent = int((current / total) * 100) if total > 0 else None
+                    force = total > 0 and current >= total
+                    if force or percent != last_progress["percent"] or now - last_progress["time"] >= 0.25:
+                        last_progress["time"] = now
+                        last_progress["percent"] = percent
+                        self.download_progress.emit(current, total, label)
+
                 self.download_finished.emit(
                     download_recommended_model_stream_text(
                         mode=self.mode,
                         on_progress=lambda line: self.download_line.emit(line),
-                        on_progress_bytes=lambda current, total, label: self.download_progress.emit(current, total, label),
+                        on_progress_bytes=emit_progress,
                     )
                 )
             except Exception as exc:
@@ -298,6 +311,11 @@ def run_gui() -> int:
             self.report = QTextEdit()
             self.report.setReadOnly(True)
             layout.addWidget(self.report, 1)
+
+            self.setup_progress_label = QLabel("")
+            self.setup_progress_label.setFixedHeight(20)
+            self.setup_progress_label.hide()
+            layout.addWidget(self.setup_progress_label)
 
             self.setup_progress = QProgressBar()
             self.setup_progress.setRange(0, 1000)
@@ -793,17 +811,20 @@ def run_gui() -> int:
             self.setup_progress.setRange(0, 1000)
             self.setup_progress.setValue(0)
             self.setup_progress.setTextVisible(False)
+            self.setup_progress_label.setText("Checking for existing model checkpoints...")
+            self.setup_progress_label.show()
             self.setup_progress.show()
             reused = reuse_existing_model_text(mode=mode, on_progress=lambda line: self.report.append(line))
             if reused is not None:
                 self.refresh_report()
                 self.setup_progress.setRange(0, 1000)
                 self.setup_progress.setValue(1000)
-                self.setup_progress.setTextVisible(True)
-                self.setup_progress.setFormat("Models already installed")
+                self.setup_progress.setTextVisible(False)
+                self.setup_progress_label.setText("Models already installed")
                 self.report.setPlainText(reused)
                 return
             self.setup_progress.hide()
+            self.setup_progress_label.hide()
             confirmation = model_download_confirmation_text(mode=mode)
             self.report.setPlainText(confirmation)
             if prompt:
@@ -823,8 +844,8 @@ def run_gui() -> int:
             self.set_setup_busy(True, "Downloading official model...\n")
             self.setup_progress.setRange(0, 1000)
             self.setup_progress.setValue(0)
-            self.setup_progress.setTextVisible(True)
-            self.setup_progress.setFormat("Connecting to Hugging Face...")
+            self.setup_progress.setTextVisible(False)
+            self.setup_progress_label.setText("Connecting to Hugging Face...")
             self.download_thread = ModelDownloadThread(mode)
             self.download_thread.download_line.connect(self.model_download_line_received)
             self.download_thread.download_progress.connect(self.model_download_progress_received)
@@ -842,16 +863,16 @@ def run_gui() -> int:
             if required <= 0:
                 self.setup_progress.setRange(0, 1000)
                 self.setup_progress.setValue(0)
-                self.setup_progress.setTextVisible(True)
-                self.setup_progress.setFormat("Connecting to Hugging Face...")
+                self.setup_progress.setTextVisible(False)
+                self.setup_progress_label.setText("Connecting to Hugging Face...")
                 return
             ratio = max(0.0, min(float(downloaded) / float(required), 1.0))
             value = int(ratio * 1000)
             percent = int(ratio * 100)
             self.setup_progress.setRange(0, 1000)
             self.setup_progress.setValue(value)
-            self.setup_progress.setTextVisible(True)
-            self.setup_progress.setFormat(f"Downloading model: {percent}%")
+            self.setup_progress.setTextVisible(False)
+            self.setup_progress_label.setText(f"Downloading model: {percent}%")
 
         def model_download_progress_received(self, downloaded: object, required: object, label: str) -> None:
             downloaded = int(downloaded)
@@ -859,23 +880,23 @@ def run_gui() -> int:
             if required <= 0:
                 self.setup_progress.setRange(0, 1000)
                 self.setup_progress.setValue(0)
-                self.setup_progress.setTextVisible(True)
-                self.setup_progress.setFormat(f"{label}: connecting...")
+                self.setup_progress.setTextVisible(False)
+                self.setup_progress_label.setText(f"{label}: connecting...")
                 return
             ratio = max(0.0, min(float(downloaded) / float(required), 1.0))
             value = int(ratio * 1000)
             percent = int(ratio * 100)
             self.setup_progress.setRange(0, 1000)
             self.setup_progress.setValue(value)
-            self.setup_progress.setTextVisible(True)
-            self.setup_progress.setFormat(f"{label}: {percent}%")
+            self.setup_progress.setTextVisible(False)
+            self.setup_progress_label.setText(f"{label}: {percent}%")
 
         def model_download_finished(self, text: str) -> None:
             self.download_progress_timer.stop()
             self.setup_progress.setRange(0, 1000)
             self.setup_progress.setValue(1000)
-            self.setup_progress.setTextVisible(True)
-            self.setup_progress.setFormat("Model setup complete")
+            self.setup_progress.setTextVisible(False)
+            self.setup_progress_label.setText("Model setup complete")
             self.report.setPlainText(text)
             self.refresh_report()
 
@@ -908,8 +929,10 @@ def run_gui() -> int:
             ]:
                 button.setEnabled(not busy)
             self.setup_progress.setVisible(busy)
+            self.setup_progress_label.setVisible(busy)
             if not busy:
                 self.setup_progress.setTextVisible(False)
+                self.setup_progress_label.setText("")
             if text is not None:
                 self.report.setPlainText(text)
 

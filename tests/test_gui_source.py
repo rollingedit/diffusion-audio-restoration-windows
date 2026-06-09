@@ -97,19 +97,23 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
     assert "ModelDownloadThread" in text
     assert "download_line = Signal(str)" in text
     assert "download_progress = Signal(object, object, str)" in text
-    assert "on_progress_bytes=lambda current, total, label" in text
+    assert "last_progress" in text
+    assert "now - last_progress[\"time\"] >= 0.25" in text
+    assert "on_progress_bytes=emit_progress" in text
     assert "reuse_existing_model_text" in text
     assert "Checking for existing model checkpoints" in text
     assert "Models already installed" in text
     assert "self.setup_progress = QProgressBar()" in text
+    assert "self.setup_progress_label = QLabel(\"\")" in text
     assert "self.setup_progress.setFixedHeight(22)" in text
+    assert "self.setup_progress_label.setFixedHeight(20)" in text
     assert "self.setup_progress.setRange(0, 1000)" in text
     assert "self.setup_progress.setRange(0, 0)" not in text
     assert "update_model_download_progress" in text
     assert "model_download_progress(mode=self.download_mode)" in text
-    assert "Downloading model: {percent}%" in text
+    assert "self.setup_progress_label.setText(f\"Downloading model: {percent}%\")" in text
     assert "model_download_progress_received" in text
-    assert "{label}: {percent}%" in text
+    assert "self.setup_progress_label.setText(f\"{label}: {percent}%\")" in text
     assert "self.download_progress_timer.start(500)" in text
     assert "set_setup_busy(True" in text
     assert "model_download_line_received" in text

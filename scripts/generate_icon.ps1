@@ -67,7 +67,10 @@ function New-IconBitmap {
 }
 
 function ConvertTo-DibBytes {
-    param([System.Drawing.Bitmap]$Bitmap)
+    param(
+        [System.Drawing.Bitmap]$Bitmap,
+        [System.Drawing.Color]$TransparentFallbackColor = [System.Drawing.Color]::FromArgb(255, 32, 139, 120)
+    )
     $width = $Bitmap.Width
     $height = $Bitmap.Height
     $xorStride = $width * 4
@@ -81,9 +84,9 @@ function ConvertTo-DibBytes {
             $color = $Bitmap.GetPixel($x, $sourceY)
             $pixelOffset = ($y * $xorStride) + ($x * 4)
             if ($color.A -lt 128) {
-                $pixelBytes[$pixelOffset] = 120
-                $pixelBytes[$pixelOffset + 1] = 139
-                $pixelBytes[$pixelOffset + 2] = 32
+                $pixelBytes[$pixelOffset] = $TransparentFallbackColor.B
+                $pixelBytes[$pixelOffset + 1] = $TransparentFallbackColor.G
+                $pixelBytes[$pixelOffset + 2] = $TransparentFallbackColor.R
             } else {
                 $pixelBytes[$pixelOffset] = $color.B
                 $pixelBytes[$pixelOffset + 1] = $color.G
@@ -120,22 +123,10 @@ function ConvertTo-DibBytes {
     }
 }
 
-function ConvertTo-PngBytes {
-    param([System.Drawing.Bitmap]$Bitmap)
-
-    $stream = New-Object System.IO.MemoryStream
-    try {
-        $Bitmap.Save($stream, [System.Drawing.Imaging.ImageFormat]::Png)
-        return ,$stream.ToArray()
-    } finally {
-        $stream.Dispose()
-    }
-}
-
 function Write-IconFile {
     param(
         [string]$Path,
-        [switch]$PngEntries
+        [System.Drawing.Color]$TransparentFallbackColor = [System.Drawing.Color]::FromArgb(255, 32, 139, 120)
     )
 
     $sizes = @(256, 128, 64, 48, 32, 16)
@@ -143,7 +134,7 @@ function Write-IconFile {
     foreach ($size in $sizes) {
         $bitmap = New-IconBitmap -Size $size
         try {
-            $bytes = if ($PngEntries) { ConvertTo-PngBytes -Bitmap $bitmap } else { ConvertTo-DibBytes -Bitmap $bitmap }
+            $bytes = ConvertTo-DibBytes -Bitmap $bitmap -TransparentFallbackColor $TransparentFallbackColor
             $images += [pscustomobject]@{
                 Size = $size
                 Bytes = [byte[]]$bytes
@@ -186,5 +177,6 @@ function Write-IconFile {
 
 Write-IconFile -Path $OutputPath
 Write-Host "Wrote $OutputPath"
-Write-IconFile -Path $SetupOutputPath -PngEntries
+$setupFallback = [System.Drawing.Color]::FromArgb(255, 32, 32, 32)
+Write-IconFile -Path $SetupOutputPath -TransparentFallbackColor $setupFallback
 Write-Host "Wrote $SetupOutputPath"
