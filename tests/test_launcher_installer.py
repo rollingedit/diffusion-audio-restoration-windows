@@ -161,3 +161,7 @@ def test_inno_runs_real_runtime_setup_not_dry_run() -> None:
     assert "Installing private ML runtime" in run_section
     assert "waituntilterminated" in run_section
     assert "runhidden" not in run_section
+    assert 'Description: "Launch A2SB Restorer"' in run_section
+    assert "postinstall" in run_section
+    assert "skipifsilent" in run_section
+    assert "unchecked" not in run_section

@@ -221,6 +221,7 @@ def write_version_sources(root: Path, project_version: str = "0.1.0a0", package_
                 "",
                 "[Run]",
                 'Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\\scripts\\setup_runtime.ps1"""; StatusMsg: "Installing private ML runtime..."; Flags: waituntilterminated',
+                'Filename: "{app}\\{#MyAppExeName}"; Description: "Launch A2SB Restorer"; Flags: nowait postinstall skipifsilent',
                 "",
                 "[UninstallDelete]",
                 'Type: filesandordirs; Name: "{app}\\runtime"',

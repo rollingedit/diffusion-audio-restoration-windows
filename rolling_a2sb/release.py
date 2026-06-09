@@ -65,6 +65,7 @@ REQUIRED_INSTALLER_METADATA_TOKENS = [
     'Source: "..\\bin\\ffprobe.exe"; DestDir: "{app}\\bin"; Flags: ignoreversion',
     'Source: "..\\pyproject.toml"; DestDir: "{app}"; Flags: ignoreversion',
     'Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\\scripts\\setup_runtime.ps1"""; StatusMsg:',
+    'Filename: "{app}\\{#MyAppExeName}"; Description: "Launch A2SB Restorer"; Flags: nowait postinstall skipifsilent',
     'Type: filesandordirs; Name: "{app}\\runtime"',
 ]
 REQUIRED_RELEASE_SOURCE_PATHS = [

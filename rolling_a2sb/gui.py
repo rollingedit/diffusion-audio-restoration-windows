@@ -5,10 +5,12 @@ import sys
 from pathlib import Path
 
 from . import paths
+from .audio_probe import probe_audio
 from .errors import format_user_error
 from .job import default_output_path
 from .gui_actions import (
     about_text,
+    about_html,
     audio_probe_text,
     doctor_report_text,
     download_plan_text,
@@ -23,6 +25,7 @@ from .gui_actions import (
     repair_runtime_text,
     restore_plan_text,
     select_checkpoint_folder_text,
+    task_mode_help_text,
 )
 from .runtime_check import doctor
 
@@ -47,8 +50,11 @@ def run_gui() -> int:
             QMessageBox,
             QPushButton,
             QProgressBar,
+            QRadioButton,
+            QSlider,
             QSpinBox,
             QTabWidget,
+            QTextBrowser,
             QTextEdit,
             QVBoxLayout,
             QWidget,
@@ -96,6 +102,7 @@ def run_gui() -> int:
 
     class ModelDownloadThread(QThread):
         download_line = Signal(str)
+        download_progress = Signal(int, int, str)
         download_finished = Signal(str)
         download_failed = Signal(str)
 
@@ -109,6 +116,7 @@ def run_gui() -> int:
                     download_recommended_model_stream_text(
                         mode=self.mode,
                         on_progress=lambda line: self.download_line.emit(line),
+                        on_progress_bytes=lambda current, total, label: self.download_progress.emit(current, total, label),
                     )
                 )
             except Exception as exc:
@@ -209,9 +217,9 @@ def run_gui() -> int:
             layout.addWidget(self.setup_notice)
 
             task_row = QHBoxLayout()
-            self.task_combo = QComboBox()
-            self.task_combo.addItem("Restore high frequencies", "bandwidth")
-            self.task_combo.addItem("Repair missing segment", "inpaint")
+            self.bandwidth_radio = QRadioButton("Bandwidth extension")
+            self.bandwidth_radio.setChecked(True)
+            self.inpaint_radio = QRadioButton("Inpainting")
             self.cutoff_label = QLabel("Cutoff")
             self.cutoff_spin = QSpinBox()
             self.cutoff_spin.setRange(1000, 20000)
@@ -229,8 +237,9 @@ def run_gui() -> int:
             self.inpaint_end_spin.setSingleStep(0.1)
             self.inpaint_end_spin.setValue(0.5)
             self.advanced_check = QCheckBox("Advanced")
-            task_row.addWidget(QLabel("Task"))
-            task_row.addWidget(self.task_combo)
+            task_row.addWidget(QLabel("Mode"))
+            task_row.addWidget(self.bandwidth_radio)
+            task_row.addWidget(self.inpaint_radio)
             task_row.addWidget(self.cutoff_label)
             task_row.addWidget(self.cutoff_spin)
             task_row.addWidget(self.inpaint_start_label)
@@ -240,6 +249,10 @@ def run_gui() -> int:
             task_row.addStretch(1)
             task_row.addWidget(self.advanced_check)
             layout.addLayout(task_row)
+
+            self.mode_help = QLabel("")
+            self.mode_help.setWordWrap(True)
+            layout.addWidget(self.mode_help)
 
             input_row = QHBoxLayout()
             self.input_edit = QLineEdit()
@@ -257,6 +270,23 @@ def run_gui() -> int:
             output_row.addWidget(self.output_edit, 1)
             output_row.addWidget(self.output_button)
             layout.addLayout(output_row)
+
+            self.inpaint_range_row = QVBoxLayout()
+            range_title_row = QHBoxLayout()
+            self.inpaint_range_label = QLabel("Inpainting segment")
+            self.inpaint_range_value = QLabel("0.00s to 0.50s")
+            range_title_row.addWidget(self.inpaint_range_label)
+            range_title_row.addStretch(1)
+            range_title_row.addWidget(self.inpaint_range_value)
+            self.inpaint_start_slider = QSlider(Qt.Horizontal)
+            self.inpaint_start_slider.setRange(0, 500)
+            self.inpaint_end_slider = QSlider(Qt.Horizontal)
+            self.inpaint_end_slider.setRange(1, 500)
+            self.inpaint_end_slider.setValue(500)
+            self.inpaint_range_row.addLayout(range_title_row)
+            self.inpaint_range_row.addWidget(self.inpaint_start_slider)
+            self.inpaint_range_row.addWidget(self.inpaint_end_slider)
+            layout.addLayout(self.inpaint_range_row)
 
             checkpoint_row = QHBoxLayout()
             self.checkpoint_label = QLabel("Models")
@@ -321,7 +351,12 @@ def run_gui() -> int:
             self.restore_setup_button.clicked.connect(self.open_model_setup_dialog)
             self.open_output_button.clicked.connect(self.open_output_folder)
             self.restore_another_button.clicked.connect(self.restore_another_file)
-            self.task_combo.currentIndexChanged.connect(self.restore_task_changed)
+            self.bandwidth_radio.toggled.connect(self.restore_task_changed)
+            self.inpaint_radio.toggled.connect(self.restore_task_changed)
+            self.inpaint_start_slider.valueChanged.connect(self.inpaint_slider_changed)
+            self.inpaint_end_slider.valueChanged.connect(self.inpaint_slider_changed)
+            self.inpaint_start_spin.valueChanged.connect(self.inpaint_spin_changed)
+            self.inpaint_end_spin.valueChanged.connect(self.inpaint_spin_changed)
             self.advanced_check.stateChanged.connect(self.update_restore_mode_ui)
             self.update_restore_mode_ui()
             return tab
@@ -353,9 +388,9 @@ def run_gui() -> int:
             tab = QWidget()
             layout = QVBoxLayout(tab)
 
-            self.about_view = QTextEdit()
-            self.about_view.setReadOnly(True)
-            self.about_view.setPlainText(about_text())
+            self.about_view = QTextBrowser()
+            self.about_view.setOpenExternalLinks(True)
+            self.about_view.setHtml(about_html())
             layout.addWidget(self.about_view, 1)
             return tab
 
@@ -410,10 +445,20 @@ def run_gui() -> int:
         def update_restore_mode_ui(self) -> None:
             inpaint = self.current_task_mode() == "inpaint"
             advanced = self.advanced_check.isChecked()
+            self.mode_help.setText(self.mode_help_label())
             for widget in [self.cutoff_label, self.cutoff_spin]:
                 widget.setVisible(not inpaint)
             for widget in [self.inpaint_start_label, self.inpaint_start_spin, self.inpaint_end_label, self.inpaint_end_spin]:
-                widget.setVisible(inpaint)
+                widget.setVisible(inpaint and advanced)
+            for index in range(self.inpaint_range_row.count()):
+                item = self.inpaint_range_row.itemAt(index)
+                if item and item.widget():
+                    item.widget().setVisible(inpaint)
+                elif item and item.layout():
+                    for child_index in range(item.layout().count()):
+                        child = item.layout().itemAt(child_index)
+                        if child and child.widget():
+                            child.widget().setVisible(inpaint)
             for widget in [
                 self.checkpoint_label,
                 self.checkpoint_edit,
@@ -427,7 +472,10 @@ def run_gui() -> int:
                 widget.setVisible(advanced)
 
         def restore_task_changed(self) -> None:
+            if not self.sender().isChecked():
+                return
             self.update_restore_mode_ui()
+            self.restore_output.setPlainText(task_mode_help_text(self.current_task_mode()))
             audio_path = self.current_input_audio()
             if audio_path:
                 current = self.current_output_audio()
@@ -437,6 +485,63 @@ def run_gui() -> int:
                 }
                 if current is None or current in defaults:
                     self.output_edit.setText(str(default_output_path(audio_path, task_mode=self.current_task_mode())))
+
+        def mode_help_label(self) -> str:
+            if self.current_task_mode() == "inpaint":
+                return "Inpainting repairs a short damaged or missing time segment. Select the segment below, then restore."
+            return "Bandwidth extension predicts missing high-frequency detail for dull or low-passed audio."
+
+        def configure_inpaint_range_for_audio(self, audio_path: Path) -> None:
+            try:
+                info = probe_audio(audio_path)
+            except Exception:
+                return
+            duration = info.duration_seconds
+            if not duration or duration <= 0:
+                return
+            slider_max = max(100, int(duration * 100))
+            self.inpaint_start_slider.blockSignals(True)
+            self.inpaint_end_slider.blockSignals(True)
+            self.inpaint_start_slider.setRange(0, slider_max - 1)
+            self.inpaint_end_slider.setRange(1, slider_max)
+            end_value = min(slider_max, max(1, int(min(duration, 0.5) * 100)))
+            self.inpaint_start_slider.setValue(0)
+            self.inpaint_end_slider.setValue(end_value)
+            self.inpaint_start_slider.blockSignals(False)
+            self.inpaint_end_slider.blockSignals(False)
+            self.inpaint_slider_changed()
+
+        def inpaint_slider_changed(self) -> None:
+            start = self.inpaint_start_slider.value() / 100
+            end = self.inpaint_end_slider.value() / 100
+            if end <= start:
+                end = min(start + 0.01, self.inpaint_end_slider.maximum() / 100)
+                self.inpaint_end_slider.blockSignals(True)
+                self.inpaint_end_slider.setValue(int(end * 100))
+                self.inpaint_end_slider.blockSignals(False)
+            if end - start > 1.0:
+                end = start + 1.0
+                self.inpaint_end_slider.blockSignals(True)
+                self.inpaint_end_slider.setValue(int(end * 100))
+                self.inpaint_end_slider.blockSignals(False)
+            self.inpaint_start_spin.blockSignals(True)
+            self.inpaint_end_spin.blockSignals(True)
+            self.inpaint_start_spin.setValue(start)
+            self.inpaint_end_spin.setValue(end)
+            self.inpaint_start_spin.blockSignals(False)
+            self.inpaint_end_spin.blockSignals(False)
+            self.inpaint_range_value.setText(f"{start:.2f}s to {end:.2f}s")
+
+        def inpaint_spin_changed(self) -> None:
+            start = int(self.inpaint_start_spin.value() * 100)
+            end = int(self.inpaint_end_spin.value() * 100)
+            self.inpaint_start_slider.blockSignals(True)
+            self.inpaint_end_slider.blockSignals(True)
+            self.inpaint_start_slider.setValue(max(self.inpaint_start_slider.minimum(), min(start, self.inpaint_start_slider.maximum())))
+            self.inpaint_end_slider.setValue(max(self.inpaint_end_slider.minimum(), min(end, self.inpaint_end_slider.maximum())))
+            self.inpaint_start_slider.blockSignals(False)
+            self.inpaint_end_slider.blockSignals(False)
+            self.inpaint_range_value.setText(f"{self.inpaint_start_spin.value():.2f}s to {self.inpaint_end_spin.value():.2f}s")
 
         def show_download_plan(self) -> None:
             self.report.setPlainText(download_plan_text(mode=self.current_model_mode()))
@@ -559,6 +664,7 @@ def run_gui() -> int:
             self.download_progress_timer.start(500)
             self.download_thread = ModelDownloadThread(mode)
             self.download_thread.download_line.connect(self.model_download_line_received)
+            self.download_thread.download_progress.connect(self.model_download_progress_received)
             self.download_thread.download_finished.connect(self.model_download_finished)
             self.download_thread.download_failed.connect(self.model_download_failed)
             self.download_thread.finished.connect(self.model_download_thread_finished)
@@ -566,7 +672,6 @@ def run_gui() -> int:
 
         def model_download_line_received(self, line: str) -> None:
             self.report.append(line)
-            self.update_model_download_progress()
 
         def update_model_download_progress(self) -> None:
             downloaded, required = model_download_progress(mode=self.download_mode)
@@ -580,6 +685,18 @@ def run_gui() -> int:
             self.setup_progress.setValue(max(0, min(value, 1000)))
             self.setup_progress.setTextVisible(True)
             self.setup_progress.setFormat(f"Downloading model: {percent}%")
+
+        def model_download_progress_received(self, downloaded: int, required: int, label: str) -> None:
+            if required <= 0:
+                self.setup_progress.setRange(0, 0)
+                self.setup_progress.setTextVisible(False)
+                return
+            value = int((downloaded / required) * 1000)
+            percent = int((downloaded / required) * 100)
+            self.setup_progress.setRange(0, 1000)
+            self.setup_progress.setValue(max(0, min(value, 1000)))
+            self.setup_progress.setTextVisible(True)
+            self.setup_progress.setFormat(f"{label}: {percent}%")
 
         def model_download_finished(self, text: str) -> None:
             self.download_progress_timer.stop()
@@ -690,6 +807,7 @@ def run_gui() -> int:
         def set_input_audio(self, audio_path: Path) -> None:
             self.input_edit.setText(str(audio_path))
             self.output_edit.setText(str(default_output_path(audio_path, task_mode=self.current_task_mode())))
+            self.configure_inpaint_range_for_audio(audio_path)
             self.inspect_audio()
 
         def select_output_audio(self) -> None:
@@ -856,7 +974,7 @@ def run_gui() -> int:
             return self.model_combo.currentText()
 
         def current_task_mode(self) -> str:
-            return str(self.task_combo.currentData())
+            return "inpaint" if self.inpaint_radio.isChecked() else "bandwidth"
 
     app = QApplication(sys.argv)
     window = MainWindow()

@@ -84,6 +84,43 @@ def test_download_model_reuses_existing_valid_checkpoints(tmp_path: Path, monkey
     assert progress == ["Model checkpoints already present"]
 
 
+def test_download_model_finds_existing_checkpoints_before_download(tmp_path: Path, monkeypatch) -> None:
+    data_dir = tmp_path / "data"
+    monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(tmp_path / "logs"))
+    target = tmp_path / "models"
+    discovered = data_dir / "models"
+    progress: list[str] = []
+    byte_progress: list[tuple[int, int, str]] = []
+    for filename in [
+        "ckpt/A2SB_twosplit_0.0_0.5_release.ckpt",
+        "ckpt/A2SB_twosplit_0.5_1.0_release.ckpt",
+    ]:
+        path = discovered / filename
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"x" * 16)
+
+    def fail_download(**kwargs) -> str:
+        raise AssertionError("discovered valid checkpoints should not be downloaded again")
+
+    result = download_model(
+        mode="twosplit",
+        target_dir=target,
+        progress=progress.append,
+        byte_progress=lambda current, total, label: byte_progress.append((current, total, label)),
+        compute_hashes=False,
+        min_size_bytes=1,
+        hf_download=fail_download,
+    )
+
+    assert result.validation.ok
+    assert (target / "ckpt" / "A2SB_twosplit_0.0_0.5_release.ckpt").exists()
+    assert (target / "ckpt" / "A2SB_twosplit_0.5_1.0_release.ckpt").exists()
+    assert any("Found existing checkpoint" in message for message in progress)
+    assert progress[-1] == "Using existing checkpoints; no download needed"
+    assert byte_progress
+
+
 def test_download_model_retries_transient_failure(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(tmp_path / "data"))
     monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(tmp_path / "logs"))

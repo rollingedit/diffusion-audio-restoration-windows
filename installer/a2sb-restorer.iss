@@ -69,6 +69,7 @@ Name: "{group}\Open Logs Folder"; Filename: "powershell.exe"; Parameters: "-NoPr
 
 [Run]
 Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\scripts\setup_runtime.ps1"""; StatusMsg: "Installing private ML runtime..."; Flags: waituntilterminated
+Filename: "{app}\{#MyAppExeName}"; Description: "Launch A2SB Restorer"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\runtime"

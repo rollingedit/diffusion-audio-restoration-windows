@@ -3,6 +3,7 @@ import wave
 
 from rolling_a2sb.gui_actions import (
     about_text,
+    about_html,
     audio_probe_text,
     doctor_report_text,
     download_plan_text,
@@ -17,6 +18,7 @@ from rolling_a2sb.gui_actions import (
     repair_runtime_text,
     restore_plan_text,
     select_checkpoint_folder_text,
+    task_mode_help_text,
 )
 from rolling_a2sb.subprocess_runner import CommandResult
 
@@ -45,12 +47,28 @@ def test_doctor_report_text_contains_header() -> None:
 def test_about_text_contains_attribution_and_non_affiliation() -> None:
     text = about_text()
 
-    assert "RollingEdit Windows app" in text
+    assert "Experimental RollingEdit Windows app" in text
     assert "https://github.com/rollingedit/diffusion-audio-restoration-windows" in text
     assert "NVIDIA Audio-to-Audio Schrodinger Bridge" in text
     assert "not affiliated with or endorsed by NVIDIA" in text
+    assert "non-commercial use only" in text
     assert "Audio stays local" in text
     assert "License notices" in text
+
+
+def test_about_html_contains_clickable_github_and_warning() -> None:
+    text = about_html()
+
+    assert '<a href="https://github.com/rollingedit/diffusion-audio-restoration-windows">GitHub repository</a>' in text
+    assert "non-commercial use only" in text
+    assert "Experimental" in text
+
+
+def test_task_mode_help_uses_technical_names_with_plain_description() -> None:
+    assert "Bandwidth extension" in task_mode_help_text("bandwidth")
+    assert "high-frequency" in task_mode_help_text("bandwidth")
+    assert "Inpainting" in task_mode_help_text("inpaint")
+    assert "short damaged or missing time range" in task_mode_help_text("inpaint")
 
 
 def test_download_plan_text_contains_official_repo(tmp_path: Path) -> None:
@@ -105,8 +123,10 @@ def test_download_recommended_model_text_reports_progress(tmp_path: Path, monkey
         manifest_path = tmp_path / "models" / "checkpoint_manifest.json"
         files = [tmp_path / "models" / "a.ckpt"]
 
-    def fake_download_model(mode, target_dir, progress):
+    def fake_download_model(mode, target_dir, progress, byte_progress=None):
         progress("Downloading checkpoint 1 of 2")
+        if byte_progress:
+            byte_progress(1, 2, "fake.ckpt")
         progress("Model download complete")
         return Result()
 

@@ -22,8 +22,17 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
     assert "QThread" in text
     assert "QProgressBar" in text
     assert "QDoubleSpinBox" in text
-    assert "Restore high frequencies" in text
-    assert "Repair missing segment" in text
+    assert "QRadioButton" in text
+    assert "QSlider" in text
+    assert "Bandwidth extension" in text
+    assert "Inpainting" in text
+    assert "self.bandwidth_radio = QRadioButton" in text
+    assert "self.inpaint_radio = QRadioButton" in text
+    assert "self.task_combo" not in text
+    assert "task_mode_help_text" in text
+    assert "configure_inpaint_range_for_audio" in text
+    assert "inpaint_slider_changed" in text
+    assert "inpaint_spin_changed" in text
     assert "self.advanced_check = QCheckBox(\"Advanced\")" in text
     assert "update_restore_mode_ui" in text
     assert "restore_task_changed" in text
@@ -70,12 +79,16 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
     assert "download_recommended_model_stream_text" in text
     assert "ModelDownloadThread" in text
     assert "download_line = Signal(str)" in text
+    assert "download_progress = Signal(int, int, str)" in text
+    assert "on_progress_bytes=lambda current, total, label" in text
     assert "self.setup_progress = QProgressBar()" in text
     assert "self.setup_progress.setRange(0, 0)" in text
     assert "self.setup_progress.setRange(0, 1000)" in text
     assert "update_model_download_progress" in text
     assert "model_download_progress(mode=self.download_mode)" in text
     assert "Downloading model: {percent}%" in text
+    assert "model_download_progress_received" in text
+    assert "{label}: {percent}%" in text
     assert "self.download_progress_timer.start(500)" in text
     assert "set_setup_busy(True" in text
     assert "model_download_line_received" in text
@@ -89,6 +102,9 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
     assert "build_logs_tab" in text
     assert "build_about_tab" in text
     assert "about_text" in text
+    assert "QTextBrowser" in text
+    assert "setOpenExternalLinks(True)" in text
+    assert "about_html()" in text
     assert "Show Latest Log" in text
     assert "latest_restore_log_text" in text
     assert "prepare_restore_dry_run" in text

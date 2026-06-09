@@ -44,14 +44,14 @@ def test_download_model_yes_runs_official_download_path(tmp_path: Path, monkeypa
     target = tmp_path / "models"
     calls: list[dict] = []
 
-    def fake_hf_download(**kwargs) -> str:
-        calls.append(kwargs)
-        path = target / kwargs["filename"]
+    def fake_stream_download(filename, plan, byte_progress, chunk_size=1024 * 1024) -> str:
+        calls.append({"filename": filename, "repo_id": plan.repo_id, "target_dir": plan.target_dir})
+        path = target / filename
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(b"x" * 16)
         return str(path)
 
-    monkeypatch.setattr("rolling_a2sb.downloader._load_hf_download", lambda: fake_hf_download)
+    monkeypatch.setattr("rolling_a2sb.downloader._stream_download_file", fake_stream_download)
     monkeypatch.setattr("rolling_a2sb.downloader.validate_checkpoint_folder", lambda folder, mode, min_size_bytes, compute_hashes: __import__(
         "rolling_a2sb.checkpoint_manager", fromlist=["validate_checkpoint_folder"]
     ).validate_checkpoint_folder(folder, mode=mode, min_size_bytes=1, compute_hashes=compute_hashes))
@@ -67,7 +67,7 @@ def test_download_model_yes_runs_official_download_path(tmp_path: Path, monkeypa
         "ckpt/A2SB_twosplit_0.0_0.5_release.ckpt",
         "ckpt/A2SB_twosplit_0.5_1.0_release.ckpt",
     ]
-    assert all(call["resume_download"] is True for call in calls)
+    assert all(call["repo_id"] == "nvidia/audio_to_audio_schrodinger_bridge" for call in calls)
 
 
 def test_select_checkpoints_requires_trust(tmp_path: Path, capsys) -> None:

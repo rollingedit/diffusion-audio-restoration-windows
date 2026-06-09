@@ -7,7 +7,7 @@ from typing import Callable
 
 from .audio_probe import audio_info_dict, probe_audio
 from .checkpoint_manager import select_manual_checkpoint_folder
-from .downloader import build_download_plan, download_model
+from .downloader import ByteProgressCallback, build_download_plan, download_model
 from . import paths
 from .runtime_check import diagnostic_text, doctor
 from .subprocess_runner import run_command_streaming
@@ -26,15 +26,42 @@ def about_text() -> str:
     return "\n".join(
         [
             "A2SB Restorer",
-            "RollingEdit Windows app for NVIDIA Audio-to-Audio Schrodinger Bridge restoration.",
+            "Experimental RollingEdit Windows app for NVIDIA Audio-to-Audio Schrodinger Bridge restoration.",
             "GitHub: https://github.com/rollingedit/diffusion-audio-restoration-windows",
             "",
             "Uses upstream NVIDIA A2SB engine code and official NVIDIA Hugging Face checkpoints.",
             "This project is not affiliated with or endorsed by NVIDIA.",
+            "The upstream model card says the model is for non-commercial use only.",
+            "Review the included NVIDIA A2SB license before commercial or production use.",
             "Audio stays local on this PC.",
             "",
             "License notices are installed under the app LICENSES and docs folders.",
         ]
+    )
+
+
+def about_html() -> str:
+    return """
+<h2>A2SB Restorer</h2>
+<p>Experimental RollingEdit Windows app for NVIDIA Audio-to-Audio Schrodinger Bridge restoration.</p>
+<p><a href="https://github.com/rollingedit/diffusion-audio-restoration-windows">GitHub repository</a></p>
+<p>Uses upstream NVIDIA A2SB engine code and official NVIDIA Hugging Face checkpoints. This project is not affiliated with or endorsed by NVIDIA.</p>
+<p><b>Use warning:</b> the upstream model card says the model is for non-commercial use only. Review the included NVIDIA A2SB license before commercial or production use.</p>
+<p>Audio stays local on this PC. License notices are installed under the app LICENSES and docs folders.</p>
+"""
+
+
+def task_mode_help_text(task_mode: str) -> str:
+    if task_mode == "inpaint":
+        return (
+            "Inpainting\n\n"
+            "Repairs a short damaged or missing time range. Pick the gap start and end times; "
+            "A2SB supports short gaps under 1 second."
+        )
+    return (
+        "Bandwidth extension\n\n"
+        "For dull, low-passed, or bandwidth-limited audio. The app predicts missing high-frequency detail "
+        "above the cutoff and writes a new WAV beside the input by default."
     )
 
 
@@ -106,6 +133,7 @@ def download_recommended_model_stream_text(
     mode: str = "twosplit",
     target_dir: Path | None = None,
     on_progress: Callable[[str], None] | None = None,
+    on_progress_bytes: ByteProgressCallback | None = None,
 ) -> str:
     progress: list[str] = []
 
@@ -114,7 +142,7 @@ def download_recommended_model_stream_text(
         if on_progress:
             on_progress(line)
 
-    result = download_model(mode=mode, target_dir=target_dir, progress=collect)
+    result = download_model(mode=mode, target_dir=target_dir, progress=collect, byte_progress=on_progress_bytes)
     return format_model_download_result(result, progress)
 
 
