@@ -34,15 +34,19 @@ def test_cuda_runtime_lockfile_is_pinned() -> None:
     assert "https://download.pytorch.org/whl/cu121" in text
 
 
-def test_generated_installer_icon_exists() -> None:
-    icon = ROOT / "installer" / "assets" / "app.ico"
+def test_generated_icons_exist() -> None:
+    for name in ["app.ico", "setup.ico"]:
+        icon = ROOT / "installer" / "assets" / name
+        assert icon.exists()
+        assert icon.read_bytes().startswith(b"\x00\x00\x01\x00")
 
-    assert icon.exists()
-    assert icon.read_bytes().startswith(b"\x00\x00\x01\x00")
+
+def test_generated_icons_use_dib_entries_with_alpha_mask() -> None:
+    for name in ["app.ico", "setup.ico"]:
+        assert_dib_icon(ROOT / "installer" / "assets" / name)
 
 
-def test_generated_installer_icon_uses_dib_entries_with_alpha_mask() -> None:
-    icon = ROOT / "installer" / "assets" / "app.ico"
+def assert_dib_icon(icon: Path) -> None:
     data = icon.read_bytes()
     count = int.from_bytes(data[4:6], "little")
 
@@ -54,6 +58,15 @@ def test_generated_installer_icon_uses_dib_entries_with_alpha_mask() -> None:
         assert data[image_offset:image_offset + 4] == b"\x28\x00\x00\x00"
         assert int.from_bytes(data[image_offset + 14:image_offset + 16], "little") == 32
         assert image_size > 40
+
+
+def test_setup_icon_uses_opaque_shell_matte() -> None:
+    icon = ROOT / "installer" / "assets" / "setup.ico"
+    data = icon.read_bytes()
+    image_offset = int.from_bytes(data[18:22], "little")
+    alpha = data[image_offset + 43]
+
+    assert alpha == 255
 
 
 def test_github_workflows_are_safe_and_non_publishing() -> None:

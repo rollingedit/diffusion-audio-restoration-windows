@@ -134,10 +134,12 @@ def test_installer_build_requires_branded_icon_before_packaging() -> None:
     installer = (ROOT / "installer" / "a2sb-restorer.iss").read_text(encoding="utf-8")
 
     assert 'installer\\assets\\app.ico' in text
-    assert "Installer icon missing" in text
+    assert 'installer\\assets\\setup.ico' in text
+    assert "App icon missing" in text
+    assert "Setup icon missing" in text
     assert "generate_icon.ps1" in text
-    assert "SetupIconFile=assets\\app.ico" in installer
-    assert text.index("Installer icon missing") < text.index("Get-Command ISCC.exe")
+    assert "SetupIconFile=assets\\setup.ico" in installer
+    assert text.index("Setup icon missing") < text.index("Get-Command ISCC.exe")
 
 
 def test_installer_asset_source_exists_until_final_ico_is_generated() -> None:
@@ -146,6 +148,7 @@ def test_installer_asset_source_exists_until_final_ico_is_generated() -> None:
 
     assert "Do not build the public installer with the default Inno Setup icon" in readme
     assert "app.ico" in readme
+    assert "setup.ico" in readme
     assert "<svg" in svg
     assert "A2SB Restorer icon source" in svg
 

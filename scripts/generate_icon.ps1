@@ -1,24 +1,34 @@
 param(
-    [string]$Output = "installer\assets\app.ico"
+    [string]$Output = "installer\assets\app.ico",
+    [string]$SetupOutput = "installer\assets\setup.ico"
 )
 
 $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $AppRoot = Resolve-Path (Join-Path $ScriptDir "..")
 $OutputPath = Join-Path $AppRoot $Output
+$SetupOutputPath = Join-Path $AppRoot $SetupOutput
 $OutputDir = Split-Path -Parent $OutputPath
 
 New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
+New-Item -ItemType Directory -Force -Path (Split-Path -Parent $SetupOutputPath) | Out-Null
 
 Add-Type -AssemblyName System.Drawing
 
 function New-IconBitmap {
-    param([int]$Size)
+    param(
+        [int]$Size,
+        [switch]$OpaqueShellMatte
+    )
 
     $bitmap = New-Object System.Drawing.Bitmap $Size, $Size, ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
     $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
     $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
-    $graphics.Clear([System.Drawing.Color]::Transparent)
+    if ($OpaqueShellMatte) {
+        $graphics.Clear([System.Drawing.Color]::FromArgb(255, 32, 32, 32))
+    } else {
+        $graphics.Clear([System.Drawing.Color]::Transparent)
+    }
 
     $scale = $Size / 256.0
     $bgBrush = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
@@ -115,48 +125,58 @@ function ConvertTo-DibBytes {
     }
 }
 
-$sizes = @(256, 128, 64, 48, 32, 16)
-$images = @()
-foreach ($size in $sizes) {
-    $bitmap = New-IconBitmap -Size $size
+function Write-IconFile {
+    param(
+        [string]$Path,
+        [switch]$OpaqueShellMatte
+    )
+
+    $sizes = @(256, 128, 64, 48, 32, 16)
+    $images = @()
+    foreach ($size in $sizes) {
+        $bitmap = New-IconBitmap -Size $size -OpaqueShellMatte:$OpaqueShellMatte
+        try {
+            $images += [pscustomobject]@{
+                Size = $size
+                Bytes = [byte[]](ConvertTo-DibBytes -Bitmap $bitmap)
+            }
+        } finally {
+            $bitmap.Dispose()
+        }
+    }
+
+    $stream = [System.IO.File]::Create($Path)
     try {
-        $images += [pscustomobject]@{
-            Size = $size
-            Bytes = [byte[]](ConvertTo-DibBytes -Bitmap $bitmap)
-        }
-    } finally {
-        $bitmap.Dispose()
-    }
-}
-
-$stream = [System.IO.File]::Create($OutputPath)
-try {
-    $writer = New-Object System.IO.BinaryWriter $stream
-    $writer.Write([UInt16]0)
-    $writer.Write([UInt16]1)
-    $writer.Write([UInt16]$images.Count)
-    $offset = 6 + (16 * $images.Count)
-    foreach ($image in $images) {
-        $dimension = $image.Size
-        if ($dimension -eq 256) {
-            $dimension = 0
-        }
-        $writer.Write([byte]$dimension)
-        $writer.Write([byte]$dimension)
-        $writer.Write([byte]0)
-        $writer.Write([byte]0)
+        $writer = New-Object System.IO.BinaryWriter $stream
+        $writer.Write([UInt16]0)
         $writer.Write([UInt16]1)
-        $writer.Write([UInt16]32)
-        $writer.Write([UInt32]$image.Bytes.Length)
-        $writer.Write([UInt32]$offset)
-        $offset += $image.Bytes.Length
+        $writer.Write([UInt16]$images.Count)
+        $offset = 6 + (16 * $images.Count)
+        foreach ($image in $images) {
+            $dimension = $image.Size
+            if ($dimension -eq 256) {
+                $dimension = 0
+            }
+            $writer.Write([byte]$dimension)
+            $writer.Write([byte]$dimension)
+            $writer.Write([byte]0)
+            $writer.Write([byte]0)
+            $writer.Write([UInt16]1)
+            $writer.Write([UInt16]32)
+            $writer.Write([UInt32]$image.Bytes.Length)
+            $writer.Write([UInt32]$offset)
+            $offset += $image.Bytes.Length
+        }
+        foreach ($image in $images) {
+            $writer.Write([byte[]]$image.Bytes)
+        }
+        $writer.Dispose()
+    } finally {
+        $stream.Dispose()
     }
-    foreach ($image in $images) {
-        $writer.Write([byte[]]$image.Bytes)
-    }
-    $writer.Dispose()
-} finally {
-    $stream.Dispose()
 }
 
+Write-IconFile -Path $OutputPath
 Write-Host "Wrote $OutputPath"
+Write-IconFile -Path $SetupOutputPath -OpaqueShellMatte
+Write-Host "Wrote $SetupOutputPath"

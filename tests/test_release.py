@@ -74,6 +74,7 @@ def write_release_payload_inputs(root: Path) -> None:
     assets = root / "installer" / "assets"
     assets.mkdir(parents=True, exist_ok=True)
     (assets / "app.ico").write_bytes(b"\x00\x00\x01\x00ico")
+    (assets / "setup.ico").write_bytes(b"\x00\x00\x01\x00ico")
 
 
 PUBLIC_README_TEXT = (
@@ -211,7 +212,7 @@ def write_version_sources(root: Path, project_version: str = "0.1.0a0", package_
                 "OutputBaseFilename=A2SB-Restorer-Setup",
                 "PrivilegesRequired=lowest",
                 "ArchitecturesAllowed=x64",
-                "SetupIconFile=assets\\app.ico",
+                "SetupIconFile=assets\\setup.ico",
                 "",
                 "[Files]",
                 'Source: "..\\dist\\A2SB Restorer\\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion',
@@ -684,7 +685,7 @@ def test_validate_installer_metadata_requires_public_release_settings(tmp_path: 
 
     assert 'Installer script is missing required release metadata: #define MyAppName "A2SB Restorer"' in errors
     assert "Installer script is missing required release metadata: PrivilegesRequired=lowest" in errors
-    assert "Installer script is missing required release metadata: SetupIconFile=assets\\app.ico" in errors
+    assert "Installer script is missing required release metadata: SetupIconFile=assets\\setup.ico" in errors
 
 
 def test_validate_installer_metadata_rejects_dry_run_setup_and_model_deletion(tmp_path: Path) -> None:
@@ -708,16 +709,19 @@ def test_validate_release_payload_inputs_require_bundled_binaries_and_icon(tmp_p
     assert "Release payload input is missing: bin/ffprobe.exe" in missing
     assert "Release payload input is missing: bin/ffmpeg-manifest.json" in missing
     assert "Release payload input is missing: installer/assets/app.ico" in missing
+    assert "Release payload input is missing: installer/assets/setup.ico" in missing
 
     write_release_payload_inputs(tmp_path)
     (tmp_path / "bin" / "ffmpeg.exe").write_bytes(b"not-exe")
     (tmp_path / "installer" / "assets" / "app.ico").write_bytes(b"not-ico")
+    (tmp_path / "installer" / "assets" / "setup.ico").write_bytes(b"not-ico")
 
     errors = validate_release_payload_inputs(tmp_path)
 
     assert "Release payload input is not a Windows executable: FFmpeg binary" in errors
     assert "Release payload manifest hash does not match: ffmpeg.exe" in errors
     assert "Release payload input is not a Windows icon: installer/assets/app.ico" in errors
+    assert "Release payload input is not a Windows icon: installer/assets/setup.ico" in errors
 
 
 def test_validate_ffmpeg_manifest_requires_btb_lgpl_source_and_hashes(tmp_path: Path) -> None:

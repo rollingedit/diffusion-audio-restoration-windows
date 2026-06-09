@@ -59,7 +59,7 @@ REQUIRED_INSTALLER_METADATA_TOKENS = [
     "OutputBaseFilename=A2SB-Restorer-Setup",
     "PrivilegesRequired=lowest",
     "ArchitecturesAllowed=x64",
-    "SetupIconFile=assets\\app.ico",
+    "SetupIconFile=assets\\setup.ico",
     'Source: "..\\dist\\A2SB Restorer\\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion',
     'Source: "..\\bin\\ffmpeg.exe"; DestDir: "{app}\\bin"; Flags: ignoreversion',
     'Source: "..\\bin\\ffprobe.exe"; DestDir: "{app}\\bin"; Flags: ignoreversion',
@@ -170,7 +170,7 @@ REQUIRED_EVIDENCE_PASS_FIELDS = [
 CATEGORY_RULES = [
     ("artifacts", ("artifact", "setup.exe", "sha256sums")),
     ("licenses", ("license notice",)),
-    ("payload_inputs", ("payload input", "ffmpeg.exe", "ffprobe.exe", "app.ico", "ffmpeg-manifest.json")),
+    ("payload_inputs", ("payload input", "ffmpeg.exe", "ffprobe.exe", "app.ico", "setup.ico", "ffmpeg-manifest.json")),
     ("checklist", ("checklist",)),
     ("runtime", ("runtime lockfile",)),
     ("evidence", ("release evidence",)),
@@ -716,13 +716,14 @@ def validate_release_payload_inputs(source_root: Path) -> list[str]:
                 errors.append(f"Release payload input is not a Windows executable: {label}")
     errors.extend(validate_ffmpeg_manifest(root))
 
-    icon = root / "installer" / "assets" / "app.ico"
-    if not icon.exists() or not icon.is_file():
-        errors.append("Release payload input is missing: installer/assets/app.ico")
-    else:
-        with icon.open("rb") as handle:
-            if handle.read(4) != b"\x00\x00\x01\x00":
-                errors.append("Release payload input is not a Windows icon: installer/assets/app.ico")
+    for icon_name in ["app.ico", "setup.ico"]:
+        icon = root / "installer" / "assets" / icon_name
+        if not icon.exists() or not icon.is_file():
+            errors.append(f"Release payload input is missing: installer/assets/{icon_name}")
+        else:
+            with icon.open("rb") as handle:
+                if handle.read(4) != b"\x00\x00\x01\x00":
+                    errors.append(f"Release payload input is not a Windows icon: installer/assets/{icon_name}")
     return errors
 
 

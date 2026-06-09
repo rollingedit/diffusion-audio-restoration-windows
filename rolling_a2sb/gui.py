@@ -36,8 +36,8 @@ SUPPORTED_AUDIO_EXTENSIONS = {".wav", ".mp3", ".flac"}
 
 def run_gui() -> int:
     try:
-        from PySide6.QtCore import QThread, QTimer, Qt, Signal
-        from PySide6.QtGui import QIcon
+        from PySide6.QtCore import QSize, QThread, QTimer, Qt, Signal
+        from PySide6.QtGui import QColor, QIcon, QPainter
         from PySide6.QtWidgets import (
             QApplication,
             QCheckBox,
@@ -53,7 +53,6 @@ def run_gui() -> int:
             QPushButton,
             QProgressBar,
             QRadioButton,
-            QSlider,
             QSpinBox,
             QTabWidget,
             QTextBrowser,
@@ -114,7 +113,7 @@ def run_gui() -> int:
 
     class ModelDownloadThread(QThread):
         download_line = Signal(str)
-        download_progress = Signal(int, int, str)
+        download_progress = Signal(object, object, str)
         download_finished = Signal(str)
         download_failed = Signal(str)
 
@@ -133,6 +132,99 @@ def run_gui() -> int:
                 )
             except Exception as exc:
                 self.download_failed.emit(format_user_error(exc))
+
+    class InpaintRangeSlider(QWidget):
+        range_changed = Signal(float, float)
+
+        def __init__(self) -> None:
+            super().__init__()
+            self._minimum = 0
+            self._maximum = 0
+            self._start = 0
+            self._end = 50
+            self._active_handle: str | None = None
+            self.setMinimumHeight(34)
+
+        def sizeHint(self) -> QSize:
+            return QSize(520, 34)
+
+        def setRange(self, minimum: int, maximum: int) -> None:
+            self._minimum = int(minimum)
+            self._maximum = max(int(maximum), self._minimum)
+            self.setValues(self._start, self._end, emit=False)
+
+        def setValues(self, start: int | float, end: int | float, emit: bool = True) -> None:
+            old = (self._start, self._end)
+            self._start = self._clamp_value(int(round(start)))
+            self._end = self._clamp_value(int(round(end)))
+            if self._end <= self._start:
+                self._end = min(self._maximum, self._start + 1)
+                self._start = max(self._minimum, self._end - 1)
+            self.update()
+            if emit and old != (self._start, self._end) and not self.signalsBlocked():
+                self.range_changed.emit(self._start / 100, self._end / 100)
+
+        def values(self) -> tuple[int, int]:
+            return self._start, self._end
+
+        def paintEvent(self, event) -> None:
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+            y = self.height() // 2
+            left = self._handle_radius()
+            right = max(left + 1, self.width() - self._handle_radius())
+            start_x = self._value_to_x(self._start)
+            end_x = self._value_to_x(self._end)
+            painter.setPen(QColor(130, 130, 130))
+            painter.drawLine(left, y, right, y)
+            painter.setPen(QColor(32, 139, 120))
+            painter.drawLine(start_x, y, end_x, y)
+            for x, active in [(start_x, self._active_handle == "start"), (end_x, self._active_handle == "end")]:
+                painter.setBrush(QColor(32, 139, 120) if active else QColor(88, 88, 88))
+                painter.setPen(QColor(185, 185, 185))
+                painter.drawEllipse(x - 8, y - 8, 16, 16)
+            painter.end()
+
+        def mousePressEvent(self, event) -> None:
+            if not self.isEnabled() or self._maximum <= self._minimum:
+                return
+            value = self._x_to_value(event.position().x())
+            self._active_handle = "start" if abs(value - self._start) <= abs(value - self._end) else "end"
+            self._move_active_handle(value)
+
+        def mouseMoveEvent(self, event) -> None:
+            if self._active_handle:
+                self._move_active_handle(self._x_to_value(event.position().x()))
+
+        def mouseReleaseEvent(self, event) -> None:
+            self._active_handle = None
+            self.update()
+
+        def _move_active_handle(self, value: int) -> None:
+            if self._active_handle == "start":
+                self.setValues(min(value, self._end - 1), self._end)
+            elif self._active_handle == "end":
+                self.setValues(self._start, max(value, self._start + 1))
+
+        def _handle_radius(self) -> int:
+            return 10
+
+        def _value_to_x(self, value: int) -> int:
+            left = self._handle_radius()
+            right = max(left + 1, self.width() - self._handle_radius())
+            if self._maximum <= self._minimum:
+                return left
+            ratio = (value - self._minimum) / (self._maximum - self._minimum)
+            return int(left + ratio * (right - left))
+
+        def _x_to_value(self, x: float) -> int:
+            left = self._handle_radius()
+            right = max(left + 1, self.width() - self._handle_radius())
+            ratio = max(0.0, min(1.0, (float(x) - left) / (right - left)))
+            return self._clamp_value(int(round(self._minimum + ratio * (self._maximum - self._minimum))))
+
+        def _clamp_value(self, value: int) -> int:
+            return max(self._minimum, min(value, self._maximum))
 
     class MainWindow(QMainWindow):
         def __init__(self) -> None:
@@ -302,7 +394,7 @@ def run_gui() -> int:
             inpaint_time_row.addWidget(self.inpaint_end_spin)
             inpaint_time_row.addWidget(self.inpaint_duration_label)
             inpaint_time_row.addStretch(1)
-            self.inpaint_segment_slider = QSlider(Qt.Horizontal)
+            self.inpaint_segment_slider = InpaintRangeSlider()
             self.inpaint_segment_slider.setRange(0, 0)
             self.inpaint_segment_slider.setEnabled(False)
             self.inpaint_range_row.addLayout(range_title_row)
@@ -375,7 +467,7 @@ def run_gui() -> int:
             self.restore_another_button.clicked.connect(self.restore_another_file)
             self.bandwidth_radio.toggled.connect(self.restore_task_changed)
             self.inpaint_radio.toggled.connect(self.restore_task_changed)
-            self.inpaint_segment_slider.valueChanged.connect(self.inpaint_slider_changed)
+            self.inpaint_segment_slider.range_changed.connect(self.inpaint_slider_changed)
             self.inpaint_start_spin.valueChanged.connect(self.inpaint_spin_changed)
             self.inpaint_end_spin.valueChanged.connect(self.inpaint_spin_changed)
             self.advanced_check.stateChanged.connect(self.update_restore_mode_ui)
@@ -544,7 +636,7 @@ def run_gui() -> int:
             slider_max = max(0, int(max(duration - 0.01, 0) * 100))
             self.inpaint_segment_slider.blockSignals(True)
             self.inpaint_segment_slider.setRange(0, slider_max)
-            self.inpaint_segment_slider.setValue(0)
+            self.inpaint_segment_slider.setValues(0, int(min(duration, 0.5) * 100), emit=False)
             self.inpaint_segment_slider.blockSignals(False)
             self.inpaint_start_spin.blockSignals(True)
             self.inpaint_end_spin.blockSignals(True)
@@ -557,14 +649,17 @@ def run_gui() -> int:
             self.set_inpaint_controls_enabled(True)
             self.update_inpaint_range_label()
 
-        def inpaint_slider_changed(self) -> None:
+        def inpaint_slider_changed(self, start: float, end: float) -> None:
             if not self.inpaint_audio_loaded:
                 return
-            start = self.inpaint_segment_slider.value() / 100
-            current_duration = max(0.01, min(1.0, self.inpaint_end_spin.value() - self.inpaint_start_spin.value()))
-            end = min(self.inpaint_end_spin.maximum(), start + current_duration)
-            if end - start < 0.01:
-                start = max(0.0, end - 0.01)
+            if end - start > 1.0:
+                if self.inpaint_segment_slider._active_handle == "start":
+                    end = start + 1.0
+                else:
+                    start = max(0.0, end - 1.0)
+                self.inpaint_segment_slider.blockSignals(True)
+                self.inpaint_segment_slider.setValues(int(start * 100), int(end * 100), emit=False)
+                self.inpaint_segment_slider.blockSignals(False)
             self.inpaint_start_spin.blockSignals(True)
             self.inpaint_end_spin.blockSignals(True)
             self.inpaint_start_spin.setValue(start)
@@ -598,9 +693,7 @@ def run_gui() -> int:
                 self.inpaint_start_spin.blockSignals(False)
                 self.inpaint_end_spin.blockSignals(False)
             self.inpaint_segment_slider.blockSignals(True)
-            self.inpaint_segment_slider.setValue(
-                max(self.inpaint_segment_slider.minimum(), min(int(start_seconds * 100), self.inpaint_segment_slider.maximum()))
-            )
+            self.inpaint_segment_slider.setValues(int(start_seconds * 100), int(end_seconds * 100), emit=False)
             self.inpaint_segment_slider.blockSignals(False)
             self.update_inpaint_range_label()
 
@@ -748,6 +841,7 @@ def run_gui() -> int:
             self.download_thread.download_finished.connect(self.model_download_finished)
             self.download_thread.download_failed.connect(self.model_download_failed)
             self.download_thread.finished.connect(self.model_download_thread_finished)
+            self.download_progress_timer.start(500)
             self.download_thread.start()
 
         def model_download_line_received(self, line: str) -> None:
@@ -759,23 +853,27 @@ def run_gui() -> int:
                 self.setup_progress.setRange(0, 0)
                 self.setup_progress.setTextVisible(False)
                 return
-            value = int((downloaded / required) * 1000)
-            percent = int((downloaded / required) * 100)
+            ratio = max(0.0, min(float(downloaded) / float(required), 1.0))
+            value = int(ratio * 1000)
+            percent = int(ratio * 100)
             self.setup_progress.setRange(0, 1000)
-            self.setup_progress.setValue(max(0, min(value, 1000)))
+            self.setup_progress.setValue(value)
             self.setup_progress.setTextVisible(True)
             self.setup_progress.setFormat(f"Downloading model: {percent}%")
 
-        def model_download_progress_received(self, downloaded: int, required: int, label: str) -> None:
+        def model_download_progress_received(self, downloaded: object, required: object, label: str) -> None:
+            downloaded = int(downloaded)
+            required = int(required)
             if required <= 0:
                 self.setup_progress.setRange(0, 0)
                 self.setup_progress.setTextVisible(True)
                 self.setup_progress.setFormat(f"{label}: connecting...")
                 return
-            value = int((downloaded / required) * 1000)
-            percent = int((downloaded / required) * 100)
+            ratio = max(0.0, min(float(downloaded) / float(required), 1.0))
+            value = int(ratio * 1000)
+            percent = int(ratio * 100)
             self.setup_progress.setRange(0, 1000)
-            self.setup_progress.setValue(max(0, min(value, 1000)))
+            self.setup_progress.setValue(value)
             self.setup_progress.setTextVisible(True)
             self.setup_progress.setFormat(f"{label}: {percent}%")
 

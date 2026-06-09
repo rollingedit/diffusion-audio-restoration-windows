@@ -27,8 +27,10 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
     assert "QProgressBar" in text
     assert "QDoubleSpinBox" in text
     assert "QRadioButton" in text
-    assert "QSlider" in text
-    assert "self.inpaint_segment_slider = QSlider" in text
+    assert "class InpaintRangeSlider(QWidget)" in text
+    assert "range_changed = Signal(float, float)" in text
+    assert "self.inpaint_segment_slider = InpaintRangeSlider()" in text
+    assert "drawEllipse" in text
     assert "self.inpaint_start_slider" not in text
     assert "self.inpaint_end_slider" not in text
     assert "task_row.addWidget(self.inpaint_start_spin)" not in text
@@ -94,7 +96,7 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
     assert "download_recommended_model_stream_text" in text
     assert "ModelDownloadThread" in text
     assert "download_line = Signal(str)" in text
-    assert "download_progress = Signal(int, int, str)" in text
+    assert "download_progress = Signal(object, object, str)" in text
     assert "on_progress_bytes=lambda current, total, label" in text
     assert "reuse_existing_model_text" in text
     assert "Checking for existing model checkpoints" in text
@@ -107,7 +109,7 @@ def test_gui_exposes_restore_controls_and_shared_actions() -> None:
     assert "Downloading model: {percent}%" in text
     assert "model_download_progress_received" in text
     assert "{label}: {percent}%" in text
-    assert "self.download_progress_timer.start(500)" not in text
+    assert "self.download_progress_timer.start(500)" in text
     assert "set_setup_busy(True" in text
     assert "model_download_line_received" in text
     assert "select_checkpoint_folder_text(Path(folder), mode=mode, trusted=True)" in text

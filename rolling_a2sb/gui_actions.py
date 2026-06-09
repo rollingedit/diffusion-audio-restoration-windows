@@ -95,8 +95,11 @@ def model_download_progress(mode: str = "twosplit", target_dir: Path | None = No
     downloaded = 0
     for filename in plan.filenames:
         path = plan.target_dir / filename
+        partial = path.with_suffix(path.suffix + ".partial")
         if path.exists():
             downloaded += min(path.stat().st_size, plan.required_bytes)
+        elif partial.exists():
+            downloaded += min(partial.stat().st_size, plan.required_bytes)
     return min(downloaded, plan.required_bytes), plan.required_bytes
 
 

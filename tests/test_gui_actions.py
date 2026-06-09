@@ -110,6 +110,18 @@ def test_model_download_progress_counts_selected_mode_files(tmp_path: Path) -> N
     assert required == 5_200_000_000
 
 
+def test_model_download_progress_counts_partial_files(tmp_path: Path) -> None:
+    target = tmp_path / "models"
+    partial = target / "ckpt" / "A2SB_twosplit_0.0_0.5_release.ckpt.partial"
+    partial.parent.mkdir(parents=True)
+    partial.write_bytes(b"x" * 250)
+
+    downloaded, required = model_download_progress(mode="twosplit", target_dir=target)
+
+    assert downloaded == 250
+    assert required == 5_200_000_000
+
+
 def test_download_recommended_model_text_reports_progress(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(tmp_path / "data"))
     monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(tmp_path / "logs"))

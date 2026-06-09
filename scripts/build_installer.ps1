@@ -9,7 +9,8 @@ $Iss = Join-Path $AppRoot "installer\a2sb-restorer.iss"
 $LauncherExe = Join-Path $AppRoot "dist\A2SB Restorer\A2SB Restorer.exe"
 $FfmpegExe = Join-Path $AppRoot "bin\ffmpeg.exe"
 $FfprobeExe = Join-Path $AppRoot "bin\ffprobe.exe"
-$InstallerIcon = Join-Path $AppRoot "installer\assets\app.ico"
+$AppIcon = Join-Path $AppRoot "installer\assets\app.ico"
+$SetupIcon = Join-Path $AppRoot "installer\assets\setup.ico"
 $ArtifactsDir = Join-Path $AppRoot "dist\installer"
 $Readme = Join-Path $AppRoot "README-WINDOWS.md"
 $Notices = Join-Path $AppRoot "LICENSE-NOTICES.txt"
@@ -19,7 +20,8 @@ if ($DryRun) {
     Write-Host "Requires launcher output: $LauncherExe"
     Write-Host "Requires FFmpeg: $FfmpegExe"
     Write-Host "Requires ffprobe: $FfprobeExe"
-    Write-Host "Requires installer icon: $InstallerIcon"
+    Write-Host "Requires app icon: $AppIcon"
+    Write-Host "Requires setup icon: $SetupIcon"
     Write-Host "Would stage release docs into: $ArtifactsDir"
     exit 0
 }
@@ -36,8 +38,11 @@ if (-not (Test-Path $FfmpegExe)) {
 if (-not (Test-Path $FfprobeExe)) {
     throw "ffprobe binary missing: $FfprobeExe. Run scripts\fetch_ffmpeg.ps1 to bundle the approved redistributable ffprobe.exe before building the installer."
 }
-if (-not (Test-Path $InstallerIcon)) {
-    throw "Installer icon missing: $InstallerIcon. Run scripts\generate_icon.ps1 before building the installer."
+if (-not (Test-Path $AppIcon)) {
+    throw "App icon missing: $AppIcon. Run scripts\generate_icon.ps1 before building the installer."
+}
+if (-not (Test-Path $SetupIcon)) {
+    throw "Setup icon missing: $SetupIcon. Run scripts\generate_icon.ps1 before building the installer."
 }
 if (-not (Test-Path $Readme)) {
     throw "Windows README missing: $Readme"
