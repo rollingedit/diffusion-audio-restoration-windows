@@ -18,6 +18,8 @@ First public alpha release candidate for the Windows desktop installer.
 ### Added
 
 - Added public README validation notes covering full tests, release gates, Windows Sandbox bootstrap smoke, and manual installed NVIDIA GPU restore evidence.
+- Rewrote the public README intro to describe the Windows port/productization work more directly.
+- Clarified that normal users should download and run `A2SB-Restorer-Setup.exe` from the GitHub release.
 - Added Microsoft Visual C++ Redistributable bootstrap during runtime setup so PyTorch native DLLs can load on clean Windows machines.
 - Added app-private Python 3.10 bootstrap support to runtime setup so a clean Windows Sandbox without global Python can install the private venv from an official Python.org installer.
 - Added visible setup progress for runtime bootstrapping, first-launch checkpoint download prompting, streaming model-download progress, clearer setup gating on the Restore tab, and GitHub/product wording in About.

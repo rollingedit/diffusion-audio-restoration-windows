@@ -1,14 +1,17 @@
 # A2SB Restorer for Windows
 
-Local Windows app. One installer. Guided setup. Drag in audio. Get a restored WAV.
+A2SB Restorer is a Windows desktop app for NVIDIA A2SB audio restoration. It gives the research model a normal app flow: install, run setup checks, download the official checkpoints, select audio, restore, and open the finished WAV.
 
-A2SB Restorer exists because NVIDIA's Audio-to-Audio Schrodinger Bridge is powerful research code, but normal Windows users should not have to install Git, Python, Conda, CUDA packages, FFmpeg, edit YAML, find checkpoint filenames, or run terminal commands just to try audio restoration.
+The app is built for local restoration on Windows with an NVIDIA CUDA GPU. Audio stays on the machine. The installer owns the runtime. The GUI handles setup, checkpoint selection, restore modes, progress, logs, diagnostics, and output folders.
 
-This project turns that research workflow into a Windows desktop product flow:
+Under the hood, this fork keeps NVIDIA A2SB as the restoration engine and adds the Windows application layer around it. That layer converts the original Linux-oriented research workflow into a packaged desktop experience with a private Python runtime, pinned CUDA/PyTorch stack, native runtime bootstrap, Windows-safe configs, model management, and a PySide6 GUI.
+
+The normal path is:
 
 ```text
+Open the latest GitHub release
 Download A2SB-Restorer-Setup.exe
-Install
+Double-click A2SB-Restorer-Setup.exe
 Launch A2SB Restorer
 Run Doctor
 Download the official NVIDIA checkpoints
@@ -17,9 +20,42 @@ Click Restore
 Open the restored WAV
 ```
 
-The app keeps the hard parts inside the setup and GUI: private Python runtime bootstrap, pinned CUDA/PyTorch dependencies, FFmpeg/ffprobe, model checkpoint setup, runtime diagnostics, generated configs, restore logs, progress, and output folders.
+The result is a Windows workflow where the app handles the Linux-style research setup path: runtime creation, native dependencies, CUDA/PyTorch packages, checkpoint discovery, config generation, restore execution, and diagnostics.
 
-It is built for people who want the result, not a research-repo setup chore.
+## Download
+
+For normal use, open the [latest GitHub release](../../releases/latest) and download this file:
+
+```text
+A2SB-Restorer-Setup.exe
+```
+
+Then double-click `A2SB-Restorer-Setup.exe` and follow the installer. The other release files are supporting files:
+
+- `SHA256SUMS.txt`: checksum file for verifying downloads.
+- `README-WINDOWS.md`: Windows release notes and usage details.
+- `LICENSE-NOTICES.txt`: required license and attribution notices.
+
+Do not download source ZIPs or clone the repo unless you are developing the project.
+
+## Windows App Layer
+
+The NVIDIA model/code is the core restoration engine. This fork adds the Windows desktop product layer around it:
+
+- Windows-first private runtime bootstrap that does not use or modify global Python.
+- Official Python.org Python 3.10 bootstrap into an app-owned `python310\` folder.
+- Private `runtime\` virtual environment creation and pinned CUDA/PyTorch dependency installation.
+- Microsoft Visual C++ Redistributable bootstrap for PyTorch native DLL loading on clean Windows installs.
+- Bundled FFmpeg and ffprobe handling for local audio probing/preparation.
+- Runtime Doctor checks for Python, imports, Torch/CUDA, NVIDIA driver visibility, FFmpeg, writable folders, and checkpoints.
+- Hugging Face checkpoint manager for the official NVIDIA model files, including validation and reuse of existing valid checkpoints.
+- Trust-gated manual checkpoint selection because PyTorch checkpoint loading can execute code.
+- Windows-safe config generation with absolute paths, single-GPU runtime settings, no `PATH/TO` placeholders, and no research-cluster assumptions.
+- Shared restore workflow that prepares inputs, creates job manifests, writes logs, invokes NVIDIA inference from the correct app root, and preserves original audio.
+- PySide6 GUI with Setup, Restore, progress/logs, output-folder actions, model/log folder actions, and user-readable errors.
+- Launcher EXE that waits for setup/repair and then starts the GUI through the private runtime.
+- Inno Setup installer with per-user install, Start Menu shortcuts, app icon, update behavior, uninstall behavior, and no checkpoint bundling.
+- Release validation tooling, installed-app smoke scripts, Sandbox bootstrap smoke, checksum generation, license notices, and release evidence.
 
 ## What It Does
 
@@ -30,15 +66,17 @@ A2SB Restorer uses NVIDIA A2SB to restore 44.1 kHz music audio locally on Window
 
 The normal user flow is intentionally direct:
 
-1. Install `A2SB-Restorer-Setup.exe`.
-2. Launch `A2SB Restorer`.
-3. Run the Setup tab Doctor check.
-4. Download the recommended official two-split checkpoints from Hugging Face, or select an existing trusted checkpoint folder.
-5. Open the Restore tab.
-6. Drop or select a WAV, MP3, or FLAC input.
-7. Choose bandwidth extension or inpainting.
-8. Click Restore.
-9. Open the output folder when the restored WAV is finished.
+1. Open the [latest GitHub release](../../releases/latest).
+2. Download `A2SB-Restorer-Setup.exe`.
+3. Double-click `A2SB-Restorer-Setup.exe`.
+4. Launch `A2SB Restorer`.
+5. Run the Setup tab Doctor check.
+6. Download the recommended official two-split checkpoints from Hugging Face, or select an existing trusted checkpoint folder.
+7. Open the Restore tab.
+8. Drop or select a WAV, MP3, or FLAC input.
+9. Choose bandwidth extension or inpainting.
+10. Click Restore.
+11. Open the output folder when the restored WAV is finished.
 
 Restored files default to an `A2SB Restored` folder next to the input file. Original input audio is not modified.
 
