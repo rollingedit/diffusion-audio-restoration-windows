@@ -12,60 +12,108 @@ New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 
 Add-Type -AssemblyName System.Drawing
 
-$bitmap = New-Object System.Drawing.Bitmap 256, 256
-$graphics = [System.Drawing.Graphics]::FromImage($bitmap)
-$graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
-$graphics.Clear([System.Drawing.Color]::FromArgb(18, 22, 28))
+function New-IconBitmap {
+    param([int]$Size)
 
-$bgBrush = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
-    (New-Object System.Drawing.Rectangle 0, 0, 256, 256),
-    [System.Drawing.Color]::FromArgb(32, 139, 120),
-    [System.Drawing.Color]::FromArgb(42, 92, 170),
-    45
-)
-$graphics.FillEllipse($bgBrush, 18, 18, 220, 220)
+    $bitmap = New-Object System.Drawing.Bitmap $Size, $Size, ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+    $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+    $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+    $graphics.Clear([System.Drawing.Color]::Transparent)
 
-$ringPen = New-Object System.Drawing.Pen ([System.Drawing.Color]::FromArgb(230, 245, 244, 238)), 10
-$graphics.DrawEllipse($ringPen, 38, 38, 180, 180)
+    $scale = $Size / 256.0
+    $bgBrush = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
+        (New-Object System.Drawing.Rectangle 0, 0, $Size, $Size),
+        [System.Drawing.Color]::FromArgb(255, 32, 139, 120),
+        [System.Drawing.Color]::FromArgb(255, 42, 92, 170),
+        45
+    )
+    $graphics.FillEllipse($bgBrush, [int](18 * $scale), [int](18 * $scale), [int](220 * $scale), [int](220 * $scale))
 
-$wavePen = New-Object System.Drawing.Pen ([System.Drawing.Color]::FromArgb(255, 255, 255, 255)), 12
-$wavePen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
-$wavePen.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
-$points = @(
-    (New-Object System.Drawing.Point 54, 136),
-    (New-Object System.Drawing.Point 82, 96),
-    (New-Object System.Drawing.Point 110, 160),
-    (New-Object System.Drawing.Point 146, 84),
-    (New-Object System.Drawing.Point 178, 142),
-    (New-Object System.Drawing.Point 204, 112)
-)
-$graphics.DrawCurve($wavePen, $points, 0.45)
+    $ringPen = New-Object System.Drawing.Pen ([System.Drawing.Color]::FromArgb(230, 245, 244, 238)), ([single](10 * $scale))
+    $graphics.DrawEllipse($ringPen, [int](38 * $scale), [int](38 * $scale), [int](180 * $scale), [int](180 * $scale))
 
-$textBrush = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(245, 255, 255, 255))
-$font = New-Object System.Drawing.Font "Segoe UI", 44, ([System.Drawing.FontStyle]::Bold), ([System.Drawing.GraphicsUnit]::Pixel)
-$format = New-Object System.Drawing.StringFormat
-$format.Alignment = [System.Drawing.StringAlignment]::Center
-$graphics.DrawString("A2", $font, $textBrush, (New-Object System.Drawing.RectangleF 0, 148, 256, 70), $format)
+    $wavePen = New-Object System.Drawing.Pen ([System.Drawing.Color]::FromArgb(255, 255, 255, 255)), ([single](12 * $scale))
+    $wavePen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
+    $wavePen.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
+    $points = @(
+        (New-Object System.Drawing.Point ([int](54 * $scale)), ([int](136 * $scale))),
+        (New-Object System.Drawing.Point ([int](82 * $scale)), ([int](96 * $scale))),
+        (New-Object System.Drawing.Point ([int](110 * $scale)), ([int](160 * $scale))),
+        (New-Object System.Drawing.Point ([int](146 * $scale)), ([int](84 * $scale))),
+        (New-Object System.Drawing.Point ([int](178 * $scale)), ([int](142 * $scale))),
+        (New-Object System.Drawing.Point ([int](204 * $scale)), ([int](112 * $scale)))
+    )
+    $graphics.DrawCurve($wavePen, $points, 0.45)
 
-$iconHandle = $bitmap.GetHicon()
-try {
-    $icon = [System.Drawing.Icon]::FromHandle($iconHandle)
-    $stream = [System.IO.File]::Create($OutputPath)
-    try {
-        $icon.Save($stream)
-    } finally {
-        $stream.Dispose()
-        $icon.Dispose()
-    }
-} finally {
+    $textBrush = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(245, 255, 255, 255))
+    $font = New-Object System.Drawing.Font "Segoe UI", ([single](44 * $scale)), ([System.Drawing.FontStyle]::Bold), ([System.Drawing.GraphicsUnit]::Pixel)
+    $format = New-Object System.Drawing.StringFormat
+    $format.Alignment = [System.Drawing.StringAlignment]::Center
+    $graphics.DrawString("A2", $font, $textBrush, (New-Object System.Drawing.RectangleF 0, ([single](148 * $scale)), $Size, ([single](70 * $scale))), $format)
+
     $graphics.Dispose()
-    $bitmap.Dispose()
     $bgBrush.Dispose()
     $ringPen.Dispose()
     $wavePen.Dispose()
     $textBrush.Dispose()
     $font.Dispose()
     $format.Dispose()
+    return $bitmap
+}
+
+function ConvertTo-PngBytes {
+    param([System.Drawing.Bitmap]$Bitmap)
+    $stream = New-Object System.IO.MemoryStream
+    try {
+        $Bitmap.Save($stream, [System.Drawing.Imaging.ImageFormat]::Png)
+        return ,$stream.ToArray()
+    } finally {
+        $stream.Dispose()
+    }
+}
+
+$sizes = @(256, 128, 64, 48, 32, 16)
+$images = @()
+foreach ($size in $sizes) {
+    $bitmap = New-IconBitmap -Size $size
+    try {
+        $images += [pscustomobject]@{
+            Size = $size
+            Bytes = [byte[]](ConvertTo-PngBytes -Bitmap $bitmap)
+        }
+    } finally {
+        $bitmap.Dispose()
+    }
+}
+
+$stream = [System.IO.File]::Create($OutputPath)
+try {
+    $writer = New-Object System.IO.BinaryWriter $stream
+    $writer.Write([UInt16]0)
+    $writer.Write([UInt16]1)
+    $writer.Write([UInt16]$images.Count)
+    $offset = 6 + (16 * $images.Count)
+    foreach ($image in $images) {
+        $dimension = $image.Size
+        if ($dimension -eq 256) {
+            $dimension = 0
+        }
+        $writer.Write([byte]$dimension)
+        $writer.Write([byte]$dimension)
+        $writer.Write([byte]0)
+        $writer.Write([byte]0)
+        $writer.Write([UInt16]1)
+        $writer.Write([UInt16]32)
+        $writer.Write([UInt32]$image.Bytes.Length)
+        $writer.Write([UInt32]$offset)
+        $offset += $image.Bytes.Length
+    }
+    foreach ($image in $images) {
+        $writer.Write([byte[]]$image.Bytes)
+    }
+    $writer.Dispose()
+} finally {
+    $stream.Dispose()
 }
 
 Write-Host "Wrote $OutputPath"

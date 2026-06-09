@@ -114,11 +114,49 @@ def test_download_model_finds_existing_checkpoints_before_download(tmp_path: Pat
     )
 
     assert result.validation.ok
-    assert (target / "ckpt" / "A2SB_twosplit_0.0_0.5_release.ckpt").exists()
-    assert (target / "ckpt" / "A2SB_twosplit_0.5_1.0_release.ckpt").exists()
-    assert any("Found existing checkpoint" in message for message in progress)
+    assert not (target / "ckpt" / "A2SB_twosplit_0.0_0.5_release.ckpt").exists()
+    assert not (target / "ckpt" / "A2SB_twosplit_0.5_1.0_release.ckpt").exists()
+    assert result.manifest_path.parent == discovered
+    assert any("Found existing checkpoint folder" in message for message in progress)
     assert progress[-1] == "Using existing checkpoints; no download needed"
-    assert byte_progress
+    assert byte_progress == []
+
+
+def test_download_model_reports_aggregate_stream_progress(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("ROLLING_A2SB_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("ROLLING_A2SB_LOG_DIR", str(tmp_path / "logs"))
+    target = tmp_path / "models"
+    byte_progress: list[tuple[int, int, str]] = []
+
+    def fake_stream_download(filename, plan, byte_progress, chunk_size=1024 * 1024) -> str:
+        path = target / filename
+        path.parent.mkdir(parents=True, exist_ok=True)
+        byte_progress(0, 100, Path(filename).name)
+        byte_progress(50, 100, Path(filename).name)
+        byte_progress(100, 100, Path(filename).name)
+        path.write_bytes(b"x" * 16)
+        return str(path)
+
+    monkeypatch.setattr("rolling_a2sb.downloader._stream_download_file", fake_stream_download)
+
+    result = download_model(
+        mode="twosplit",
+        target_dir=target,
+        force=True,
+        compute_hashes=False,
+        min_size_bytes=1,
+        byte_progress=lambda current, total, label: byte_progress.append((current, total, label)),
+    )
+
+    assert result.validation.ok
+    assert byte_progress == [
+        (0, 200, "A2SB_twosplit_0.0_0.5_release.ckpt"),
+        (50, 200, "A2SB_twosplit_0.0_0.5_release.ckpt"),
+        (100, 200, "A2SB_twosplit_0.0_0.5_release.ckpt"),
+        (100, 200, "A2SB_twosplit_0.5_1.0_release.ckpt"),
+        (150, 200, "A2SB_twosplit_0.5_1.0_release.ckpt"),
+        (200, 200, "A2SB_twosplit_0.5_1.0_release.ckpt"),
+    ]
 
 
 def test_download_model_retries_transient_failure(tmp_path: Path, monkeypatch) -> None:

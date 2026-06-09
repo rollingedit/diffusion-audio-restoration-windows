@@ -34,6 +34,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon="../installer/assets/app.ico",
 )
 coll = COLLECT(
     exe,
@@ -45,4 +46,3 @@ coll = COLLECT(
     upx_exclude=[],
     name="A2SB Restorer",
 )
-

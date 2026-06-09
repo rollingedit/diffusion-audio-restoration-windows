@@ -89,26 +89,17 @@ def download_model(
 
     plan = build_download_plan(mode=mode, target_dir=target_dir)
     downloaded: list[Path] = []
-    existing = validate_checkpoint_folder(
-        plan.target_dir,
-        mode=mode,
-        min_size_bytes=min_size_bytes,
-        compute_hashes=False,
-    )
-    if existing.ok and not force:
-        manifest_path = _save_official_model_settings(mode, plan.target_dir, existing)
-        _emit(progress, "Model checkpoints already present")
-        return DownloadResult(mode=mode, files=[file.path for file in existing.files], validation=existing, manifest_path=manifest_path)
 
     if not force:
-        discovered = _reuse_discovered_checkpoints(
-            plan=plan,
+        existing_result = reuse_existing_model(
+            mode=mode,
+            target_dir=plan.target_dir,
             progress=progress,
             byte_progress=byte_progress,
             min_size_bytes=min_size_bytes,
         )
-        if discovered is not None:
-            return discovered
+        if existing_result is not None:
+            return existing_result
 
     if not plan.enough_space and not force:
         raise OSError(
@@ -117,16 +108,25 @@ def download_model(
         )
 
     downloader = hf_download
+    downloaded_before_file = 0
     for index, filename in enumerate(plan.filenames, start=1):
         _emit(progress, f"Downloading checkpoint {index} of {len(plan.filenames)}: {Path(filename).name}")
         if downloader is None:
+            file_total_holder = {"total": 0}
+
+            def aggregate_progress(current: int, total: int, label: str) -> None:
+                file_total_holder["total"] = max(file_total_holder["total"], total)
+                overall_total = _download_progress_total(plan, total)
+                _emit_bytes(byte_progress, min(downloaded_before_file + current, overall_total), overall_total, label)
+
             path = _stream_download_with_retries(
                 filename=filename,
                 plan=plan,
                 retries=retries,
                 progress=progress,
-                byte_progress=byte_progress,
+                byte_progress=aggregate_progress,
             )
+            downloaded_before_file += file_total_holder["total"] or Path(path).stat().st_size
         else:
             path = _download_with_retries(
                 downloader,
@@ -151,6 +151,33 @@ def download_model(
     manifest_path = _save_official_model_settings(mode, plan.target_dir, validation)
     _emit(progress, "Model download complete")
     return DownloadResult(mode=mode, files=downloaded, validation=validation, manifest_path=manifest_path)
+
+
+def reuse_existing_model(
+    mode: str = "twosplit",
+    target_dir: Path | None = None,
+    progress: ProgressCallback | None = None,
+    byte_progress: ByteProgressCallback | None = None,
+    min_size_bytes: int = 2_000_000_000,
+) -> DownloadResult | None:
+    plan = build_download_plan(mode=mode, target_dir=target_dir)
+    existing = validate_checkpoint_folder(
+        plan.target_dir,
+        mode=mode,
+        min_size_bytes=min_size_bytes,
+        compute_hashes=False,
+    )
+    if existing.ok:
+        manifest_path = _save_official_model_settings(mode, plan.target_dir, existing)
+        _emit(progress, "Model checkpoints already present")
+        return DownloadResult(mode=mode, files=[file.path for file in existing.files], validation=existing, manifest_path=manifest_path)
+
+    return _reuse_discovered_checkpoints(
+        plan=plan,
+        progress=progress,
+        byte_progress=byte_progress,
+        min_size_bytes=min_size_bytes,
+    )
 
 
 def _load_hf_download() -> Callable[..., str]:
@@ -260,6 +287,12 @@ def _response_total_bytes(response, start: int) -> int:
     return 0
 
 
+def _download_progress_total(plan: DownloadPlan, current_file_total: int) -> int:
+    if current_file_total <= 0:
+        return plan.required_bytes
+    return current_file_total * len(plan.filenames)
+
+
 def _reuse_discovered_checkpoints(
     plan: DownloadPlan,
     progress: ProgressCallback | None,
@@ -269,6 +302,24 @@ def _reuse_discovered_checkpoints(
     candidates = _discover_existing_checkpoint_files(plan, min_size_bytes=min_size_bytes)
     if len(candidates) != len(plan.filenames):
         return None
+
+    discovered_folder = _common_checkpoint_folder(candidates.values(), plan.mode, min_size_bytes)
+    if discovered_folder is not None:
+        validation = validate_checkpoint_folder(
+            discovered_folder,
+            mode=plan.mode,
+            min_size_bytes=min_size_bytes,
+            compute_hashes=False,
+        )
+        manifest_path = _save_official_model_settings(plan.mode, discovered_folder, validation)
+        _emit(progress, f"Found existing checkpoint folder: {discovered_folder}")
+        _emit(progress, "Using existing checkpoints; no download needed")
+        return DownloadResult(
+            mode=plan.mode,
+            files=[file.path for file in validation.files],
+            validation=validation,
+            manifest_path=manifest_path,
+        )
 
     copied: list[Path] = []
     for filename in plan.filenames:
@@ -294,6 +345,19 @@ def _reuse_discovered_checkpoints(
     manifest_path = _save_official_model_settings(plan.mode, plan.target_dir, validation)
     _emit(progress, "Using existing checkpoints; no download needed")
     return DownloadResult(mode=plan.mode, files=copied, validation=validation, manifest_path=manifest_path)
+
+
+def _common_checkpoint_folder(files: Iterable[Path], mode: str, min_size_bytes: int) -> Path | None:
+    roots: set[Path] = set()
+    for file in files:
+        parent = file.parent
+        root = parent.parent if parent.name.lower() == "ckpt" else parent
+        roots.add(root.resolve())
+    if len(roots) != 1:
+        return None
+    root = next(iter(roots))
+    validation = validate_checkpoint_folder(root, mode=mode, min_size_bytes=min_size_bytes, compute_hashes=False)
+    return root if validation.ok else None
 
 
 def _discover_existing_checkpoint_files(plan: DownloadPlan, min_size_bytes: int) -> dict[str, Path]:
@@ -322,6 +386,13 @@ def _candidate_checkpoint_roots(target_dir: Path) -> Iterable[Path]:
         paths.app_install_dir() / ".local_app_data" / paths.APP_NAME / "models",
         paths.app_install_dir() / ".local_downloads",
     ]
+    for drive in "DEFGHIJKLMNOPQRSTUVWXYZ":
+        roots.extend(
+            [
+                Path(f"{drive}:\\_github\\diffusion-audio-restoration-windows\\.local_app_data\\{paths.APP_NAME}\\models"),
+                Path(f"{drive}:\\_github\\diffusion-audio-restoration-windows\\.local_downloads"),
+            ]
+        )
     for env_name in ["HF_HOME", "HUGGINGFACE_HUB_CACHE"]:
         value = os.environ.get(env_name)
         if value:

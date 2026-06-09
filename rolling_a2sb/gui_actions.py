@@ -7,7 +7,7 @@ from typing import Callable
 
 from .audio_probe import audio_info_dict, probe_audio
 from .checkpoint_manager import select_manual_checkpoint_folder
-from .downloader import ByteProgressCallback, build_download_plan, download_model
+from .downloader import ByteProgressCallback, build_download_plan, download_model, reuse_existing_model
 from . import paths
 from .runtime_check import diagnostic_text, doctor
 from .subprocess_runner import run_command_streaming
@@ -143,6 +143,24 @@ def download_recommended_model_stream_text(
             on_progress(line)
 
     result = download_model(mode=mode, target_dir=target_dir, progress=collect, byte_progress=on_progress_bytes)
+    return format_model_download_result(result, progress)
+
+
+def reuse_existing_model_text(
+    mode: str = "twosplit",
+    target_dir: Path | None = None,
+    on_progress: Callable[[str], None] | None = None,
+) -> str | None:
+    progress: list[str] = []
+
+    def collect(line: str) -> None:
+        progress.append(line)
+        if on_progress:
+            on_progress(line)
+
+    result = reuse_existing_model(mode=mode, target_dir=target_dir, progress=collect)
+    if result is None:
+        return None
     return format_model_download_result(result, progress)
 
 

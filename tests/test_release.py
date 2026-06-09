@@ -218,6 +218,7 @@ def write_version_sources(root: Path, project_version: str = "0.1.0a0", package_
                 'Source: "..\\pyproject.toml"; DestDir: "{app}"; Flags: ignoreversion',
                 'Source: "..\\bin\\ffmpeg.exe"; DestDir: "{app}\\bin"; Flags: ignoreversion',
                 'Source: "..\\bin\\ffprobe.exe"; DestDir: "{app}\\bin"; Flags: ignoreversion',
+                'Source: "..\\installer\\assets\\app.ico"; DestDir: "{app}\\assets"; Flags: ignoreversion',
                 "",
                 "[Run]",
                 'Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\\scripts\\setup_runtime.ps1"""; StatusMsg: "Installing private ML runtime..."; Flags: waituntilterminated',

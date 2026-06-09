@@ -58,14 +58,15 @@ Source: "..\README-WINDOWS.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LICENSE-NOTICES.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\pyproject.toml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\installer\assets\app.ico"; DestDir: "{app}\assets"; Flags: ignoreversion
 Source: "..\dist\A2SB Restorer\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 
 [Icons]
 Name: "{group}\A2SB Restorer"; Filename: "{app}\{#MyAppExeName}"
 Name: "{group}\A2SB Doctor"; Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\scripts\doctor.ps1"""
 Name: "{group}\Repair Runtime"; Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\scripts\repair_runtime.ps1"""
-Name: "{group}\Open Models Folder"; Filename: "powershell.exe"; Parameters: "-NoProfile -Command ""New-Item -ItemType Directory -Force -Path $env:LOCALAPPDATA\RollingEdit\A2SB` Restorer\models | Out-Null; Invoke-Item $env:LOCALAPPDATA\RollingEdit\A2SB` Restorer\models"""
-Name: "{group}\Open Logs Folder"; Filename: "powershell.exe"; Parameters: "-NoProfile -Command ""New-Item -ItemType Directory -Force -Path $env:LOCALAPPDATA\RollingEdit\A2SB` Restorer\logs | Out-Null; Invoke-Item $env:LOCALAPPDATA\RollingEdit\A2SB` Restorer\logs"""
+Name: "{group}\Open Models Folder"; Filename: "powershell.exe"; Parameters: "-NoProfile -Command ""$p = Join-Path '{app}' '.local_app_data\A2SB Restorer\models'; New-Item -ItemType Directory -Force -Path $p | Out-Null; Invoke-Item $p"""
+Name: "{group}\Open Logs Folder"; Filename: "powershell.exe"; Parameters: "-NoProfile -Command ""$p = Join-Path '{app}' '.local_app_data\A2SB Restorer\Logs'; New-Item -ItemType Directory -Force -Path $p | Out-Null; Invoke-Item $p"""
 
 [Run]
 Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\scripts\setup_runtime.ps1"""; StatusMsg: "Installing private ML runtime..."; Flags: waituntilterminated

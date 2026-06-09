@@ -20,6 +20,13 @@ def test_setup_runtime_uses_private_python_310_runtime() -> None:
     assert "function Write-SetupProgress" in text
     assert "Write-Progress -Activity" in text
     assert "Installing CUDA and ML runtime packages" in text
+    assert '$DefaultDataDir = Join-Path $AppRoot ".local_app_data\\A2SB Restorer"' in text
+    assert '$DefaultDownloadsDir = Join-Path $AppRoot ".local_downloads"' in text
+    assert '$env:ROLLING_A2SB_DATA_DIR = $DefaultDataDir' in text
+    assert '$env:PIP_CACHE_DIR = Join-Path $DefaultDownloadsDir "pip-cache"' in text
+    assert '$env:HF_HOME = $DefaultHfHome' in text
+    assert '$env:HUGGINGFACE_HUB_CACHE = Join-Path $DefaultHfHome "hub"' in text
+    assert '$env:TORCH_HOME = Join-Path $DefaultDownloadsDir "torch-cache"' in text
 
 
 def test_runtime_entry_scripts_execute_from_app_root() -> None:

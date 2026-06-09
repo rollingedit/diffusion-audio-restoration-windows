@@ -70,6 +70,15 @@ function Find-Python310 {
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $AppRoot = Resolve-Path (Join-Path $ScriptDir "..")
+$DefaultDataDir = Join-Path $AppRoot ".local_app_data\A2SB Restorer"
+$DefaultDownloadsDir = Join-Path $AppRoot ".local_downloads"
+$DefaultHfHome = Join-Path $DefaultDownloadsDir "huggingface-cache"
+if (-not $env:ROLLING_A2SB_DATA_DIR) { $env:ROLLING_A2SB_DATA_DIR = $DefaultDataDir }
+if (-not $env:ROLLING_A2SB_LOG_DIR) { $env:ROLLING_A2SB_LOG_DIR = Join-Path $DefaultDataDir "Logs" }
+if (-not $env:PIP_CACHE_DIR) { $env:PIP_CACHE_DIR = Join-Path $DefaultDownloadsDir "pip-cache" }
+if (-not $env:HF_HOME) { $env:HF_HOME = $DefaultHfHome }
+if (-not $env:HUGGINGFACE_HUB_CACHE) { $env:HUGGINGFACE_HUB_CACHE = Join-Path $DefaultHfHome "hub" }
+if (-not $env:TORCH_HOME) { $env:TORCH_HOME = Join-Path $DefaultDownloadsDir "torch-cache" }
 $Runtime = Join-Path $AppRoot "runtime"
 $Python = Join-Path $Runtime "Scripts\python.exe"
 $Requirements = Join-Path $AppRoot "requirements\win-cu121.txt"

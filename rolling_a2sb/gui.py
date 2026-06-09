@@ -24,6 +24,7 @@ from .gui_actions import (
     prepare_restore_dry_run,
     repair_runtime_text,
     restore_plan_text,
+    reuse_existing_model_text,
     select_checkpoint_folder_text,
     task_mode_help_text,
 )
@@ -36,6 +37,7 @@ SUPPORTED_AUDIO_EXTENSIONS = {".wav", ".mp3", ".flac"}
 def run_gui() -> int:
     try:
         from PySide6.QtCore import QThread, QTimer, Qt, Signal
+        from PySide6.QtGui import QIcon
         from PySide6.QtWidgets import (
             QApplication,
             QCheckBox,
@@ -61,6 +63,16 @@ def run_gui() -> int:
         )
     except Exception as exc:
         raise RuntimeError("PySide6 is required for the graphical app. Run Repair Runtime.") from exc
+
+    def app_icon_path() -> Path | None:
+        candidates = [
+            paths.app_install_dir() / "assets" / "app.ico",
+            paths.app_install_dir() / "installer" / "assets" / "app.ico",
+        ]
+        for candidate in candidates:
+            if candidate.exists():
+                return candidate
+        return None
 
     class RestoreThread(QThread):
         restore_line = Signal(str, str)
@@ -129,8 +141,12 @@ def run_gui() -> int:
             self.repair_thread = None
             self.download_thread = None
             self.download_mode = "twosplit"
+            self.inpaint_audio_loaded = False
             self.last_output_folder: Path | None = None
             self.setWindowTitle("A2SB Restorer")
+            icon_path = app_icon_path()
+            if icon_path:
+                self.setWindowIcon(QIcon(str(icon_path)))
             self.resize(900, 620)
             self.setAcceptDrops(True)
 
@@ -230,12 +246,14 @@ def run_gui() -> int:
             self.inpaint_start_spin.setRange(0.0, 3600.0)
             self.inpaint_start_spin.setDecimals(2)
             self.inpaint_start_spin.setSingleStep(0.1)
+            self.inpaint_start_spin.setEnabled(False)
             self.inpaint_end_label = QLabel("Gap end")
             self.inpaint_end_spin = QDoubleSpinBox()
             self.inpaint_end_spin.setRange(0.01, 3600.0)
             self.inpaint_end_spin.setDecimals(2)
             self.inpaint_end_spin.setSingleStep(0.1)
             self.inpaint_end_spin.setValue(0.5)
+            self.inpaint_end_spin.setEnabled(False)
             self.advanced_check = QCheckBox("Advanced")
             task_row.addWidget(QLabel("Mode"))
             task_row.addWidget(self.bandwidth_radio)
@@ -280,9 +298,11 @@ def run_gui() -> int:
             range_title_row.addWidget(self.inpaint_range_value)
             self.inpaint_start_slider = QSlider(Qt.Horizontal)
             self.inpaint_start_slider.setRange(0, 500)
+            self.inpaint_start_slider.setEnabled(False)
             self.inpaint_end_slider = QSlider(Qt.Horizontal)
             self.inpaint_end_slider.setRange(1, 500)
             self.inpaint_end_slider.setValue(500)
+            self.inpaint_end_slider.setEnabled(False)
             self.inpaint_range_row.addLayout(range_title_row)
             self.inpaint_range_row.addWidget(self.inpaint_start_slider)
             self.inpaint_range_row.addWidget(self.inpaint_end_slider)
@@ -359,6 +379,7 @@ def run_gui() -> int:
             self.inpaint_end_spin.valueChanged.connect(self.inpaint_spin_changed)
             self.advanced_check.stateChanged.connect(self.update_restore_mode_ui)
             self.update_restore_mode_ui()
+            self.set_inpaint_controls_enabled(False)
             return tab
 
         def build_logs_tab(self) -> QWidget:
@@ -395,11 +416,18 @@ def run_gui() -> int:
             return tab
 
         def refresh_report(self) -> dict:
+            self.try_reuse_existing_models()
             report = doctor()
             self.status.setText("Ready" if report.get("ok") else self.not_ready_message(report))
             self.report.setPlainText(doctor_report_text())
             self.set_restore_ready(bool(report.get("ok")), report)
             return report
+
+        def try_reuse_existing_models(self) -> None:
+            try:
+                reuse_existing_model_text(mode=self.current_model_mode())
+            except Exception:
+                pass
 
         def can_offer_model_download(self, report: dict) -> bool:
             checkpoints = report.get("checkpoints", {}) if isinstance(report.get("checkpoints"), dict) else {}
@@ -449,7 +477,7 @@ def run_gui() -> int:
             for widget in [self.cutoff_label, self.cutoff_spin]:
                 widget.setVisible(not inpaint)
             for widget in [self.inpaint_start_label, self.inpaint_start_spin, self.inpaint_end_label, self.inpaint_end_spin]:
-                widget.setVisible(inpaint and advanced)
+                widget.setVisible(inpaint)
             for index in range(self.inpaint_range_row.count()):
                 item = self.inpaint_range_row.itemAt(index)
                 if item and item.widget():
@@ -491,13 +519,27 @@ def run_gui() -> int:
                 return "Inpainting repairs a short damaged or missing time segment. Select the segment below, then restore."
             return "Bandwidth extension predicts missing high-frequency detail for dull or low-passed audio."
 
+        def set_inpaint_controls_enabled(self, enabled: bool) -> None:
+            self.inpaint_audio_loaded = enabled
+            for widget in [
+                self.inpaint_start_slider,
+                self.inpaint_end_slider,
+                self.inpaint_start_spin,
+                self.inpaint_end_spin,
+            ]:
+                widget.setEnabled(enabled)
+            if not enabled:
+                self.inpaint_range_value.setText("Select audio first")
+
         def configure_inpaint_range_for_audio(self, audio_path: Path) -> None:
             try:
                 info = probe_audio(audio_path)
             except Exception:
+                self.set_inpaint_controls_enabled(False)
                 return
             duration = info.duration_seconds
             if not duration or duration <= 0:
+                self.set_inpaint_controls_enabled(False)
                 return
             slider_max = max(100, int(duration * 100))
             self.inpaint_start_slider.blockSignals(True)
@@ -509,6 +551,7 @@ def run_gui() -> int:
             self.inpaint_end_slider.setValue(end_value)
             self.inpaint_start_slider.blockSignals(False)
             self.inpaint_end_slider.blockSignals(False)
+            self.set_inpaint_controls_enabled(True)
             self.inpaint_slider_changed()
 
         def inpaint_slider_changed(self) -> None:
@@ -533,15 +576,27 @@ def run_gui() -> int:
             self.inpaint_range_value.setText(f"{start:.2f}s to {end:.2f}s")
 
         def inpaint_spin_changed(self) -> None:
-            start = int(self.inpaint_start_spin.value() * 100)
-            end = int(self.inpaint_end_spin.value() * 100)
+            start_seconds = self.inpaint_start_spin.value()
+            end_seconds = self.inpaint_end_spin.value()
+            if end_seconds <= start_seconds:
+                end_seconds = start_seconds + 0.01
+                self.inpaint_end_spin.blockSignals(True)
+                self.inpaint_end_spin.setValue(end_seconds)
+                self.inpaint_end_spin.blockSignals(False)
+            if end_seconds - start_seconds > 1.0:
+                end_seconds = start_seconds + 1.0
+                self.inpaint_end_spin.blockSignals(True)
+                self.inpaint_end_spin.setValue(end_seconds)
+                self.inpaint_end_spin.blockSignals(False)
+            start = int(start_seconds * 100)
+            end = int(end_seconds * 100)
             self.inpaint_start_slider.blockSignals(True)
             self.inpaint_end_slider.blockSignals(True)
             self.inpaint_start_slider.setValue(max(self.inpaint_start_slider.minimum(), min(start, self.inpaint_start_slider.maximum())))
             self.inpaint_end_slider.setValue(max(self.inpaint_end_slider.minimum(), min(end, self.inpaint_end_slider.maximum())))
             self.inpaint_start_slider.blockSignals(False)
             self.inpaint_end_slider.blockSignals(False)
-            self.inpaint_range_value.setText(f"{self.inpaint_start_spin.value():.2f}s to {self.inpaint_end_spin.value():.2f}s")
+            self.inpaint_range_value.setText(f"{start_seconds:.2f}s to {end_seconds:.2f}s")
 
         def show_download_plan(self) -> None:
             self.report.setPlainText(download_plan_text(mode=self.current_model_mode()))
@@ -640,6 +695,11 @@ def run_gui() -> int:
 
         def download_official_model(self, prompt: bool = True) -> None:
             mode = self.current_model_mode()
+            reused = reuse_existing_model_text(mode=mode, on_progress=lambda line: self.report.append(line))
+            if reused is not None:
+                self.report.setPlainText(reused)
+                self.refresh_report()
+                return
             confirmation = model_download_confirmation_text(mode=mode)
             self.report.setPlainText(confirmation)
             if prompt:
@@ -661,7 +721,6 @@ def run_gui() -> int:
             self.setup_progress.setValue(0)
             self.setup_progress.setTextVisible(True)
             self.setup_progress.setFormat("Starting download...")
-            self.download_progress_timer.start(500)
             self.download_thread = ModelDownloadThread(mode)
             self.download_thread.download_line.connect(self.model_download_line_received)
             self.download_thread.download_progress.connect(self.model_download_progress_received)
@@ -947,6 +1006,7 @@ def run_gui() -> int:
             self.input_edit.clear()
             self.output_edit.clear()
             self.restore_output.clear()
+            self.set_inpaint_controls_enabled(False)
             self.last_output_folder = None
             self.open_output_button.setEnabled(False)
             self.restore_setup_button.setEnabled(False)
@@ -977,6 +1037,9 @@ def run_gui() -> int:
             return "inpaint" if self.inpaint_radio.isChecked() else "bandwidth"
 
     app = QApplication(sys.argv)
+    icon_path = app_icon_path()
+    if icon_path:
+        app.setWindowIcon(QIcon(str(icon_path)))
     window = MainWindow()
     window.show()
     QTimer.singleShot(250, window.offer_startup_model_download)

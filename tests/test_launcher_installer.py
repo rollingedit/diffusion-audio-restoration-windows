@@ -9,6 +9,12 @@ def test_launcher_uses_runtime_python_and_app_module() -> None:
 
     assert "runtime" in text
     assert "rolling_a2sb.app" in text
+    assert "local_env(root)" in text
+    assert "ROLLING_A2SB_DATA_DIR" in text
+    assert "PIP_CACHE_DIR" in text
+    assert "HF_HOME" in text
+    assert "HUGGINGFACE_HUB_CACHE" in text
+    assert "TORCH_HOME" in text
     assert "shell=False" in text
     assert "CREATE_NO_WINDOW" in text
     assert "creationflags=CREATE_NO_WINDOW" in text
@@ -36,6 +42,9 @@ def test_inno_installer_is_per_user_and_has_shortcuts() -> None:
     assert "Repair Runtime" in text
     assert "Open Models Folder" in text
     assert "Open Logs Folder" in text
+    assert ".local_app_data\\A2SB Restorer\\models" in text
+    assert ".local_app_data\\A2SB Restorer\\Logs" in text
+    assert "$env:LOCALAPPDATA\\RollingEdit" not in text
 
 
 def test_inno_installer_does_not_include_checkpoint_patterns() -> None:
@@ -61,6 +70,7 @@ def test_launcher_spec_uses_one_folder_not_one_file_torch_bundle() -> None:
 
     assert "COLLECT(" in text
     assert "exclude_binaries=True" in text
+    assert 'icon="../installer/assets/app.ico"' in text
     assert "torch" not in text.lower()
 
 
@@ -89,6 +99,7 @@ def test_inno_launcher_payload_is_mandatory() -> None:
     assert launcher_lines
     assert all("skipifsourcedoesntexist" not in line.lower() for line in launcher_lines)
     assert 'Source: "..\\pyproject.toml"; DestDir: "{app}"; Flags: ignoreversion' in text
+    assert 'Source: "..\\installer\\assets\\app.ico"; DestDir: "{app}\\assets"; Flags: ignoreversion' in text
 
 
 def test_inno_source_payload_excludes_cache_and_finder_metadata() -> None:

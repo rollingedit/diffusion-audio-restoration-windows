@@ -23,6 +23,20 @@ def setup_script(root: Path) -> Path:
     return root / "scripts" / "setup_runtime.ps1"
 
 
+def local_env(root: Path) -> dict[str, str]:
+    env = os.environ.copy()
+    data_dir = root / ".local_app_data" / "A2SB Restorer"
+    download_dir = root / ".local_downloads"
+    hf_home = download_dir / "huggingface-cache"
+    env.setdefault("ROLLING_A2SB_DATA_DIR", str(data_dir))
+    env.setdefault("ROLLING_A2SB_LOG_DIR", str(data_dir / "Logs"))
+    env.setdefault("PIP_CACHE_DIR", str(download_dir / "pip-cache"))
+    env.setdefault("HF_HOME", str(hf_home))
+    env.setdefault("HUGGINGFACE_HUB_CACHE", str(hf_home / "hub"))
+    env.setdefault("TORCH_HOME", str(download_dir / "torch-cache"))
+    return env
+
+
 def ensure_runtime(root: Path) -> int:
     python = runtime_python(root)
     if python.exists():
@@ -42,6 +56,7 @@ def ensure_runtime(root: Path) -> int:
             str(script),
         ],
         cwd=str(root),
+        env=local_env(root),
         shell=False,
         check=False,
         creationflags=CREATE_NO_WINDOW,
@@ -55,7 +70,7 @@ def launch_app(root: Path) -> int:
         print(f"Runtime Python was not found: {python}", file=sys.stderr)
         return 1
 
-    env = os.environ.copy()
+    env = local_env(root)
     env["PYTHONUTF8"] = "1"
     subprocess.Popen(
         [str(python), "-m", "rolling_a2sb.app"],
